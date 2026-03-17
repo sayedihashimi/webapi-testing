@@ -1,0 +1,341 @@
+@baseUrl = http://localhost:5000
+
+### =============================================
+### AUTHORS
+### =============================================
+
+### List all authors
+GET {{baseUrl}}/api/authors?page=1&pageSize=10
+
+### Search authors by name
+GET {{baseUrl}}/api/authors?search=harari
+
+### Get author details with books (Yuval Noah Harari)
+GET {{baseUrl}}/api/authors/3
+
+### Create a new author
+POST {{baseUrl}}/api/authors
+Content-Type: application/json
+
+{
+  "firstName": "George",
+  "lastName": "Orwell",
+  "biography": "English novelist and essayist known for 1984 and Animal Farm.",
+  "birthDate": "1903-06-25",
+  "country": "United Kingdom"
+}
+
+### Update an author
+PUT {{baseUrl}}/api/authors/1
+Content-Type: application/json
+
+{
+  "firstName": "Harper",
+  "lastName": "Lee",
+  "biography": "American novelist. Author of To Kill a Mockingbird and Go Set a Watchman.",
+  "birthDate": "1926-04-28",
+  "country": "United States"
+}
+
+### Delete an author (will fail — has books)
+DELETE {{baseUrl}}/api/authors/1
+
+### =============================================
+### CATEGORIES
+### =============================================
+
+### List all categories
+GET {{baseUrl}}/api/categories
+
+### Get category details with book count
+GET {{baseUrl}}/api/categories/1
+
+### Create a new category
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Philosophy",
+  "description": "Works exploring fundamental questions about existence and knowledge"
+}
+
+### Update a category
+PUT {{baseUrl}}/api/categories/1
+Content-Type: application/json
+
+{
+  "name": "Fiction",
+  "description": "Literary works created from the imagination, including novels and short stories"
+}
+
+### Delete a category (will fail — has books)
+DELETE {{baseUrl}}/api/categories/1
+
+### =============================================
+### BOOKS
+### =============================================
+
+### List all books
+GET {{baseUrl}}/api/books?page=1&pageSize=10
+
+### Search books by title
+GET {{baseUrl}}/api/books?search=dune
+
+### Filter available books only
+GET {{baseUrl}}/api/books?available=true
+
+### Filter unavailable books
+GET {{baseUrl}}/api/books?available=false
+
+### Sort books by title descending
+GET {{baseUrl}}/api/books?sortBy=title&sortDir=desc
+
+### Sort books by publication year
+GET {{baseUrl}}/api/books?sortBy=year&sortDir=asc
+
+### Get book details (Dune — includes authors, categories, availability)
+GET {{baseUrl}}/api/books/2
+
+### Create a new book
+POST {{baseUrl}}/api/books
+Content-Type: application/json
+
+{
+  "title": "The Contact",
+  "isbn": "978-0-671-00410-8",
+  "publisher": "Simon & Schuster",
+  "publicationYear": 1985,
+  "description": "A novel about humanity's first contact with extraterrestrial intelligence.",
+  "pageCount": 432,
+  "language": "English",
+  "totalCopies": 3,
+  "authorIds": [4],
+  "categoryIds": [1, 2]
+}
+
+### Update a book
+PUT {{baseUrl}}/api/books/1
+Content-Type: application/json
+
+{
+  "title": "To Kill a Mockingbird",
+  "isbn": "978-0-06-112008-4",
+  "publisher": "J. B. Lippincott & Co.",
+  "publicationYear": 1960,
+  "description": "A classic novel about racial injustice in the American South, seen through the eyes of a child.",
+  "pageCount": 281,
+  "language": "English",
+  "totalCopies": 5,
+  "authorIds": [1],
+  "categoryIds": [1]
+}
+
+### Delete a book (will fail — has active loans)
+DELETE {{baseUrl}}/api/books/1
+
+### Get loan history for a book
+GET {{baseUrl}}/api/books/1/loans
+
+### Get active reservations queue for a book
+GET {{baseUrl}}/api/books/2/reservations
+
+### =============================================
+### PATRONS
+### =============================================
+
+### List all patrons
+GET {{baseUrl}}/api/patrons?page=1&pageSize=10
+
+### Search patrons
+GET {{baseUrl}}/api/patrons?search=alice
+
+### Filter by membership type
+GET {{baseUrl}}/api/patrons?membershipType=Premium
+
+### Filter Student members
+GET {{baseUrl}}/api/patrons?membershipType=Student
+
+### Get patron details with summary (Alice — Premium, active loans)
+GET {{baseUrl}}/api/patrons/1
+
+### Get patron details (David — has high unpaid fines)
+GET {{baseUrl}}/api/patrons/4
+
+### Create a new patron
+POST {{baseUrl}}/api/patrons
+Content-Type: application/json
+
+{
+  "firstName": "Grace",
+  "lastName": "Hopper",
+  "email": "grace.hopper@email.com",
+  "phone": "555-0107",
+  "address": "100 Navy Yard, Washington DC",
+  "membershipType": "Premium"
+}
+
+### Update a patron
+PUT {{baseUrl}}/api/patrons/2
+Content-Type: application/json
+
+{
+  "firstName": "Bob",
+  "lastName": "Smith",
+  "email": "bob.smith@email.com",
+  "phone": "555-0102",
+  "address": "456 Maple Ave, Suite 2, Springfield",
+  "membershipType": "Premium"
+}
+
+### Deactivate a patron (will fail if active loans)
+DELETE {{baseUrl}}/api/patrons/1
+
+### Get patron loans (all)
+GET {{baseUrl}}/api/patrons/1/loans
+
+### Get patron loans filtered by status
+GET {{baseUrl}}/api/patrons/1/loans?status=Active
+
+### Get patron reservations
+GET {{baseUrl}}/api/patrons/5/reservations
+
+### Get patron fines (all)
+GET {{baseUrl}}/api/patrons/4/fines
+
+### Get patron fines filtered by status
+GET {{baseUrl}}/api/patrons/4/fines?status=Unpaid
+
+### =============================================
+### LOANS
+### =============================================
+
+### List all loans
+GET {{baseUrl}}/api/loans?page=1&pageSize=10
+
+### Filter loans by status
+GET {{baseUrl}}/api/loans?status=Active
+
+### Filter returned loans
+GET {{baseUrl}}/api/loans?status=Returned
+
+### Filter overdue loans
+GET {{baseUrl}}/api/loans?overdue=true
+
+### Filter loans by date range
+GET {{baseUrl}}/api/loans?fromDate=2025-01-01&toDate=2025-12-31
+
+### Get loan details
+GET {{baseUrl}}/api/loans/1
+
+### Get all overdue loans
+GET {{baseUrl}}/api/loans/overdue
+
+### Checkout a book (normal — should succeed)
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 6,
+  "patronId": 2
+}
+
+### Checkout — patron with too many fines (David, id=4, has $13.50 unpaid)
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 10,
+  "patronId": 4
+}
+
+### Checkout — book with no available copies (would fail if all checked out)
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 2,
+  "patronId": 5
+}
+
+### Checkout — inactive patron (Frank, id=6)
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 10,
+  "patronId": 6
+}
+
+### Return a book (loan 1 — active, on time)
+POST {{baseUrl}}/api/loans/1/return
+
+### Return an overdue book (loan 5 — overdue, will generate fine)
+POST {{baseUrl}}/api/loans/5/return
+
+### Renew a loan (loan 2 — active, no renewals yet)
+POST {{baseUrl}}/api/loans/2/renew
+
+### Renew a loan (loan 6 — already renewed once)
+POST {{baseUrl}}/api/loans/6/renew
+
+### =============================================
+### RESERVATIONS
+### =============================================
+
+### List all reservations
+GET {{baseUrl}}/api/reservations?page=1&pageSize=10
+
+### Filter reservations by status
+GET {{baseUrl}}/api/reservations?status=Pending
+
+### Filter Ready reservations
+GET {{baseUrl}}/api/reservations?status=Ready
+
+### Get reservation details
+GET {{baseUrl}}/api/reservations/1
+
+### Create a reservation
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "patronId": 5
+}
+
+### Create reservation — patron already has active loan for book (should fail)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "patronId": 1
+}
+
+### Cancel a reservation
+POST {{baseUrl}}/api/reservations/1/cancel
+
+### Fulfill a Ready reservation (reservation 2 is Ready)
+POST {{baseUrl}}/api/reservations/2/fulfill
+
+### =============================================
+### FINES
+### =============================================
+
+### List all fines
+GET {{baseUrl}}/api/fines?page=1&pageSize=10
+
+### Filter unpaid fines
+GET {{baseUrl}}/api/fines?status=Unpaid
+
+### Filter paid fines
+GET {{baseUrl}}/api/fines?status=Paid
+
+### Get fine details
+GET {{baseUrl}}/api/fines/2
+
+### Pay a fine
+POST {{baseUrl}}/api/fines/2/pay
+
+### Waive a fine
+POST {{baseUrl}}/api/fines/3/waive

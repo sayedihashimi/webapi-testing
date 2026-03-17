@@ -1,0 +1,411 @@
+@baseUrl = http://localhost:5000
+
+### ============================================================
+### MEMBERSHIP PLANS
+### ============================================================
+
+### List all active membership plans
+GET {{baseUrl}}/api/membership-plans
+Accept: application/json
+
+### Get a specific plan (Basic)
+GET {{baseUrl}}/api/membership-plans/1
+Accept: application/json
+
+### Create a new membership plan
+POST {{baseUrl}}/api/membership-plans
+Content-Type: application/json
+
+{
+  "name": "Student",
+  "description": "Discounted plan for students with valid ID",
+  "durationMonths": 3,
+  "price": 19.99,
+  "maxClassBookingsPerWeek": 2,
+  "allowsPremiumClasses": false
+}
+
+### Update a membership plan
+PUT {{baseUrl}}/api/membership-plans/1
+Content-Type: application/json
+
+{
+  "name": "Basic",
+  "description": "Access to standard classes with limited bookings per week - Updated",
+  "durationMonths": 1,
+  "price": 34.99,
+  "maxClassBookingsPerWeek": 4,
+  "allowsPremiumClasses": false,
+  "isActive": true
+}
+
+### Deactivate a membership plan
+DELETE {{baseUrl}}/api/membership-plans/4
+Accept: application/json
+
+### ============================================================
+### MEMBERS
+### ============================================================
+
+### List all members (default pagination)
+GET {{baseUrl}}/api/members
+Accept: application/json
+
+### Search members by name
+GET {{baseUrl}}/api/members?search=alice&page=1&pageSize=10
+Accept: application/json
+
+### Filter active members only
+GET {{baseUrl}}/api/members?isActive=true&page=1&pageSize=5
+Accept: application/json
+
+### Get member details (Alice - has Premium membership)
+GET {{baseUrl}}/api/members/1
+Accept: application/json
+
+### Register a new member
+POST {{baseUrl}}/api/members
+Content-Type: application/json
+
+{
+  "firstName": "Isabella",
+  "lastName": "Garcia",
+  "email": "isabella@example.com",
+  "phone": "555-0201",
+  "dateOfBirth": "2000-05-20",
+  "emergencyContactName": "Maria Garcia",
+  "emergencyContactPhone": "555-0202"
+}
+
+### Update a member
+PUT {{baseUrl}}/api/members/1
+Content-Type: application/json
+
+{
+  "firstName": "Alice",
+  "lastName": "Johnson",
+  "email": "alice.updated@example.com",
+  "phone": "555-0101",
+  "dateOfBirth": "1990-03-15",
+  "emergencyContactName": "Bob Johnson",
+  "emergencyContactPhone": "555-0102"
+}
+
+### Deactivate a member (should fail if has future bookings)
+DELETE {{baseUrl}}/api/members/7
+Accept: application/json
+
+### Get member bookings (all)
+GET {{baseUrl}}/api/members/1/bookings?page=1&pageSize=10
+Accept: application/json
+
+### Get member bookings filtered by status
+GET {{baseUrl}}/api/members/1/bookings?status=Confirmed&page=1&pageSize=10
+Accept: application/json
+
+### Get upcoming bookings for a member
+GET {{baseUrl}}/api/members/1/bookings/upcoming
+Accept: application/json
+
+### Get membership history
+GET {{baseUrl}}/api/members/1/memberships
+Accept: application/json
+
+### ============================================================
+### MEMBERSHIPS
+### ============================================================
+
+### Create a new membership (for Grace who has an expired one)
+POST {{baseUrl}}/api/memberships
+Content-Type: application/json
+
+{
+  "memberId": 7,
+  "membershipPlanId": 2,
+  "startDate": "2025-03-17",
+  "paymentStatus": "Paid"
+}
+
+### Get membership details
+GET {{baseUrl}}/api/memberships/1
+Accept: application/json
+
+### Cancel a membership
+POST {{baseUrl}}/api/memberships/1/cancel
+Content-Type: application/json
+
+### Freeze a membership (7-30 days)
+POST {{baseUrl}}/api/memberships/2/freeze
+Content-Type: application/json
+
+{
+  "freezeDays": 14
+}
+
+### Unfreeze a membership
+POST {{baseUrl}}/api/memberships/2/unfreeze
+Content-Type: application/json
+
+### Renew an expired membership
+POST {{baseUrl}}/api/memberships/7/renew
+Content-Type: application/json
+
+### ============================================================
+### INSTRUCTORS
+### ============================================================
+
+### List all instructors
+GET {{baseUrl}}/api/instructors
+Accept: application/json
+
+### Filter by specialization
+GET {{baseUrl}}/api/instructors?specialization=Yoga
+Accept: application/json
+
+### Filter active instructors
+GET {{baseUrl}}/api/instructors?isActive=true
+Accept: application/json
+
+### Get instructor details
+GET {{baseUrl}}/api/instructors/1
+Accept: application/json
+
+### Create a new instructor
+POST {{baseUrl}}/api/instructors
+Content-Type: application/json
+
+{
+  "firstName": "Rachel",
+  "lastName": "Kim",
+  "email": "rachel.kim@zenith.com",
+  "phone": "555-0301",
+  "bio": "Certified Zumba and dance fitness instructor",
+  "specializations": "Zumba,Dance,Cardio",
+  "hireDate": "2025-01-15"
+}
+
+### Update an instructor
+PUT {{baseUrl}}/api/instructors/1
+Content-Type: application/json
+
+{
+  "firstName": "Sarah",
+  "lastName": "Chen",
+  "email": "sarah.chen@zenith.com",
+  "phone": "555-0201",
+  "bio": "15 years of yoga and meditation experience. RYT-500 certified.",
+  "specializations": "Yoga,Meditation,Pilates,Breathwork",
+  "isActive": true
+}
+
+### Get instructor schedule
+GET {{baseUrl}}/api/instructors/1/schedule
+Accept: application/json
+
+### Get instructor schedule with date range
+GET {{baseUrl}}/api/instructors/2/schedule?from=2025-03-17&to=2025-03-24
+Accept: application/json
+
+### ============================================================
+### CLASS TYPES
+### ============================================================
+
+### List all class types
+GET {{baseUrl}}/api/class-types
+Accept: application/json
+
+### Filter by difficulty level
+GET {{baseUrl}}/api/class-types?difficulty=Beginner
+Accept: application/json
+
+### Filter premium classes only
+GET {{baseUrl}}/api/class-types?isPremium=true
+Accept: application/json
+
+### Get class type details
+GET {{baseUrl}}/api/class-types/1
+Accept: application/json
+
+### Create a new class type
+POST {{baseUrl}}/api/class-types
+Content-Type: application/json
+
+{
+  "name": "Zumba",
+  "description": "Latin-inspired dance fitness class",
+  "defaultDurationMinutes": 60,
+  "defaultCapacity": 30,
+  "isPremium": false,
+  "caloriesPerSession": 400,
+  "difficultyLevel": "AllLevels"
+}
+
+### Update a class type
+PUT {{baseUrl}}/api/class-types/1
+Content-Type: application/json
+
+{
+  "name": "Yoga",
+  "description": "Vinyasa flow yoga for flexibility and mindfulness - all levels welcome!",
+  "defaultDurationMinutes": 75,
+  "defaultCapacity": 25,
+  "isPremium": false,
+  "caloriesPerSession": 300,
+  "difficultyLevel": "AllLevels",
+  "isActive": true
+}
+
+### ============================================================
+### CLASS SCHEDULES
+### ============================================================
+
+### List all class schedules (default pagination)
+GET {{baseUrl}}/api/classes?page=1&pageSize=10
+Accept: application/json
+
+### Filter by class type
+GET {{baseUrl}}/api/classes?classTypeId=1&page=1&pageSize=10
+Accept: application/json
+
+### Filter by instructor
+GET {{baseUrl}}/api/classes?instructorId=1&page=1&pageSize=10
+Accept: application/json
+
+### Filter available classes only
+GET {{baseUrl}}/api/classes?available=true&page=1&pageSize=10
+Accept: application/json
+
+### Get class schedule details
+GET {{baseUrl}}/api/classes/1
+Accept: application/json
+
+### Schedule a new class
+POST {{baseUrl}}/api/classes
+Content-Type: application/json
+
+{
+  "classTypeId": 1,
+  "instructorId": 1,
+  "startTime": "2025-03-25T10:00:00",
+  "endTime": "2025-03-25T11:00:00",
+  "capacity": 20,
+  "room": "Studio A"
+}
+
+### Update a class schedule
+PUT {{baseUrl}}/api/classes/7
+Content-Type: application/json
+
+{
+  "instructorId": 1,
+  "startTime": "2025-03-20T08:00:00",
+  "endTime": "2025-03-20T09:00:00",
+  "capacity": 25,
+  "room": "Studio B"
+}
+
+### Cancel a class (cascades to bookings)
+PATCH {{baseUrl}}/api/classes/10/cancel
+Content-Type: application/json
+
+{
+  "reason": "Instructor called in sick"
+}
+
+### Get confirmed member roster
+GET {{baseUrl}}/api/classes/1/roster
+Accept: application/json
+
+### Get class waitlist
+GET {{baseUrl}}/api/classes/5/waitlist
+Accept: application/json
+
+### Get available classes in next 7 days
+GET {{baseUrl}}/api/classes/available
+Accept: application/json
+
+### ============================================================
+### BOOKINGS
+### ============================================================
+
+### Book a class (member 3 = Carol with Elite plan, class 7 = future Yoga)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+
+{
+  "classScheduleId": 7,
+  "memberId": 3
+}
+
+### Get booking details
+GET {{baseUrl}}/api/bookings/1
+Accept: application/json
+
+### Cancel a booking
+POST {{baseUrl}}/api/bookings/1/cancel
+Content-Type: application/json
+
+{
+  "reason": "Schedule conflict"
+}
+
+### Check in to a class
+POST {{baseUrl}}/api/bookings/1/check-in
+Content-Type: application/json
+
+### Mark a no-show
+POST {{baseUrl}}/api/bookings/1/no-show
+Content-Type: application/json
+
+### ============================================================
+### BUSINESS RULE TESTS
+### ============================================================
+
+### Test: Premium class access denied (Brian has Basic plan, Boxing is premium)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+
+{
+  "classScheduleId": 5,
+  "memberId": 2
+}
+
+### Test: Booking for full class goes to waitlist (class 5 is full)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+
+{
+  "classScheduleId": 5,
+  "memberId": 6
+}
+
+### Test: Member with expired membership cannot book (Henry - member 8)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+
+{
+  "classScheduleId": 7,
+  "memberId": 8
+}
+
+### Test: Freeze validation - too few days
+POST {{baseUrl}}/api/memberships/3/freeze
+Content-Type: application/json
+
+{
+  "freezeDays": 3
+}
+
+### Test: Create member under 16 (should fail)
+POST {{baseUrl}}/api/members
+Content-Type: application/json
+
+{
+  "firstName": "Young",
+  "lastName": "Kid",
+  "email": "young@example.com",
+  "phone": "555-9999",
+  "dateOfBirth": "2015-01-01",
+  "emergencyContactName": "Parent",
+  "emergencyContactPhone": "555-9998"
+}
