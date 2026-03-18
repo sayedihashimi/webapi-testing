@@ -18,29 +18,6 @@ description: >
 Produce well-structured ASP.NET Core Web API endpoints with proper HTTP
 semantics, OpenAPI documentation, error handling, and data access patterns.
 
-## When to Use
-
-- Adding new API endpoints to an existing ASP.NET Core project
-- Creating a new Web API project from scratch
-- Wiring up OpenAPI/Swagger for an API that lacks it
-- Connecting API endpoints to a database via EF Core
-- Adding pagination, filtering, or sorting to list endpoints
-- Setting up global error handling for an API
-
-## When Not to Use
-
-- The project is a Blazor app, gRPC service, or SignalR hub
-- The task is purely EF Core query optimization with no API surface changes
-- The task is general C# refactoring unrelated to HTTP endpoints
-
-## Inputs
-
-| Input | Required | Description |
-|-------|----------|-------------|
-| Target project | Yes | The ASP.NET Core project to modify (`.csproj`) |
-| Endpoint requirements | Yes | What the API should do (resources, operations, business rules) |
-| Existing API style | No | Whether the project already uses controllers or minimal APIs |
-
 ## Workflow
 
 ### General: Seal all types by default
@@ -112,20 +89,10 @@ public sealed record CreateProductRequest
 
     public required int CategoryId { get; init; }
 }
-
-public sealed record UpdateProductRequest
-{
-    [Required, MaxLength(200)]
-    public required string Name { get; init; }
-
-    [Range(0.01, 999999.99)]
-    public required decimal Price { get; init; }
-
-    public required int CategoryId { get; init; }
-
-    public required bool IsAvailable { get; init; }
-}
 ```
+
+Follow the same pattern for `Update{Entity}Request` records, adding any
+additional properties the update requires (e.g., `IsAvailable`).
 
 **Do not** use mutable classes (`{ get; set; }`) for DTOs. Mutable DTOs allow
 accidental modification after construction and lose the self-documenting
@@ -157,10 +124,9 @@ different types with no common base the compiler can infer, which causes
 compiler falls back to matching `RequestDelegate(HttpContext)`.
 
 **Fallback — `Results` factory:** If a handler has many conditional branches
-(3+ result types) and the `Results<T1, T2, T3, ...>` annotation becomes
-unwieldy, you may use the `Results` factory (`Results.Ok()`, `Results.NotFound()`,
-etc.) which returns `IResult`. This sacrifices compile-time OpenAPI inference
-but simplifies complex signatures.
+(3+ result types), you may use the `Results` factory (`Results.Ok()`,
+`Results.NotFound()`) which returns `IResult`, sacrificing compile-time OpenAPI
+inference for simpler signatures.
 
 **Status codes:**
 
@@ -201,14 +167,6 @@ app.MapGet("/api/products/{id}", async Task<Results<Ok<ProductResponse>, NotFoun
     var product = await service.GetByIdAsync(id, cancellationToken);
     return product is null ? TypedResults.NotFound() : TypedResults.Ok(product);
 });
-
-// Minimal API example — Results factory (fallback for complex multi-branch handlers)
-app.MapGet("/api/products/{id}", async (
-    int id, IProductService service, CancellationToken cancellationToken) =>
-{
-    var product = await service.GetByIdAsync(id, cancellationToken);
-    return product is null ? Results.NotFound() : Results.Ok(product);
-});
 ```
 
 **Pagination:** For any endpoint that returns a list of items, support
@@ -247,20 +205,6 @@ public sealed record PaginatedResponse<T>
 }
 ```
 
-Response shape:
-
-```json
-{
-  "items": [ ... ],
-  "page": 1,
-  "pageSize": 20,
-  "totalCount": 142,
-  "totalPages": 8,
-  "hasNextPage": true,
-  "hasPreviousPage": false
-}
-```
-
 Enforce a sensible default page size (e.g., 20) and a maximum (e.g., 100)
 to prevent clients from requesting unbounded result sets.
 
@@ -269,52 +213,14 @@ to prevent clients from requesting unbounded result sets.
 Every ASP.NET Core Web API should have OpenAPI documentation. Check whether
 the project already has OpenAPI configured before adding it.
 
-**For .NET 9+ projects**, use the built-in ASP.NET Core OpenAPI support:
-
-```csharp
-// In Program.cs
-builder.Services.AddOpenApi();
-
-// After building the app
-app.MapOpenApi();
-```
-
-Reference: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/overview
-
-**Add Swagger UI** if the project uses `Swashbuckle.AspNetCore` or
-`NSwag.AspNetCore`. If neither is present and the user wants a visual explorer,
-add `Swashbuckle.AspNetCore`:
-
-```bash
-dotnet add package Swashbuckle.AspNetCore
-```
-
-```csharp
-builder.Services.AddSwaggerGen();
-
-// In the middleware pipeline (typically in development only)
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-```
+**For .NET 9+ projects**, use the built-in ASP.NET Core OpenAPI support
+(`builder.Services.AddOpenApi()` + `app.MapOpenApi()`). If the user wants a
+visual explorer, add `Swashbuckle.AspNetCore` and enable `app.UseSwaggerUI()`
+in development. Reference: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/overview
 
 **OpenAPI metadata on endpoints:** Add descriptive metadata so the generated
-documentation is useful, not just a list of routes.
-
-For controllers, use attributes:
-
-```csharp
-[HttpGet("{id}")]
-[ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status404NotFound)]
-[EndpointSummary("Get a product by ID")]
-[EndpointDescription("Returns the full product details including category.")]
-public async Task<ActionResult<ProductResponse>> GetById(int id, CancellationToken ct)
-```
-
-For minimal APIs, chain the metadata methods:
+documentation is useful, not just a list of routes. For minimal APIs, chain
+the metadata methods:
 
 ```csharp
 app.MapGet("/api/products/{id}", handler)
@@ -331,11 +237,6 @@ readable strings in both API responses and OpenAPI schemas:
 ```csharp
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
-// For controllers
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 ```
 
 ### Step 5: Set up error handling
@@ -477,21 +378,9 @@ public sealed class ProductService(AppDbContext db, ILogger<ProductService> logg
         string? search, int page, int pageSize, CancellationToken ct)
     {
         var query = db.Products.AsNoTracking().AsQueryable();
-        if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(p => p.Name.Contains(search));
-
-        var totalCount = await query.CountAsync(ct);
-        var items = await query
-            .OrderBy(p => p.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => MapToResponse(p))
-            .ToListAsync(ct);
-
+        // ... filter, order, paginate, project to DTOs
         return PaginatedResponse<ProductResponse>.Create(items, page, pageSize, totalCount);
     }
-
-    // ... other methods
 
     private static ProductResponse MapToResponse(Product p) =>
         new(p.Id, p.Name, p.Price, p.Category.Name, p.IsAvailable);
@@ -533,29 +422,12 @@ Content-Type: application/json
   "categoryId": 1
 }
 
-### Update a product
-PUT {{baseUrl}}/api/products/1
-Content-Type: application/json
-
-{
-  "name": "Wireless Mouse Pro",
-  "price": 39.99,
-  "categoryId": 1
-}
-
 ### Delete a product
 DELETE {{baseUrl}}/api/products/1
 ```
 
-**Guidelines for the .http file:**
-
-- Use `###` separators with a descriptive comment for each request
-- Define `@baseUrl` as a variable at the top
-- Include at least one request per endpoint
-- Show realistic request bodies, not placeholder values
-- For endpoints with query parameters, show the most common filter combinations
-- Include examples that exercise error paths (e.g., requesting a non-existent ID)
-- Match the port to the project's `launchSettings.json` HTTPS or HTTP profile
+Include at least one request per endpoint with realistic bodies. Show error
+paths (e.g., non-existent IDs). Match the port to `launchSettings.json`.
 
 ### Step 8: Build and verify
 
@@ -593,23 +465,20 @@ DELETE {{baseUrl}}/api/products/1
 
 | Pitfall | Solution |
 |---------|----------|
-| Exposing EF Core entities directly as API responses | Create separate request/response types. Entities leak navigation properties, internal IDs, and audit fields that clients should not see. |
-| Forgetting `CancellationToken` on async endpoints | Add it to every action method and forward it through the call chain. Without it the server cannot stop work for disconnected clients. |
-| Using `EnsureCreated()` instead of migrations | `EnsureCreated()` silently ignores schema changes after the first run. Use `dotnet ef migrations add` and `dotnet ef database update`. |
-| Seeding data in `Program.cs` at startup | Use `HasData()` in Fluent API so seeds are part of a migration and are versioned, repeatable, and environment-independent. |
-| Returning `200 OK` from POST create endpoints | Return `201 Created` with a `Location` header. This tells clients where to find the new resource and follows HTTP semantics. |
-| Not adding OpenAPI metadata to endpoints | Bare endpoints produce a generic schema. Add `[ProducesResponseType]`, `[EndpointSummary]`, and `[EndpointDescription]` (controllers) or `.WithSummary()`, `.Produces()` (minimal APIs). |
-| Injecting DbContext directly into controllers | Introduce a service layer. Direct DbContext usage in controllers mixes data access concerns with HTTP concerns and makes unit testing harder. |
-| Returning unbounded lists from GET endpoints | Always paginate list endpoints. A default page size of 20 and a max of 100 prevents accidental full-table dumps. |
-| Mixing controller and minimal API styles in one project | Pick one and be consistent. Mixing styles makes the project harder to navigate and creates conflicting conventions. |
-| Using `TypedResults` in ternary/conditional returns without an explicit return type | `TypedResults.Ok(x)` returns `Ok<T>` and `TypedResults.NotFound()` returns `NotFound` — different types with no common base. The compiler cannot infer the lambda return type and falls back to `RequestDelegate`, causing CS1593. Use `Results.Ok()`/`Results.NotFound()` (both return `IResult`), or annotate the lambda with `Task<Results<Ok<T>, NotFound>>`. |
-| Writing try-catch in every endpoint | Use global exception handling middleware (`IExceptionHandler` in .NET 8+). Endpoints should throw; the middleware translates exceptions to HTTP responses. |
-| Forgetting the `.http` file | Create it as part of the endpoint work. It is the fastest way to verify the API works and serves as documentation for the next developer. |
-| Using mutable classes for DTOs | Use `sealed record` types. Records enforce immutability, provide value-based equality, and reduce boilerplate. Request DTOs use `init` properties; response DTOs use positional syntax. |
-| Not sealing types | Mark all classes and records as `sealed` unless designed for inheritance. Unsealed types miss JIT devirtualization and allow unintended subclassing (CA1852). |
-| Using `Results` factory when `TypedResults` works | `TypedResults` with an explicit `Results<T1, T2>` return type gives the compiler and OpenAPI generator full type information. Only fall back to `Results` for complex multi-branch handlers. |
-| Returning `List<T>` in response types | Use `IReadOnlyList<T>` for collection properties in DTOs and pagination wrappers. This signals immutability and prevents consumers from mutating the collection. |
-| Registering services without interfaces | Always define an interface (`IProductService`) and register with `AddScoped<IProductService, ProductService>()`. Concrete-only registration prevents unit testing with mocks. |
+| Exposing EF Core entities as API responses | Create separate `sealed record` request/response types. Entities leak navigation properties and internal fields. |
+| Forgetting `CancellationToken` | Add to every endpoint and forward through the entire async call chain. |
+| Using `EnsureCreated()` instead of migrations | Use `dotnet ef migrations add` / `dotnet ef database update`. `EnsureCreated()` silently ignores schema changes. |
+| Seeding data in `Program.cs` | Use `HasData()` in Fluent API so seeds are versioned in migrations. |
+| Returning `200 OK` from POST create | Return `201 Created` with a `Location` header. |
+| Missing OpenAPI metadata | Chain `.WithName()`, `.WithSummary()`, `.WithDescription()`, `.Produces<T>()` on every endpoint. |
+| Injecting DbContext into controllers/handlers | Use a service layer with an interface for separation and testability. |
+| Returning unbounded lists | Always paginate. Default 20, max 100. |
+| Mixing controller and minimal API styles | Pick one per project and be consistent. |
+| `TypedResults` in ternary without explicit return type | `Ok<T>` and `NotFound` have no common base — annotate with `Task<Results<Ok<T>, NotFound>>` or fall back to `Results` factory. |
+| Using mutable classes for DTOs | Use `sealed record` with positional syntax (responses) or `init` properties (requests). |
+| Not sealing types | Seal all types by default (CA1852). Enables JIT devirtualization. |
+| Returning `List<T>` in responses | Use `IReadOnlyList<T>` to signal immutability. |
+| Registering services without interfaces | Define `IService` and register with `AddScoped<IService, Service>()`. |
 
 ## More Info
 
