@@ -43,6 +43,19 @@ semantics, OpenAPI documentation, error handling, and data access patterns.
 
 ## Workflow
 
+### General: Seal all types by default
+
+Mark every new class and record as `sealed` unless it is explicitly designed
+for inheritance. This applies to:
+
+- **Model / entity classes** — `public sealed class Product { ... }`
+- **Service implementations** — `public sealed class ProductService(...) : IProductService`
+- **DTO records** — `public sealed record ProductResponse(...)`
+- **Middleware and handlers** — `internal sealed class ApiExceptionHandler(...) : IExceptionHandler`
+
+Sealing types prevents unintended inheritance, communicates design intent, and
+enables JIT devirtualization for better performance (CA1852 analyzer rule).
+
 ### Step 1: Determine the API style
 
 Scan the project for existing endpoint patterns before writing any code.
@@ -61,6 +74,10 @@ Do not mix styles in the same project.
 Create dedicated types for API input and output. Never expose EF Core entities
 directly in request or response bodies.
 
+**Use `sealed record` for all DTOs.** Records enforce immutability, provide
+value-based equality, and produce concise code. Seal them to prevent unintended
+inheritance and enable JIT devirtualization (CA1852).
+
 **Naming convention:**
 
 | Role | Convention | Example |
@@ -70,32 +87,80 @@ directly in request or response bodies.
 | Output (single) | `{Entity}Response` | `ProductResponse` |
 | Output (list) | `{Entity}ListResponse` or paginated wrapper | `ProductListResponse` |
 
+**Response DTOs** — use positional sealed records for concise, immutable output:
+
+```csharp
+public sealed record ProductResponse(
+    int Id,
+    string Name,
+    decimal Price,
+    string CategoryName,
+    bool IsAvailable);
+```
+
+**Request DTOs** — use sealed records with `init` properties so data annotations
+work naturally:
+
+```csharp
+public sealed record CreateProductRequest
+{
+    [Required, MaxLength(200)]
+    public required string Name { get; init; }
+
+    [Range(0.01, 999999.99)]
+    public required decimal Price { get; init; }
+
+    public required int CategoryId { get; init; }
+}
+
+public sealed record UpdateProductRequest
+{
+    [Required, MaxLength(200)]
+    public required string Name { get; init; }
+
+    [Range(0.01, 999999.99)]
+    public required decimal Price { get; init; }
+
+    public required int CategoryId { get; init; }
+
+    public required bool IsAvailable { get; init; }
+}
+```
+
+**Do not** use mutable classes (`{ get; set; }`) for DTOs. Mutable DTOs allow
+accidental modification after construction and lose the self-documenting
+immutability that records provide.
+
 ### Step 3: Implement the endpoints
 
 Whether using controllers or minimal APIs, follow these HTTP conventions
 consistently.
 
-**Minimal API return types — `Results` vs `TypedResults`:**
+**Minimal API return types — prefer `TypedResults`:**
 
-When a minimal API handler returns **a single result type**, use `TypedResults`
-for richer OpenAPI metadata (e.g., `TypedResults.Ok(product)`).
+Always prefer `TypedResults` over the `Results` factory. `TypedResults` embeds
+response type information in the method signature, giving the OpenAPI generator
+richer metadata automatically.
 
-When a handler uses **conditional or ternary returns with multiple types**,
-you must do one of the following:
+When a handler returns **multiple result types** (e.g., `Ok` or `NotFound`),
+annotate the lambda with an explicit `Results<T1, T2>` return type. This
+lets you use `TypedResults` while still giving the compiler a common type:
 
-1. **Use the `Results` factory** — `Results.Ok()`, `Results.NotFound()`, etc.
-   all return `IResult`, so the compiler can infer a common return type for
-   ternary expressions.
-2. **Annotate the lambda with an explicit `Results<T1, T2>` return type** —
-   this lets you use `TypedResults` while still giving the compiler a common
-   type. Example:
-   `async Task<Results<Ok<ProductResponse>, NotFound>> (int id, ...) => ...`
+```csharp
+async Task<Results<Ok<ProductResponse>, NotFound>> (int id, ...) => ...
+```
 
-**Never** use `TypedResults.Ok(x)` and `TypedResults.NotFound()` in a bare
+**Do not** use `TypedResults.Ok(x)` and `TypedResults.NotFound()` in a bare
 ternary without an explicit return type annotation. `Ok<T>` and `NotFound` are
 different types with no common base the compiler can infer, which causes
 `CS1593: Delegate 'RequestDelegate' does not take N arguments` because the
 compiler falls back to matching `RequestDelegate(HttpContext)`.
+
+**Fallback — `Results` factory:** If a handler has many conditional branches
+(3+ result types) and the `Results<T1, T2, T3, ...>` annotation becomes
+unwieldy, you may use the `Results` factory (`Results.Ok()`, `Results.NotFound()`,
+etc.) which returns `IResult`. This sacrifices compile-time OpenAPI inference
+but simplifies complex signatures.
 
 **Status codes:**
 
@@ -129,30 +194,62 @@ public async Task<ActionResult<ProductResponse>> GetById(
     return product is null ? NotFound() : Ok(product);
 }
 
-// Minimal API example — Option A: Results factory (simple, always works in ternaries)
-app.MapGet("/api/products/{id}", async (
-    int id, IProductService service, CancellationToken cancellationToken) =>
-{
-    var product = await service.GetByIdAsync(id, cancellationToken);
-    return product is null ? Results.NotFound() : Results.Ok(product);
-});
-
-// Minimal API example — Option B: TypedResults with explicit return type (better OpenAPI metadata)
+// Minimal API example — TypedResults with explicit return type (recommended)
 app.MapGet("/api/products/{id}", async Task<Results<Ok<ProductResponse>, NotFound>> (
     int id, IProductService service, CancellationToken cancellationToken) =>
 {
     var product = await service.GetByIdAsync(id, cancellationToken);
     return product is null ? TypedResults.NotFound() : TypedResults.Ok(product);
 });
+
+// Minimal API example — Results factory (fallback for complex multi-branch handlers)
+app.MapGet("/api/products/{id}", async (
+    int id, IProductService service, CancellationToken cancellationToken) =>
+{
+    var product = await service.GetByIdAsync(id, cancellationToken);
+    return product is null ? Results.NotFound() : Results.Ok(product);
+});
 ```
 
 **Pagination:** For any endpoint that returns a list of items, support
 pagination with query parameters. Return metadata so the client knows
-how to navigate:
+how to navigate.
+
+Use a `sealed record` for the paginated wrapper with `IReadOnlyList<T>` to
+signal immutability:
 
 ```csharp
-// Query parameters: ?page=1&pageSize=20
-// Response shape:
+public sealed record PaginatedResponse<T>
+{
+    public required IReadOnlyList<T> Items { get; init; }
+    public required int Page { get; init; }
+    public required int PageSize { get; init; }
+    public required int TotalCount { get; init; }
+    public required int TotalPages { get; init; }
+    public required bool HasNextPage { get; init; }
+    public required bool HasPreviousPage { get; init; }
+
+    public static PaginatedResponse<T> Create(
+        IReadOnlyList<T> items, int page, int pageSize, int totalCount)
+    {
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        return new PaginatedResponse<T>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages,
+            HasNextPage = page < totalPages,
+            HasPreviousPage = page > 1
+        };
+    }
+}
+```
+
+Response shape:
+
+```json
 {
   "items": [ ... ],
   "page": 1,
@@ -303,6 +400,10 @@ builder.Services.AddProblemDetails();
 app.UseExceptionHandler();
 ```
 
+**File placement:** Always place exception handler classes in a `Middleware/`
+folder to maintain consistent project organization. Do not place them at the
+project root.
+
 ### Step 6: Wire up data access
 
 If the endpoints need database storage, follow these steps.
@@ -350,8 +451,59 @@ modelBuilder.Entity<Category>().HasData(
 **4. Service layer between endpoints and DbContext.**
 
 Do not inject `DbContext` directly into controllers or endpoint handlers.
-Create a service class (with an interface for testability) that owns the
+Create a service interface and a sealed implementation class that owns the
 data access logic and mapping between entities and request/response types.
+
+Always define an interface for every service — this enables unit testing with
+mocks and follows the Dependency Inversion Principle:
+
+```csharp
+// Services/IProductService.cs
+public interface IProductService
+{
+    Task<PaginatedResponse<ProductResponse>> GetAllAsync(
+        string? search, int page, int pageSize, CancellationToken ct);
+    Task<ProductResponse?> GetByIdAsync(int id, CancellationToken ct);
+    Task<ProductResponse> CreateAsync(CreateProductRequest request, CancellationToken ct);
+    Task<ProductResponse> UpdateAsync(int id, UpdateProductRequest request, CancellationToken ct);
+    Task DeleteAsync(int id, CancellationToken ct);
+}
+
+// Services/ProductService.cs
+public sealed class ProductService(AppDbContext db, ILogger<ProductService> logger)
+    : IProductService
+{
+    public async Task<PaginatedResponse<ProductResponse>> GetAllAsync(
+        string? search, int page, int pageSize, CancellationToken ct)
+    {
+        var query = db.Products.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(p => p.Name.Contains(search));
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .OrderBy(p => p.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => MapToResponse(p))
+            .ToListAsync(ct);
+
+        return PaginatedResponse<ProductResponse>.Create(items, page, pageSize, totalCount);
+    }
+
+    // ... other methods
+
+    private static ProductResponse MapToResponse(Product p) =>
+        new(p.Id, p.Name, p.Price, p.Category.Name, p.IsAvailable);
+}
+```
+
+Register with the interface, not the concrete type:
+
+```csharp
+// In Program.cs
+builder.Services.AddScoped<IProductService, ProductService>();
+```
 
 Use `AsNoTracking()` on all read-only queries to avoid unnecessary change
 tracking overhead.
@@ -430,6 +582,12 @@ DELETE {{baseUrl}}/api/products/1
 - [ ] Database changes use EF Core migrations, not `EnsureCreated()`
 - [ ] A `.http` file exists with a request for every new endpoint
 - [ ] `dotnet build` passes with zero errors and zero warnings
+- [ ] All DTOs are `sealed record` types (not mutable classes)
+- [ ] All classes are `sealed` unless explicitly designed for inheritance
+- [ ] Minimal API handlers use `TypedResults` with explicit `Results<T1, T2>` return types
+- [ ] Collection properties in response types use `IReadOnlyList<T>`, not `List<T>`
+- [ ] Every service has a corresponding interface registered in DI
+- [ ] Exception handlers are placed in the `Middleware/` folder
 
 ## Common Pitfalls
 
@@ -447,6 +605,11 @@ DELETE {{baseUrl}}/api/products/1
 | Using `TypedResults` in ternary/conditional returns without an explicit return type | `TypedResults.Ok(x)` returns `Ok<T>` and `TypedResults.NotFound()` returns `NotFound` — different types with no common base. The compiler cannot infer the lambda return type and falls back to `RequestDelegate`, causing CS1593. Use `Results.Ok()`/`Results.NotFound()` (both return `IResult`), or annotate the lambda with `Task<Results<Ok<T>, NotFound>>`. |
 | Writing try-catch in every endpoint | Use global exception handling middleware (`IExceptionHandler` in .NET 8+). Endpoints should throw; the middleware translates exceptions to HTTP responses. |
 | Forgetting the `.http` file | Create it as part of the endpoint work. It is the fastest way to verify the API works and serves as documentation for the next developer. |
+| Using mutable classes for DTOs | Use `sealed record` types. Records enforce immutability, provide value-based equality, and reduce boilerplate. Request DTOs use `init` properties; response DTOs use positional syntax. |
+| Not sealing types | Mark all classes and records as `sealed` unless designed for inheritance. Unsealed types miss JIT devirtualization and allow unintended subclassing (CA1852). |
+| Using `Results` factory when `TypedResults` works | `TypedResults` with an explicit `Results<T1, T2>` return type gives the compiler and OpenAPI generator full type information. Only fall back to `Results` for complex multi-branch handlers. |
+| Returning `List<T>` in response types | Use `IReadOnlyList<T>` for collection properties in DTOs and pagination wrappers. This signals immutability and prevents consumers from mutating the collection. |
+| Registering services without interfaces | Always define an interface (`IProductService`) and register with `AddScoped<IProductService, ProductService>()`. Concrete-only registration prevents unit testing with mocks. |
 
 ## More Info
 
