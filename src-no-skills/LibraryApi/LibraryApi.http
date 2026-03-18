@@ -1,0 +1,375 @@
+@baseUrl = http://localhost:5000
+
+### ============================================================
+### AUTHORS
+### ============================================================
+
+### List all authors
+GET {{baseUrl}}/api/authors?page=1&pageSize=10
+
+### Search authors by name
+GET {{baseUrl}}/api/authors?search=orwell
+
+### Get author details (Jane Austen)
+GET {{baseUrl}}/api/authors/1
+
+### Get author details (George Orwell)
+GET {{baseUrl}}/api/authors/2
+
+### Create a new author
+POST {{baseUrl}}/api/authors
+Content-Type: application/json
+
+{
+  "firstName": "Margaret",
+  "lastName": "Atwood",
+  "biography": "Canadian poet, novelist, literary critic, essayist, and environmental activist.",
+  "birthDate": "1939-11-18",
+  "country": "Canada"
+}
+
+### Update an author
+PUT {{baseUrl}}/api/authors/1
+Content-Type: application/json
+
+{
+  "firstName": "Jane",
+  "lastName": "Austen",
+  "biography": "English novelist known for her six major novels, which interpret and critique the British landed gentry. Updated biography.",
+  "birthDate": "1775-12-16",
+  "country": "United Kingdom"
+}
+
+### Delete an author (will fail if author has books)
+DELETE {{baseUrl}}/api/authors/1
+
+### ============================================================
+### CATEGORIES
+### ============================================================
+
+### List all categories
+GET {{baseUrl}}/api/categories?page=1&pageSize=10
+
+### Get category details with book count
+GET {{baseUrl}}/api/categories/1
+
+### Get Science Fiction category
+GET {{baseUrl}}/api/categories/2
+
+### Create a new category
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Philosophy",
+  "description": "Books about philosophical thought and theory"
+}
+
+### Update a category
+PUT {{baseUrl}}/api/categories/1
+Content-Type: application/json
+
+{
+  "name": "Fiction",
+  "description": "Literary works created from the imagination, including novels and short stories"
+}
+
+### Delete a category (will fail if category has books)
+DELETE {{baseUrl}}/api/categories/1
+
+### ============================================================
+### BOOKS
+### ============================================================
+
+### List all books
+GET {{baseUrl}}/api/books?page=1&pageSize=10
+
+### Search books by title
+GET {{baseUrl}}/api/books?search=1984
+
+### Search books by author name
+GET {{baseUrl}}/api/books?search=asimov
+
+### Filter books by category
+GET {{baseUrl}}/api/books?category=Science Fiction
+
+### Filter available books only
+GET {{baseUrl}}/api/books?available=true
+
+### Filter unavailable books (all copies checked out)
+GET {{baseUrl}}/api/books?available=false
+
+### Sort books by title descending
+GET {{baseUrl}}/api/books?sortBy=title&sortOrder=desc
+
+### Sort books by publication year
+GET {{baseUrl}}/api/books?sortBy=year&sortOrder=asc
+
+### Get book details (1984 by George Orwell)
+GET {{baseUrl}}/api/books/2
+
+### Get book details (Foundation by Isaac Asimov)
+GET {{baseUrl}}/api/books/5
+
+### Create a new book
+POST {{baseUrl}}/api/books
+Content-Type: application/json
+
+{
+  "title": "Fahrenheit 451",
+  "isbn": "9781451673319",
+  "publisher": "Simon & Schuster",
+  "publicationYear": 1953,
+  "description": "A dystopian novel about a future American society where books are outlawed.",
+  "pageCount": 194,
+  "language": "English",
+  "totalCopies": 3,
+  "authorIds": [2],
+  "categoryIds": [1, 2]
+}
+
+### Update a book
+PUT {{baseUrl}}/api/books/1
+Content-Type: application/json
+
+{
+  "title": "Pride and Prejudice",
+  "isbn": "9780141439518",
+  "publisher": "Penguin Classics - Revised Edition",
+  "publicationYear": 1813,
+  "description": "A romantic novel following the Bennet family. One of the most popular novels in English literature.",
+  "pageCount": 432,
+  "language": "English",
+  "totalCopies": 4,
+  "authorIds": [1],
+  "categoryIds": [1, 6]
+}
+
+### Delete a book (will fail if book has active loans)
+DELETE {{baseUrl}}/api/books/2
+
+### Get loan history for a book (1984)
+GET {{baseUrl}}/api/books/2/loans?page=1&pageSize=10
+
+### Get reservations queue for a book (Animal Farm - has pending reservation)
+GET {{baseUrl}}/api/books/3/reservations?page=1&pageSize=10
+
+### ============================================================
+### PATRONS
+### ============================================================
+
+### List all patrons
+GET {{baseUrl}}/api/patrons?page=1&pageSize=10
+
+### Search patrons by name
+GET {{baseUrl}}/api/patrons?search=alice
+
+### Search patrons by email
+GET {{baseUrl}}/api/patrons?search=bob.smith
+
+### Filter patrons by membership type
+GET {{baseUrl}}/api/patrons?membershipType=Premium
+
+### Filter student patrons
+GET {{baseUrl}}/api/patrons?membershipType=Student
+
+### Get patron details (Alice Johnson - Premium, active loans)
+GET {{baseUrl}}/api/patrons/1
+
+### Get patron details (Bob Smith - Standard, has unpaid fines)
+GET {{baseUrl}}/api/patrons/2
+
+### Get patron details (Frank Taylor - inactive)
+GET {{baseUrl}}/api/patrons/6
+
+### Create a new patron
+POST {{baseUrl}}/api/patrons
+Content-Type: application/json
+
+{
+  "firstName": "Grace",
+  "lastName": "Lee",
+  "email": "grace.lee@email.com",
+  "phone": "555-0107",
+  "address": "111 Cedar Ln, Springfield",
+  "membershipType": "Standard"
+}
+
+### Update a patron
+PUT {{baseUrl}}/api/patrons/1
+Content-Type: application/json
+
+{
+  "firstName": "Alice",
+  "lastName": "Johnson",
+  "email": "alice.johnson@email.com",
+  "phone": "555-0101",
+  "address": "123 Main St, Springfield - Updated",
+  "membershipType": "Premium",
+  "isActive": true
+}
+
+### Deactivate a patron (fails if patron has active loans)
+DELETE {{baseUrl}}/api/patrons/1
+
+### Get patron's loans (Alice - all)
+GET {{baseUrl}}/api/patrons/1/loans?page=1&pageSize=10
+
+### Get patron's active loans
+GET {{baseUrl}}/api/patrons/1/loans?status=active
+
+### Get patron's overdue loans (David Wilson)
+GET {{baseUrl}}/api/patrons/4/loans?status=overdue
+
+### Get patron's returned loans
+GET {{baseUrl}}/api/patrons/5/loans?status=returned
+
+### Get patron's reservations
+GET {{baseUrl}}/api/patrons/1/reservations?page=1&pageSize=10
+
+### Get patron's fines (David Wilson - has both paid and unpaid)
+GET {{baseUrl}}/api/patrons/4/fines?page=1&pageSize=10
+
+### Get patron's unpaid fines
+GET {{baseUrl}}/api/patrons/4/fines?status=unpaid
+
+### Get patron's paid fines
+GET {{baseUrl}}/api/patrons/4/fines?status=paid
+
+### ============================================================
+### LOANS
+### ============================================================
+
+### List all loans
+GET {{baseUrl}}/api/loans?page=1&pageSize=10
+
+### List active loans
+GET {{baseUrl}}/api/loans?status=active
+
+### List overdue loans via filter
+GET {{baseUrl}}/api/loans?overdue=true
+
+### List returned loans
+GET {{baseUrl}}/api/loans?status=returned
+
+### List loans within date range
+GET {{baseUrl}}/api/loans?fromDate=2024-01-01&toDate=2026-12-31
+
+### Get loan details
+GET {{baseUrl}}/api/loans/1
+
+### Get overdue loans (also flags/updates overdue status)
+GET {{baseUrl}}/api/loans/overdue
+
+### Check out a book - normal checkout (Patron 5 / Emma, Book 8 / Song of Solomon)
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 8,
+  "patronId": 5
+}
+
+### Return a book (loan 7 - already returned, should fail)
+POST {{baseUrl}}/api/loans/7/return
+
+### Return an active loan (loan 1)
+POST {{baseUrl}}/api/loans/1/return
+
+### Renew a loan (loan 4 - Alice's active loan of One Hundred Years of Solitude)
+POST {{baseUrl}}/api/loans/4/renew
+
+### ============================================================
+### BUSINESS RULE TESTS - LOANS
+### ============================================================
+
+### FAIL: Checkout for inactive patron (Frank Taylor, patron 6)
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 6,
+  "patronId": 6
+}
+
+### FAIL: Renew an overdue loan (loan 5 is overdue)
+POST {{baseUrl}}/api/loans/5/renew
+
+### FAIL: Renew loan when book has pending reservations
+### (loan 2 is for Book 2/1984, and reservation 2 is pending for Book 2)
+POST {{baseUrl}}/api/loans/2/renew
+
+### ============================================================
+### RESERVATIONS
+### ============================================================
+
+### List all reservations
+GET {{baseUrl}}/api/reservations?page=1&pageSize=10
+
+### List pending reservations
+GET {{baseUrl}}/api/reservations?status=pending
+
+### List ready reservations
+GET {{baseUrl}}/api/reservations?status=ready
+
+### Get reservation details
+GET {{baseUrl}}/api/reservations/1
+
+### Get ready reservation (for Beloved)
+GET {{baseUrl}}/api/reservations/3
+
+### Create a reservation (Patron 5 / Emma reserves Book 4 / One Hundred Years of Solitude)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "bookId": 4,
+  "patronId": 5
+}
+
+### FAIL: Reserve a book the patron already has on active loan
+### (Patron 1 / Alice has active loan for Book 1 / Pride and Prejudice)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "patronId": 1
+}
+
+### Cancel a reservation
+POST {{baseUrl}}/api/reservations/1/cancel
+
+### Fulfill a ready reservation (reservation 3 is Ready for Beloved)
+POST {{baseUrl}}/api/reservations/3/fulfill
+
+### ============================================================
+### FINES
+### ============================================================
+
+### List all fines
+GET {{baseUrl}}/api/fines?page=1&pageSize=10
+
+### List unpaid fines
+GET {{baseUrl}}/api/fines?status=unpaid
+
+### List paid fines
+GET {{baseUrl}}/api/fines?status=paid
+
+### Get fine details (paid fine for overdue return)
+GET {{baseUrl}}/api/fines/1
+
+### Get fine details (unpaid fine for damaged book)
+GET {{baseUrl}}/api/fines/2
+
+### Pay a fine
+POST {{baseUrl}}/api/fines/2/pay
+
+### Waive a fine
+POST {{baseUrl}}/api/fines/3/waive
+
+### FAIL: Pay an already paid fine
+POST {{baseUrl}}/api/fines/1/pay
+
+### FAIL: Waive an already paid fine
+POST {{baseUrl}}/api/fines/1/waive
