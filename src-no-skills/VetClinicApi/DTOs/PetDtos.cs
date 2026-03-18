@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
+// --- Pet DTOs ---
 public class CreatePetDto
 {
     [Required, MaxLength(100)]
@@ -15,7 +16,7 @@ public class CreatePetDto
 
     public DateOnly? DateOfBirth { get; set; }
 
-    [Range(0.01, double.MaxValue, ErrorMessage = "Weight must be positive.")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Weight must be positive")]
     public decimal? Weight { get; set; }
 
     public string? Color { get; set; }
@@ -38,7 +39,7 @@ public class UpdatePetDto
 
     public DateOnly? DateOfBirth { get; set; }
 
-    [Range(0.01, double.MaxValue, ErrorMessage = "Weight must be positive.")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Weight must be positive")]
     public decimal? Weight { get; set; }
 
     public string? Color { get; set; }
@@ -48,7 +49,7 @@ public class UpdatePetDto
     public int OwnerId { get; set; }
 }
 
-public class PetDto
+public class PetResponseDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

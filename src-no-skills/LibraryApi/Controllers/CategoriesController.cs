@@ -6,40 +6,72 @@ namespace LibraryApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class CategoriesController : ControllerBase
 {
-    private readonly CategoryService _service;
+    private readonly ICategoryService _categoryService;
 
-    public CategoriesController(CategoryService service) => _service = service;
-
-    /// <summary>Get all categories.</summary>
-    [HttpGet]
-    public async Task<ActionResult<List<CategoryDto>>> GetAll()
-        => Ok(await _service.GetAllAsync());
-
-    /// <summary>Get category by ID with book count.</summary>
-    [HttpGet("{id}")]
-    public async Task<ActionResult<CategoryDetailDto>> GetById(int id)
-        => Ok(await _service.GetByIdAsync(id));
-
-    /// <summary>Create a new category.</summary>
-    [HttpPost]
-    public async Task<ActionResult<CategoryDto>> Create(CreateCategoryDto dto)
+    public CategoriesController(ICategoryService categoryService)
     {
-        var category = await _service.CreateAsync(dto);
+        _categoryService = categoryService;
+    }
+
+    /// <summary>List all categories with pagination</summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PaginatedResponse<CategoryDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _categoryService.GetAllAsync(page, pageSize);
+        return Ok(result);
+    }
+
+    /// <summary>Get category details with count of books</summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(CategoryDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var category = await _categoryService.GetByIdAsync(id);
+        if (category == null) return NotFound(new ProblemDetails { Title = "Category not found", Status = 404 });
+        return Ok(category);
+    }
+
+    /// <summary>Create a new category</summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(CategoryDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreateCategoryDto dto)
+    {
+        var category = await _categoryService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = category.Id }, category);
     }
 
-    /// <summary>Update an existing category.</summary>
+    /// <summary>Update an existing category</summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<CategoryDto>> Update(int id, UpdateCategoryDto dto)
-        => Ok(await _service.UpdateAsync(id, dto));
+    [ProducesResponseType(typeof(CategoryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateCategoryDto dto)
+    {
+        var category = await _categoryService.UpdateAsync(id, dto);
+        if (category == null) return NotFound(new ProblemDetails { Title = "Category not found", Status = 404 });
+        return Ok(category);
+    }
 
-    /// <summary>Delete a category (fails if has books).</summary>
+    /// <summary>Delete a category (fails if category has any books)</summary>
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(int id)
     {
-        await _service.DeleteAsync(id);
+        var (success, error) = await _categoryService.DeleteAsync(id);
+        if (!success)
+        {
+            if (error == "Category not found")
+                return NotFound(new ProblemDetails { Title = error, Status = 404 });
+            return Conflict(new ProblemDetails { Title = "Delete failed", Detail = error, Status = 409 });
+        }
         return NoContent();
     }
 }

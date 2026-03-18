@@ -6,25 +6,19 @@ public class ClassSchedule
 {
     public int Id { get; set; }
 
-    [Required]
     public int ClassTypeId { get; set; }
     public ClassType ClassType { get; set; } = null!;
 
-    [Required]
     public int InstructorId { get; set; }
     public Instructor Instructor { get; set; } = null!;
 
-    [Required]
     public DateTime StartTime { get; set; }
-
-    [Required]
     public DateTime EndTime { get; set; }
 
-    [Range(1, 100)]
+    [Range(1, 50)]
     public int Capacity { get; set; }
 
     public int CurrentEnrollment { get; set; }
-
     public int WaitlistCount { get; set; }
 
     [Required, MaxLength(50)]

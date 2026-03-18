@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
+// --- Veterinarian DTOs ---
 public class CreateVeterinarianDto
 {
     [Required, MaxLength(100)]
@@ -13,13 +14,15 @@ public class CreateVeterinarianDto
     [Required, EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required, Phone]
+    [Required]
     public string Phone { get; set; } = string.Empty;
 
     public string? Specialization { get; set; }
 
     [Required]
     public string LicenseNumber { get; set; } = string.Empty;
+
+    public bool IsAvailable { get; set; } = true;
 
     [Required]
     public DateOnly HireDate { get; set; }
@@ -36,7 +39,7 @@ public class UpdateVeterinarianDto
     [Required, EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required, Phone]
+    [Required]
     public string Phone { get; set; } = string.Empty;
 
     public string? Specialization { get; set; }
@@ -45,9 +48,12 @@ public class UpdateVeterinarianDto
     public string LicenseNumber { get; set; } = string.Empty;
 
     public bool IsAvailable { get; set; } = true;
+
+    [Required]
+    public DateOnly HireDate { get; set; }
 }
 
-public class VeterinarianDto
+public class VeterinarianResponseDto
 {
     public int Id { get; set; }
     public string FirstName { get; set; } = string.Empty;

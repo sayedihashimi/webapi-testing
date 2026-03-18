@@ -1,17 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using VetClinicApi.Data;
 using VetClinicApi.DTOs;
-using VetClinicApi.Middleware;
 using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
-
-public interface IMedicalRecordService
-{
-    Task<MedicalRecordDto> GetByIdAsync(int id);
-    Task<MedicalRecordDto> CreateAsync(CreateMedicalRecordDto dto);
-    Task<MedicalRecordDto> UpdateAsync(int id, UpdateMedicalRecordDto dto);
-}
 
 public class MedicalRecordService : IMedicalRecordService
 {
@@ -24,50 +16,50 @@ public class MedicalRecordService : IMedicalRecordService
         _logger = logger;
     }
 
-    public async Task<MedicalRecordDto> GetByIdAsync(int id)
+    public async Task<MedicalRecordResponseDto?> GetByIdAsync(int id)
     {
         var record = await _db.MedicalRecords
-            .Include(r => r.Prescriptions)
-            .FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new NotFoundException("MedicalRecord", id);
-
-        return MapToDto(record);
+            .Include(m => m.Pet).Include(m => m.Veterinarian).Include(m => m.Prescriptions)
+            .FirstOrDefaultAsync(m => m.Id == id);
+        return record == null ? null : MapToResponse(record);
     }
 
-    public async Task<MedicalRecordDto> CreateAsync(CreateMedicalRecordDto dto)
+    public async Task<MedicalRecordResponseDto> CreateAsync(CreateMedicalRecordDto dto)
     {
-        var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.Id == dto.AppointmentId)
-            ?? throw new NotFoundException("Appointment", dto.AppointmentId);
+        var appointment = await _db.Appointments.FindAsync(dto.AppointmentId)
+            ?? throw new KeyNotFoundException($"Appointment with ID {dto.AppointmentId} not found.");
 
         if (appointment.Status != AppointmentStatus.Completed && appointment.Status != AppointmentStatus.InProgress)
-            throw new BusinessRuleException("Medical records can only be created for appointments with status 'Completed' or 'InProgress'.");
+            throw new ArgumentException("Medical records can only be created for appointments with status 'Completed' or 'InProgress'.");
 
-        if (await _db.MedicalRecords.AnyAsync(r => r.AppointmentId == dto.AppointmentId))
-            throw new BusinessRuleException("A medical record already exists for this appointment.", StatusCodes.Status409Conflict);
+        if (await _db.MedicalRecords.AnyAsync(m => m.AppointmentId == dto.AppointmentId))
+            throw new InvalidOperationException("A medical record already exists for this appointment.");
+
+        if (!await _db.Pets.AnyAsync(p => p.Id == dto.PetId))
+            throw new KeyNotFoundException($"Pet with ID {dto.PetId} not found.");
+        if (!await _db.Veterinarians.AnyAsync(v => v.Id == dto.VeterinarianId))
+            throw new KeyNotFoundException($"Veterinarian with ID {dto.VeterinarianId} not found.");
 
         var record = new MedicalRecord
         {
-            AppointmentId = dto.AppointmentId,
-            PetId = appointment.PetId,
-            VeterinarianId = appointment.VeterinarianId,
-            Diagnosis = dto.Diagnosis,
-            Treatment = dto.Treatment,
-            Notes = dto.Notes,
-            FollowUpDate = dto.FollowUpDate
+            AppointmentId = dto.AppointmentId, PetId = dto.PetId, VeterinarianId = dto.VeterinarianId,
+            Diagnosis = dto.Diagnosis, Treatment = dto.Treatment, Notes = dto.Notes,
+            FollowUpDate = dto.FollowUpDate, CreatedAt = DateTime.UtcNow
         };
 
         _db.MedicalRecords.Add(record);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created medical record {RecordId} for appointment {AppointmentId}", record.Id, record.AppointmentId);
-        return MapToDto(record);
+        _logger.LogInformation("Medical record created: {RecordId} for Appointment {AppointmentId}", record.Id, record.AppointmentId);
+
+        return (await GetByIdAsync(record.Id))!;
     }
 
-    public async Task<MedicalRecordDto> UpdateAsync(int id, UpdateMedicalRecordDto dto)
+    public async Task<MedicalRecordResponseDto> UpdateAsync(int id, UpdateMedicalRecordDto dto)
     {
         var record = await _db.MedicalRecords
-            .Include(r => r.Prescriptions)
-            .FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new NotFoundException("MedicalRecord", id);
+            .Include(m => m.Pet).Include(m => m.Veterinarian).Include(m => m.Prescriptions)
+            .FirstOrDefaultAsync(m => m.Id == id)
+            ?? throw new KeyNotFoundException($"Medical record with ID {id} not found.");
 
         record.Diagnosis = dto.Diagnosis;
         record.Treatment = dto.Treatment;
@@ -75,23 +67,16 @@ public class MedicalRecordService : IMedicalRecordService
         record.FollowUpDate = dto.FollowUpDate;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated medical record {RecordId}", record.Id);
-        return MapToDto(record);
+        return MapToResponse(record);
     }
 
-    private static MedicalRecordDto MapToDto(MedicalRecord r) => new()
+    public static MedicalRecordResponseDto MapToResponse(MedicalRecord m) => new()
     {
-        Id = r.Id, AppointmentId = r.AppointmentId, PetId = r.PetId,
-        VeterinarianId = r.VeterinarianId, Diagnosis = r.Diagnosis,
-        Treatment = r.Treatment, Notes = r.Notes, FollowUpDate = r.FollowUpDate,
-        CreatedAt = r.CreatedAt,
-        Prescriptions = r.Prescriptions.Select(p => new PrescriptionDto
-        {
-            Id = p.Id, MedicalRecordId = p.MedicalRecordId,
-            MedicationName = p.MedicationName, Dosage = p.Dosage,
-            DurationDays = p.DurationDays, StartDate = p.StartDate,
-            EndDate = p.EndDate, Instructions = p.Instructions,
-            IsActive = p.IsActive, CreatedAt = p.CreatedAt
-        }).ToList()
+        Id = m.Id, AppointmentId = m.AppointmentId, PetId = m.PetId, VeterinarianId = m.VeterinarianId,
+        Diagnosis = m.Diagnosis, Treatment = m.Treatment, Notes = m.Notes, FollowUpDate = m.FollowUpDate,
+        CreatedAt = m.CreatedAt,
+        Pet = m.Pet != null ? new PetSummaryDto { Id = m.Pet.Id, Name = m.Pet.Name, Species = m.Pet.Species, Breed = m.Pet.Breed, IsActive = m.Pet.IsActive } : null,
+        Veterinarian = m.Veterinarian != null ? new VeterinarianSummaryDto { Id = m.Veterinarian.Id, FirstName = m.Veterinarian.FirstName, LastName = m.Veterinarian.LastName, Specialization = m.Veterinarian.Specialization } : null,
+        Prescriptions = m.Prescriptions?.Select(PrescriptionService.MapToResponse).ToList() ?? new()
     };
 }

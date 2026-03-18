@@ -17,11 +17,12 @@ public class Pet
 
     public DateOnly? DateOfBirth { get; set; }
 
-    [Range(0.01, double.MaxValue, ErrorMessage = "Weight must be positive.")]
     public decimal? Weight { get; set; }
 
     public string? Color { get; set; }
+
     public string? MicrochipNumber { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public int OwnerId { get; set; }

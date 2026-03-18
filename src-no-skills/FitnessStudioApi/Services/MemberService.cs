@@ -2,10 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using FitnessStudioApi.Data;
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Models;
+using FitnessStudioApi.Middleware;
 
 namespace FitnessStudioApi.Services;
 
-public class MemberService
+public class MemberService : IMemberService
 {
     private readonly FitnessDbContext _db;
     private readonly ILogger<MemberService> _logger;
@@ -16,9 +17,12 @@ public class MemberService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<MemberDto>> GetAllAsync(string? search, bool? isActive, int page = 1, int pageSize = 10)
+    public async Task<PagedResult<MemberDto>> GetAllAsync(string? search, bool? isActive, int page, int pageSize)
     {
         var query = _db.Members.AsQueryable();
+
+        if (isActive.HasValue)
+            query = query.Where(m => m.IsActive == isActive.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -29,10 +33,7 @@ public class MemberService
                 m.Email.ToLower().Contains(s));
         }
 
-        if (isActive.HasValue)
-            query = query.Where(m => m.IsActive == isActive.Value);
-
-        var totalCount = await query.CountAsync();
+        var total = await query.CountAsync();
         var items = await query
             .OrderBy(m => m.LastName).ThenBy(m => m.FirstName)
             .Skip((page - 1) * pageSize)
@@ -40,26 +41,27 @@ public class MemberService
             .Select(m => MapToDto(m))
             .ToListAsync();
 
-        return new PaginatedResponse<MemberDto>
+        return new PagedResult<MemberDto>
         {
-            Data = items,
+            Items = items,
+            TotalCount = total,
             Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
+            PageSize = pageSize
         };
     }
 
-    public async Task<MemberDetailDto?> GetByIdAsync(int id)
+    public async Task<MemberDetailDto> GetByIdAsync(int id)
     {
         var member = await _db.Members
             .Include(m => m.Memberships).ThenInclude(ms => ms.MembershipPlan)
             .Include(m => m.Bookings)
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (member == null) return null;
+            .FirstOrDefaultAsync(m => m.Id == id)
+            ?? throw new KeyNotFoundException($"Member with ID {id} not found.");
 
         var activeMembership = member.Memberships
             .FirstOrDefault(ms => ms.Status == MembershipStatus.Active || ms.Status == MembershipStatus.Frozen);
+
+        var now = DateTime.UtcNow;
 
         return new MemberDetailDto
         {
@@ -75,29 +77,26 @@ public class MemberService
             IsActive = member.IsActive,
             CreatedAt = member.CreatedAt,
             UpdatedAt = member.UpdatedAt,
-            ActiveMembership = activeMembership == null ? null : new MembershipSummaryDto
-            {
-                Id = activeMembership.Id,
-                PlanName = activeMembership.MembershipPlan.Name,
-                Status = activeMembership.Status,
-                StartDate = activeMembership.StartDate,
-                EndDate = activeMembership.EndDate
-            },
+            ActiveMembership = activeMembership != null ? MapMembershipToDto(activeMembership) : null,
             TotalBookings = member.Bookings.Count,
-            AttendedClasses = member.Bookings.Count(b => b.Status == BookingStatus.Attended),
-            NoShows = member.Bookings.Count(b => b.Status == BookingStatus.NoShow)
+            UpcomingBookings = member.Bookings.Count(b =>
+                b.Status == BookingStatus.Confirmed &&
+                b.ClassSchedule != null && b.ClassSchedule.StartTime > now),
+            AttendedClasses = member.Bookings.Count(b => b.Status == BookingStatus.Attended)
         };
     }
 
     public async Task<MemberDto> CreateAsync(CreateMemberDto dto)
     {
-        var age = DateOnly.FromDateTime(DateTime.Today).DayNumber - dto.DateOfBirth.DayNumber;
-        var years = (DateTime.Today - dto.DateOfBirth.ToDateTime(TimeOnly.MinValue)).Days / 365.25;
+        var age = DateOnly.FromDateTime(DateTime.UtcNow).DayNumber - dto.DateOfBirth.DayNumber;
+        var years = (DateTime.UtcNow.Year - dto.DateOfBirth.Year);
+        if (DateOnly.FromDateTime(DateTime.UtcNow) < dto.DateOfBirth.AddYears(years))
+            years--;
         if (years < 16)
             throw new BusinessRuleException("Member must be at least 16 years old.");
 
         if (await _db.Members.AnyAsync(m => m.Email == dto.Email))
-            throw new BusinessRuleException($"A member with email '{dto.Email}' already exists.", 409);
+            throw new BusinessRuleException($"A member with email '{dto.Email}' already exists.", 409, "Conflict");
 
         var member = new Member
         {
@@ -112,17 +111,18 @@ public class MemberService
 
         _db.Members.Add(member);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created member {MemberEmail} with ID {MemberId}", member.Email, member.Id);
+
+        _logger.LogInformation("Registered new member '{FirstName} {LastName}' (ID {Id})", member.FirstName, member.LastName, member.Id);
         return MapToDto(member);
     }
 
     public async Task<MemberDto> UpdateAsync(int id, UpdateMemberDto dto)
     {
         var member = await _db.Members.FindAsync(id)
-            ?? throw new BusinessRuleException($"Member with ID {id} not found.", 404);
+            ?? throw new KeyNotFoundException($"Member with ID {id} not found.");
 
         if (await _db.Members.AnyAsync(m => m.Email == dto.Email && m.Id != id))
-            throw new BusinessRuleException($"A member with email '{dto.Email}' already exists.", 409);
+            throw new BusinessRuleException($"A member with email '{dto.Email}' already exists.", 409, "Conflict");
 
         member.FirstName = dto.FirstName;
         member.LastName = dto.LastName;
@@ -130,38 +130,37 @@ public class MemberService
         member.Phone = dto.Phone;
         member.EmergencyContactName = dto.EmergencyContactName;
         member.EmergencyContactPhone = dto.EmergencyContactPhone;
-        member.IsActive = dto.IsActive;
-        member.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated member {MemberId}", id);
+
+        _logger.LogInformation("Updated member '{FirstName} {LastName}' (ID {Id})", member.FirstName, member.LastName, member.Id);
         return MapToDto(member);
     }
 
     public async Task DeleteAsync(int id)
     {
         var member = await _db.Members
-            .Include(m => m.Bookings)
+            .Include(m => m.Bookings).ThenInclude(b => b.ClassSchedule)
             .FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new BusinessRuleException($"Member with ID {id} not found.", 404);
+            ?? throw new KeyNotFoundException($"Member with ID {id} not found.");
 
         var hasFutureBookings = member.Bookings.Any(b =>
             (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Waitlisted) &&
-            _db.ClassSchedules.Any(cs => cs.Id == b.ClassScheduleId && cs.StartTime > DateTime.UtcNow));
+            b.ClassSchedule.StartTime > DateTime.UtcNow);
 
         if (hasFutureBookings)
-            throw new BusinessRuleException("Cannot delete member with future bookings. Cancel bookings first.", 409);
+            throw new BusinessRuleException("Cannot deactivate member with future bookings. Cancel bookings first.");
 
         member.IsActive = false;
-        member.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Deactivated member {MemberId}", id);
+
+        _logger.LogInformation("Deactivated member (ID {Id})", member.Id);
     }
 
-    public async Task<PaginatedResponse<BookingDto>> GetBookingsAsync(int memberId, string? status, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
+    public async Task<PagedResult<BookingDto>> GetBookingsAsync(int memberId, string? status, DateTime? from, DateTime? to, int page, int pageSize)
     {
         if (!await _db.Members.AnyAsync(m => m.Id == memberId))
-            throw new BusinessRuleException($"Member with ID {memberId} not found.", 404);
+            throw new KeyNotFoundException($"Member with ID {memberId} not found.");
 
         var query = _db.Bookings
             .Include(b => b.ClassSchedule).ThenInclude(cs => cs.ClassType)
@@ -178,52 +177,53 @@ public class MemberService
         if (to.HasValue)
             query = query.Where(b => b.ClassSchedule.StartTime <= to.Value);
 
-        var totalCount = await query.CountAsync();
+        var total = await query.CountAsync();
         var items = await query
             .OrderByDescending(b => b.ClassSchedule.StartTime)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(b => BookingService.MapToDto(b))
             .ToListAsync();
 
-        return new PaginatedResponse<BookingDto>
+        return new PagedResult<BookingDto>
         {
-            Data = items,
+            Items = items.Select(MapBookingToDto).ToList(),
+            TotalCount = total,
             Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
+            PageSize = pageSize
         };
     }
 
     public async Task<List<BookingDto>> GetUpcomingBookingsAsync(int memberId)
     {
         if (!await _db.Members.AnyAsync(m => m.Id == memberId))
-            throw new BusinessRuleException($"Member with ID {memberId} not found.", 404);
+            throw new KeyNotFoundException($"Member with ID {memberId} not found.");
 
-        return await _db.Bookings
+        var bookings = await _db.Bookings
             .Include(b => b.ClassSchedule).ThenInclude(cs => cs.ClassType)
             .Include(b => b.ClassSchedule).ThenInclude(cs => cs.Instructor)
             .Include(b => b.Member)
             .Where(b => b.MemberId == memberId &&
-                        (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Waitlisted) &&
+                        b.Status == BookingStatus.Confirmed &&
                         b.ClassSchedule.StartTime > DateTime.UtcNow)
             .OrderBy(b => b.ClassSchedule.StartTime)
-            .Select(b => BookingService.MapToDto(b))
             .ToListAsync();
+
+        return bookings.Select(MapBookingToDto).ToList();
     }
 
     public async Task<List<MembershipDto>> GetMembershipsAsync(int memberId)
     {
         if (!await _db.Members.AnyAsync(m => m.Id == memberId))
-            throw new BusinessRuleException($"Member with ID {memberId} not found.", 404);
+            throw new KeyNotFoundException($"Member with ID {memberId} not found.");
 
-        return await _db.Memberships
+        var memberships = await _db.Memberships
             .Include(ms => ms.MembershipPlan)
             .Include(ms => ms.Member)
             .Where(ms => ms.MemberId == memberId)
             .OrderByDescending(ms => ms.StartDate)
-            .Select(ms => MembershipService.MapToDto(ms))
             .ToListAsync();
+
+        return memberships.Select(MapMembershipToDto).ToList();
     }
 
     private static MemberDto MapToDto(Member m) => new()
@@ -240,5 +240,44 @@ public class MemberService
         IsActive = m.IsActive,
         CreatedAt = m.CreatedAt,
         UpdatedAt = m.UpdatedAt
+    };
+
+    private static MembershipDto MapMembershipToDto(Membership ms) => new()
+    {
+        Id = ms.Id,
+        MemberId = ms.MemberId,
+        MemberName = ms.Member != null ? $"{ms.Member.FirstName} {ms.Member.LastName}" : "",
+        MembershipPlanId = ms.MembershipPlanId,
+        PlanName = ms.MembershipPlan?.Name ?? "",
+        StartDate = ms.StartDate,
+        EndDate = ms.EndDate,
+        Status = ms.Status,
+        PaymentStatus = ms.PaymentStatus,
+        FreezeStartDate = ms.FreezeStartDate,
+        FreezeEndDate = ms.FreezeEndDate,
+        CreatedAt = ms.CreatedAt,
+        UpdatedAt = ms.UpdatedAt
+    };
+
+    private static BookingDto MapBookingToDto(Booking b) => new()
+    {
+        Id = b.Id,
+        ClassScheduleId = b.ClassScheduleId,
+        ClassName = b.ClassSchedule?.ClassType?.Name ?? "",
+        ClassStartTime = b.ClassSchedule?.StartTime ?? default,
+        ClassEndTime = b.ClassSchedule?.EndTime ?? default,
+        Room = b.ClassSchedule?.Room ?? "",
+        InstructorName = b.ClassSchedule?.Instructor != null
+            ? $"{b.ClassSchedule.Instructor.FirstName} {b.ClassSchedule.Instructor.LastName}" : "",
+        MemberId = b.MemberId,
+        MemberName = b.Member != null ? $"{b.Member.FirstName} {b.Member.LastName}" : "",
+        BookingDate = b.BookingDate,
+        Status = b.Status,
+        WaitlistPosition = b.WaitlistPosition,
+        CheckInTime = b.CheckInTime,
+        CancellationDate = b.CancellationDate,
+        CancellationReason = b.CancellationReason,
+        CreatedAt = b.CreatedAt,
+        UpdatedAt = b.UpdatedAt
     };
 }

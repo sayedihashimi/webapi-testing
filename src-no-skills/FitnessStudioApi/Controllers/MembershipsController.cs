@@ -9,46 +9,75 @@ namespace FitnessStudioApi.Controllers;
 [Produces("application/json")]
 public class MembershipsController : ControllerBase
 {
-    private readonly MembershipService _service;
+    private readonly IMembershipService _service;
 
-    public MembershipsController(MembershipService service)
+    public MembershipsController(IMembershipService service)
     {
         _service = service;
     }
 
-    /// <summary>Create a new membership</summary>
+    /// <summary>Purchase/create a membership for a member</summary>
     [HttpPost]
-    public async Task<ActionResult<MembershipDto>> Create(CreateMembershipDto dto)
+    [ProducesResponseType(typeof(MembershipDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Create([FromBody] CreateMembershipDto dto)
     {
-        var ms = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = ms.Id }, ms);
+        var membership = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = membership.Id }, membership);
     }
 
-    /// <summary>Get a membership by ID</summary>
+    /// <summary>Get membership details</summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<MembershipDto>> GetById(int id)
+    [ProducesResponseType(typeof(MembershipDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetById(int id)
     {
-        var ms = await _service.GetByIdAsync(id);
-        return ms == null ? NotFound() : Ok(ms);
+        var membership = await _service.GetByIdAsync(id);
+        return Ok(membership);
     }
 
     /// <summary>Cancel a membership</summary>
     [HttpPost("{id}/cancel")]
-    public async Task<ActionResult<MembershipDto>> Cancel(int id)
-        => Ok(await _service.CancelAsync(id));
+    [ProducesResponseType(typeof(MembershipDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var membership = await _service.CancelAsync(id);
+        return Ok(membership);
+    }
 
     /// <summary>Freeze a membership (7-30 days)</summary>
     [HttpPost("{id}/freeze")]
-    public async Task<ActionResult<MembershipDto>> Freeze(int id, FreezeMembershipDto dto)
-        => Ok(await _service.FreezeAsync(id, dto));
+    [ProducesResponseType(typeof(MembershipDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Freeze(int id, [FromBody] FreezeMembershipDto dto)
+    {
+        var membership = await _service.FreezeAsync(id, dto);
+        return Ok(membership);
+    }
 
-    /// <summary>Unfreeze a membership</summary>
+    /// <summary>Unfreeze a membership (extends EndDate)</summary>
     [HttpPost("{id}/unfreeze")]
-    public async Task<ActionResult<MembershipDto>> Unfreeze(int id)
-        => Ok(await _service.UnfreezeAsync(id));
+    [ProducesResponseType(typeof(MembershipDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Unfreeze(int id)
+    {
+        var membership = await _service.UnfreezeAsync(id);
+        return Ok(membership);
+    }
 
     /// <summary>Renew an expired or cancelled membership</summary>
     [HttpPost("{id}/renew")]
-    public async Task<ActionResult<MembershipDto>> Renew(int id)
-        => Ok(await _service.RenewAsync(id));
+    [ProducesResponseType(typeof(MembershipDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Renew(int id)
+    {
+        var membership = await _service.RenewAsync(id);
+        return CreatedAtAction(nameof(GetById), new { id = membership.Id }, membership);
+    }
 }

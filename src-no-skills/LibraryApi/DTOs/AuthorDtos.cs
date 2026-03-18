@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LibraryApi.DTOs;
 
-// --- Author DTOs ---
 public class AuthorDto
 {
     public int Id { get; set; }

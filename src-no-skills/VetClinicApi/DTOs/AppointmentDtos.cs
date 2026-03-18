@@ -3,6 +3,7 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.DTOs;
 
+// --- Appointment DTOs ---
 public class CreateAppointmentDto
 {
     [Required]
@@ -53,7 +54,7 @@ public class UpdateAppointmentStatusDto
     public string? CancellationReason { get; set; }
 }
 
-public class AppointmentDto
+public class AppointmentResponseDto
 {
     public int Id { get; set; }
     public int PetId { get; set; }
@@ -66,18 +67,7 @@ public class AppointmentDto
     public string Reason { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public string? CancellationReason { get; set; }
+    public MedicalRecordSummaryDto? MedicalRecord { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public MedicalRecordSummaryDto? MedicalRecord { get; set; }
-}
-
-public class AppointmentSummaryDto
-{
-    public int Id { get; set; }
-    public DateTime AppointmentDate { get; set; }
-    public int DurationMinutes { get; set; }
-    public AppointmentStatus Status { get; set; }
-    public string Reason { get; set; } = string.Empty;
-    public PetSummaryDto? Pet { get; set; }
-    public VeterinarianSummaryDto? Veterinarian { get; set; }
 }

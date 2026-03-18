@@ -12,10 +12,10 @@ public class Instructor
     [Required, MaxLength(100)]
     public string LastName { get; set; } = string.Empty;
 
-    [Required, EmailAddress]
+    [Required]
     public string Email { get; set; } = string.Empty;
 
-    [Required, Phone]
+    [Required]
     public string Phone { get; set; } = string.Empty;
 
     [MaxLength(1000)]
@@ -23,7 +23,6 @@ public class Instructor
 
     public string? Specializations { get; set; }
 
-    [Required]
     public DateOnly HireDate { get; set; }
 
     public bool IsActive { get; set; } = true;

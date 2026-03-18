@@ -6,41 +6,72 @@ namespace LibraryApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class AuthorsController : ControllerBase
 {
-    private readonly AuthorService _service;
+    private readonly IAuthorService _authorService;
 
-    public AuthorsController(AuthorService service) => _service = service;
-
-    /// <summary>Get all authors with optional name search and pagination.</summary>
-    [HttpGet]
-    public async Task<ActionResult<PaginatedResponse<AuthorDto>>> GetAll(
-        [FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAllAsync(search, page, pageSize));
-
-    /// <summary>Get author by ID with associated books.</summary>
-    [HttpGet("{id}")]
-    public async Task<ActionResult<AuthorDetailDto>> GetById(int id)
-        => Ok(await _service.GetByIdAsync(id));
-
-    /// <summary>Create a new author.</summary>
-    [HttpPost]
-    public async Task<ActionResult<AuthorDto>> Create(CreateAuthorDto dto)
+    public AuthorsController(IAuthorService authorService)
     {
-        var author = await _service.CreateAsync(dto);
+        _authorService = authorService;
+    }
+
+    /// <summary>List authors with search by name and pagination</summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PaginatedResponse<AuthorDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _authorService.GetAllAsync(search, page, pageSize);
+        return Ok(result);
+    }
+
+    /// <summary>Get author details including their books</summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(AuthorDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var author = await _authorService.GetByIdAsync(id);
+        if (author == null) return NotFound(new ProblemDetails { Title = "Author not found", Status = 404 });
+        return Ok(author);
+    }
+
+    /// <summary>Create a new author</summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(AuthorDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreateAuthorDto dto)
+    {
+        var author = await _authorService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = author.Id }, author);
     }
 
-    /// <summary>Update an existing author.</summary>
+    /// <summary>Update an existing author</summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<AuthorDto>> Update(int id, UpdateAuthorDto dto)
-        => Ok(await _service.UpdateAsync(id, dto));
+    [ProducesResponseType(typeof(AuthorDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateAuthorDto dto)
+    {
+        var author = await _authorService.UpdateAsync(id, dto);
+        if (author == null) return NotFound(new ProblemDetails { Title = "Author not found", Status = 404 });
+        return Ok(author);
+    }
 
-    /// <summary>Delete an author (fails if author has books).</summary>
+    /// <summary>Delete an author (fails if the author has any books)</summary>
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(int id)
     {
-        await _service.DeleteAsync(id);
+        var (success, error) = await _authorService.DeleteAsync(id);
+        if (!success)
+        {
+            if (error == "Author not found")
+                return NotFound(new ProblemDetails { Title = error, Status = 404 });
+            return Conflict(new ProblemDetails { Title = "Delete failed", Detail = error, Status = 409 });
+        }
         return NoContent();
     }
 }

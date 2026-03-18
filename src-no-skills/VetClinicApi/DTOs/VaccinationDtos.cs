@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
+// --- Vaccination DTOs ---
 public class CreateVaccinationDto
 {
     [Required]
@@ -25,10 +26,11 @@ public class CreateVaccinationDto
     public string? Notes { get; set; }
 }
 
-public class VaccinationDto
+public class VaccinationResponseDto
 {
     public int Id { get; set; }
     public int PetId { get; set; }
+    public PetSummaryDto? Pet { get; set; }
     public string VaccineName { get; set; } = string.Empty;
     public DateOnly DateAdministered { get; set; }
     public DateOnly ExpirationDate { get; set; }

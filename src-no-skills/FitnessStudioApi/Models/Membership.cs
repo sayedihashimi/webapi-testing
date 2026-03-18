@@ -1,26 +1,19 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace FitnessStudioApi.Models;
 
 public class Membership
 {
     public int Id { get; set; }
 
-    [Required]
     public int MemberId { get; set; }
     public Member Member { get; set; } = null!;
 
-    [Required]
     public int MembershipPlanId { get; set; }
     public MembershipPlan MembershipPlan { get; set; } = null!;
 
-    [Required]
     public DateOnly StartDate { get; set; }
-
     public DateOnly EndDate { get; set; }
 
     public MembershipStatus Status { get; set; } = MembershipStatus.Active;
-
     public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Paid;
 
     public DateOnly? FreezeStartDate { get; set; }

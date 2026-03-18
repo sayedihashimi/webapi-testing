@@ -6,30 +6,67 @@ namespace LibraryApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class FinesController : ControllerBase
 {
-    private readonly FineService _service;
+    private readonly IFineService _fineService;
 
-    public FinesController(FineService service) => _service = service;
+    public FinesController(IFineService fineService)
+    {
+        _fineService = fineService;
+    }
 
-    /// <summary>Get all fines with optional status filter and pagination.</summary>
+    /// <summary>List fines with filter by status and pagination</summary>
     [HttpGet]
-    public async Task<ActionResult<PaginatedResponse<FineDto>>> GetAll(
-        [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAllAsync(status, page, pageSize));
+    [ProducesResponseType(typeof(PaginatedResponse<FineDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _fineService.GetAllAsync(status, page, pageSize);
+        return Ok(result);
+    }
 
-    /// <summary>Get fine by ID.</summary>
+    /// <summary>Get fine details</summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<FineDto>> GetById(int id)
-        => Ok(await _service.GetByIdAsync(id));
+    [ProducesResponseType(typeof(FineDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var fine = await _fineService.GetByIdAsync(id);
+        if (fine == null) return NotFound(new ProblemDetails { Title = "Fine not found", Status = 404 });
+        return Ok(fine);
+    }
 
-    /// <summary>Pay a fine.</summary>
+    /// <summary>Pay a fine (set PaidDate, update status to Paid)</summary>
     [HttpPost("{id}/pay")]
-    public async Task<ActionResult<FineDto>> Pay(int id)
-        => Ok(await _service.PayAsync(id));
+    [ProducesResponseType(typeof(FineDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Pay(int id)
+    {
+        var (fine, error) = await _fineService.PayAsync(id);
+        if (fine == null)
+        {
+            if (error == "Fine not found.")
+                return NotFound(new ProblemDetails { Title = "Fine not found", Status = 404 });
+            return BadRequest(new ProblemDetails { Title = "Payment failed", Detail = error, Status = 400 });
+        }
+        return Ok(fine);
+    }
 
-    /// <summary>Waive a fine.</summary>
+    /// <summary>Waive a fine (update status to Waived)</summary>
     [HttpPost("{id}/waive")]
-    public async Task<ActionResult<FineDto>> Waive(int id)
-        => Ok(await _service.WaiveAsync(id));
+    [ProducesResponseType(typeof(FineDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Waive(int id)
+    {
+        var (fine, error) = await _fineService.WaiveAsync(id);
+        if (fine == null)
+        {
+            if (error == "Fine not found.")
+                return NotFound(new ProblemDetails { Title = "Fine not found", Status = 404 });
+            return BadRequest(new ProblemDetails { Title = "Waive failed", Detail = error, Status = 400 });
+        }
+        return Ok(fine);
+    }
 }

@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LibraryApi.DTOs;
 
-// --- Category DTOs ---
 public class CategoryDto
 {
     public int Id { get; set; }

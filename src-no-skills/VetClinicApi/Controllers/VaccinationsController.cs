@@ -12,16 +12,19 @@ public class VaccinationsController : ControllerBase
 
     public VaccinationsController(IVaccinationService service) => _service = service;
 
-    /// <summary>Get vaccination by ID</summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<VaccinationDto>> GetById(int id)
+    [ProducesResponseType(typeof(VaccinationResponseDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetById(int id)
     {
-        return Ok(await _service.GetByIdAsync(id));
+        var result = await _service.GetByIdAsync(id);
+        return result == null ? NotFound() : Ok(result);
     }
 
-    /// <summary>Create a new vaccination record</summary>
     [HttpPost]
-    public async Task<ActionResult<VaccinationDto>> Create([FromBody] CreateVaccinationDto dto)
+    [ProducesResponseType(typeof(VaccinationResponseDto), 201)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> Create([FromBody] CreateVaccinationDto dto)
     {
         var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);

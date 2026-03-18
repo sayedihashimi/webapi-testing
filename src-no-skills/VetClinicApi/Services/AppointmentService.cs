@@ -1,20 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using VetClinicApi.Data;
 using VetClinicApi.DTOs;
-using VetClinicApi.Middleware;
 using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
-
-public interface IAppointmentService
-{
-    Task<PaginatedResponse<AppointmentSummaryDto>> GetAllAsync(DateTime? dateFrom, DateTime? dateTo, string? status, int? vetId, int? petId, int page, int pageSize);
-    Task<AppointmentDto> GetByIdAsync(int id);
-    Task<AppointmentDto> CreateAsync(CreateAppointmentDto dto);
-    Task<AppointmentDto> UpdateAsync(int id, UpdateAppointmentDto dto);
-    Task<AppointmentDto> UpdateStatusAsync(int id, UpdateAppointmentStatusDto dto);
-    Task<List<AppointmentSummaryDto>> GetTodayAsync();
-}
 
 public class AppointmentService : IAppointmentService
 {
@@ -27,199 +16,165 @@ public class AppointmentService : IAppointmentService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<AppointmentSummaryDto>> GetAllAsync(
-        DateTime? dateFrom, DateTime? dateTo, string? status, int? vetId, int? petId, int page, int pageSize)
+    public async Task<PagedResponse<AppointmentResponseDto>> GetAllAsync(DateTime? dateFrom, DateTime? dateTo, AppointmentStatus? status, int? vetId, int? petId, PaginationParams pagination)
     {
         var query = _db.Appointments
-            .Include(a => a.Pet).Include(a => a.Veterinarian).AsQueryable();
+            .Include(a => a.Pet).Include(a => a.Veterinarian).Include(a => a.MedicalRecord)
+            .AsQueryable();
 
         if (dateFrom.HasValue) query = query.Where(a => a.AppointmentDate >= dateFrom.Value);
         if (dateTo.HasValue) query = query.Where(a => a.AppointmentDate <= dateTo.Value);
-        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<AppointmentStatus>(status, true, out var s))
-            query = query.Where(a => a.Status == s);
+        if (status.HasValue) query = query.Where(a => a.Status == status.Value);
         if (vetId.HasValue) query = query.Where(a => a.VeterinarianId == vetId.Value);
         if (petId.HasValue) query = query.Where(a => a.PetId == petId.Value);
 
         var totalCount = await query.CountAsync();
-
         var items = await query
             .OrderByDescending(a => a.AppointmentDate)
-            .Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(a => new AppointmentSummaryDto
-            {
-                Id = a.Id, AppointmentDate = a.AppointmentDate,
-                DurationMinutes = a.DurationMinutes, Status = a.Status,
-                Reason = a.Reason,
-                Pet = new PetSummaryDto { Id = a.Pet.Id, Name = a.Pet.Name, Species = a.Pet.Species, Breed = a.Pet.Breed, IsActive = a.Pet.IsActive },
-                Veterinarian = new VeterinarianSummaryDto { Id = a.Veterinarian.Id, FirstName = a.Veterinarian.FirstName, LastName = a.Veterinarian.LastName, Specialization = a.Veterinarian.Specialization }
-            }).ToListAsync();
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ToListAsync();
 
-        return new PaginatedResponse<AppointmentSummaryDto>
+        return new PagedResponse<AppointmentResponseDto>
         {
-            Data = items, Page = page, PageSize = pageSize, TotalCount = totalCount
+            Items = items.Select(MapToResponse).ToList(),
+            TotalCount = totalCount, Page = pagination.Page, PageSize = pagination.PageSize
         };
     }
 
-    public async Task<AppointmentDto> GetByIdAsync(int id)
+    public async Task<AppointmentResponseDto?> GetByIdAsync(int id)
     {
-        var appointment = await _db.Appointments
-            .Include(a => a.Pet)
-            .Include(a => a.Veterinarian)
-            .Include(a => a.MedicalRecord)
-            .FirstOrDefaultAsync(a => a.Id == id)
-            ?? throw new NotFoundException("Appointment", id);
-
-        return MapToDto(appointment);
+        var appt = await _db.Appointments
+            .Include(a => a.Pet).Include(a => a.Veterinarian).Include(a => a.MedicalRecord)
+            .FirstOrDefaultAsync(a => a.Id == id);
+        return appt == null ? null : MapToResponse(appt);
     }
 
-    public async Task<AppointmentDto> CreateAsync(CreateAppointmentDto dto)
+    public async Task<AppointmentResponseDto> CreateAsync(CreateAppointmentDto dto)
     {
-        if (!await _db.Pets.AnyAsync(p => p.Id == dto.PetId && p.IsActive))
-            throw new NotFoundException("Active Pet", dto.PetId);
-
+        if (!await _db.Pets.AnyAsync(p => p.Id == dto.PetId))
+            throw new KeyNotFoundException($"Pet with ID {dto.PetId} not found.");
         if (!await _db.Veterinarians.AnyAsync(v => v.Id == dto.VeterinarianId))
-            throw new NotFoundException("Veterinarian", dto.VeterinarianId);
+            throw new KeyNotFoundException($"Veterinarian with ID {dto.VeterinarianId} not found.");
 
         if (dto.AppointmentDate <= DateTime.UtcNow)
-            throw new BusinessRuleException("Appointment date must be in the future.");
+            throw new ArgumentException("Appointment date must be in the future.");
 
-        await CheckScheduleConflict(dto.VeterinarianId, dto.AppointmentDate, dto.DurationMinutes, null);
+        await CheckSchedulingConflict(dto.VeterinarianId, dto.AppointmentDate, dto.DurationMinutes, null);
 
-        var appointment = new Appointment
+        var appt = new Appointment
         {
             PetId = dto.PetId, VeterinarianId = dto.VeterinarianId,
             AppointmentDate = dto.AppointmentDate, DurationMinutes = dto.DurationMinutes,
-            Reason = dto.Reason, Notes = dto.Notes
+            Reason = dto.Reason, Notes = dto.Notes,
+            Status = AppointmentStatus.Scheduled,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
         };
 
-        _db.Appointments.Add(appointment);
+        _db.Appointments.Add(appt);
         await _db.SaveChangesAsync();
+        _logger.LogInformation("Appointment created: {AppointmentId} for Pet {PetId} with Vet {VetId}", appt.Id, appt.PetId, appt.VeterinarianId);
 
-        await _db.Entry(appointment).Reference(a => a.Pet).LoadAsync();
-        await _db.Entry(appointment).Reference(a => a.Veterinarian).LoadAsync();
-        _logger.LogInformation("Created appointment {AppointmentId} for pet {PetId} with vet {VetId}", appointment.Id, appointment.PetId, appointment.VeterinarianId);
-        return MapToDto(appointment);
+        return (await GetByIdAsync(appt.Id))!;
     }
 
-    public async Task<AppointmentDto> UpdateAsync(int id, UpdateAppointmentDto dto)
+    public async Task<AppointmentResponseDto> UpdateAsync(int id, UpdateAppointmentDto dto)
     {
-        var appointment = await _db.Appointments
+        var appt = await _db.Appointments
             .Include(a => a.Pet).Include(a => a.Veterinarian).Include(a => a.MedicalRecord)
             .FirstOrDefaultAsync(a => a.Id == id)
-            ?? throw new NotFoundException("Appointment", id);
+            ?? throw new KeyNotFoundException($"Appointment with ID {id} not found.");
 
-        if (appointment.Status == AppointmentStatus.Completed ||
-            appointment.Status == AppointmentStatus.Cancelled ||
-            appointment.Status == AppointmentStatus.NoShow)
-            throw new BusinessRuleException($"Cannot update an appointment with status '{appointment.Status}'.");
+        if (appt.Status == AppointmentStatus.Completed || appt.Status == AppointmentStatus.Cancelled || appt.Status == AppointmentStatus.NoShow)
+            throw new InvalidOperationException($"Cannot update an appointment with status '{appt.Status}'.");
 
-        if (!await _db.Pets.AnyAsync(p => p.Id == dto.PetId && p.IsActive))
-            throw new NotFoundException("Active Pet", dto.PetId);
-
+        if (!await _db.Pets.AnyAsync(p => p.Id == dto.PetId))
+            throw new KeyNotFoundException($"Pet with ID {dto.PetId} not found.");
         if (!await _db.Veterinarians.AnyAsync(v => v.Id == dto.VeterinarianId))
-            throw new NotFoundException("Veterinarian", dto.VeterinarianId);
+            throw new KeyNotFoundException($"Veterinarian with ID {dto.VeterinarianId} not found.");
 
-        await CheckScheduleConflict(dto.VeterinarianId, dto.AppointmentDate, dto.DurationMinutes, id);
+        await CheckSchedulingConflict(dto.VeterinarianId, dto.AppointmentDate, dto.DurationMinutes, id);
 
-        appointment.PetId = dto.PetId;
-        appointment.VeterinarianId = dto.VeterinarianId;
-        appointment.AppointmentDate = dto.AppointmentDate;
-        appointment.DurationMinutes = dto.DurationMinutes;
-        appointment.Reason = dto.Reason;
-        appointment.Notes = dto.Notes;
-        appointment.UpdatedAt = DateTime.UtcNow;
+        appt.PetId = dto.PetId; appt.VeterinarianId = dto.VeterinarianId;
+        appt.AppointmentDate = dto.AppointmentDate; appt.DurationMinutes = dto.DurationMinutes;
+        appt.Reason = dto.Reason; appt.Notes = dto.Notes;
+        appt.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-
-        await _db.Entry(appointment).Reference(a => a.Pet).LoadAsync();
-        await _db.Entry(appointment).Reference(a => a.Veterinarian).LoadAsync();
-        _logger.LogInformation("Updated appointment {AppointmentId}", appointment.Id);
-        return MapToDto(appointment);
+        return MapToResponse(appt);
     }
 
-    public async Task<AppointmentDto> UpdateStatusAsync(int id, UpdateAppointmentStatusDto dto)
+    public async Task<AppointmentResponseDto> UpdateStatusAsync(int id, UpdateAppointmentStatusDto dto)
     {
-        var appointment = await _db.Appointments
+        var appt = await _db.Appointments
             .Include(a => a.Pet).Include(a => a.Veterinarian).Include(a => a.MedicalRecord)
             .FirstOrDefaultAsync(a => a.Id == id)
-            ?? throw new NotFoundException("Appointment", id);
+            ?? throw new KeyNotFoundException($"Appointment with ID {id} not found.");
 
-        ValidateStatusTransition(appointment.Status, dto.Status);
+        ValidateStatusTransition(appt.Status, dto.Status);
 
         if (dto.Status == AppointmentStatus.Cancelled)
         {
             if (string.IsNullOrWhiteSpace(dto.CancellationReason))
-                throw new BusinessRuleException("Cancellation reason is required when cancelling an appointment.");
-
-            if (appointment.AppointmentDate < DateTime.UtcNow)
-                throw new BusinessRuleException("Cannot cancel a past appointment.");
-
-            appointment.CancellationReason = dto.CancellationReason;
+                throw new ArgumentException("A cancellation reason is required when cancelling an appointment.");
+            if (appt.AppointmentDate < DateTime.UtcNow)
+                throw new ArgumentException("Cannot cancel a past appointment.");
+            appt.CancellationReason = dto.CancellationReason;
         }
 
-        appointment.Status = dto.Status;
-        appointment.UpdatedAt = DateTime.UtcNow;
+        appt.Status = dto.Status;
+        appt.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated appointment {AppointmentId} status to {Status}", appointment.Id, dto.Status);
-        return MapToDto(appointment);
+        _logger.LogInformation("Appointment {AppointmentId} status changed to {Status}", id, dto.Status);
+        return MapToResponse(appt);
     }
 
-    public async Task<List<AppointmentSummaryDto>> GetTodayAsync()
+    public async Task<List<AppointmentResponseDto>> GetTodayAsync()
     {
         var today = DateTime.UtcNow.Date;
         var tomorrow = today.AddDays(1);
 
-        return await _db.Appointments
-            .Include(a => a.Pet).Include(a => a.Veterinarian)
+        var appointments = await _db.Appointments
+            .Include(a => a.Pet).Include(a => a.Veterinarian).Include(a => a.MedicalRecord)
             .Where(a => a.AppointmentDate >= today && a.AppointmentDate < tomorrow)
             .OrderBy(a => a.AppointmentDate)
-            .Select(a => new AppointmentSummaryDto
-            {
-                Id = a.Id, AppointmentDate = a.AppointmentDate,
-                DurationMinutes = a.DurationMinutes, Status = a.Status,
-                Reason = a.Reason,
-                Pet = new PetSummaryDto { Id = a.Pet.Id, Name = a.Pet.Name, Species = a.Pet.Species, Breed = a.Pet.Breed, IsActive = a.Pet.IsActive },
-                Veterinarian = new VeterinarianSummaryDto { Id = a.Veterinarian.Id, FirstName = a.Veterinarian.FirstName, LastName = a.Veterinarian.LastName, Specialization = a.Veterinarian.Specialization }
-            }).ToListAsync();
-    }
-
-    private async Task CheckScheduleConflict(int vetId, DateTime appointmentDate, int durationMinutes, int? excludeId)
-    {
-        var endTime = appointmentDate.AddMinutes(durationMinutes);
-
-        var conflicting = await _db.Appointments
-            .Where(a => a.VeterinarianId == vetId &&
-                        a.Status != AppointmentStatus.Cancelled &&
-                        a.Status != AppointmentStatus.NoShow &&
-                        (excludeId == null || a.Id != excludeId))
             .ToListAsync();
 
-        var hasConflict = conflicting.Any(a =>
-        {
-            var existingEnd = a.AppointmentDate.AddMinutes(a.DurationMinutes);
-            return appointmentDate < existingEnd && endTime > a.AppointmentDate;
-        });
-
-        if (hasConflict)
-            throw new BusinessRuleException("The veterinarian has a scheduling conflict for the requested time.", StatusCodes.Status409Conflict);
+        return appointments.Select(MapToResponse).ToList();
     }
 
-    private static void ValidateStatusTransition(AppointmentStatus current, AppointmentStatus target)
+    private async Task CheckSchedulingConflict(int vetId, DateTime proposedStart, int durationMinutes, int? excludeAppointmentId)
     {
-        var allowed = current switch
+        var proposedEnd = proposedStart.AddMinutes(durationMinutes);
+
+        var conflict = await _db.Appointments
+            .Where(a => a.VeterinarianId == vetId
+                && a.Status != AppointmentStatus.Cancelled
+                && a.Status != AppointmentStatus.NoShow
+                && (excludeAppointmentId == null || a.Id != excludeAppointmentId))
+            .AnyAsync(a =>
+                proposedStart < a.AppointmentDate.AddMinutes(a.DurationMinutes)
+                && proposedEnd > a.AppointmentDate);
+
+        if (conflict)
+            throw new InvalidOperationException("The veterinarian has a scheduling conflict at the requested time.");
+    }
+
+    private static void ValidateStatusTransition(AppointmentStatus current, AppointmentStatus next)
+    {
+        var validTransitions = new Dictionary<AppointmentStatus, AppointmentStatus[]>
         {
-            AppointmentStatus.Scheduled => new[] { AppointmentStatus.CheckedIn, AppointmentStatus.Cancelled, AppointmentStatus.NoShow },
-            AppointmentStatus.CheckedIn => new[] { AppointmentStatus.InProgress, AppointmentStatus.Cancelled },
-            AppointmentStatus.InProgress => new[] { AppointmentStatus.Completed },
-            _ => Array.Empty<AppointmentStatus>()
+            { AppointmentStatus.Scheduled, new[] { AppointmentStatus.CheckedIn, AppointmentStatus.Cancelled, AppointmentStatus.NoShow } },
+            { AppointmentStatus.CheckedIn, new[] { AppointmentStatus.InProgress, AppointmentStatus.Cancelled } },
+            { AppointmentStatus.InProgress, new[] { AppointmentStatus.Completed } },
         };
 
-        if (!allowed.Contains(target))
-            throw new BusinessRuleException($"Cannot transition from '{current}' to '{target}'. Allowed transitions: {string.Join(", ", allowed)}.");
+        if (!validTransitions.TryGetValue(current, out var allowed) || !allowed.Contains(next))
+            throw new ArgumentException($"Invalid status transition from '{current}' to '{next}'.");
     }
 
-    private static AppointmentDto MapToDto(Appointment a) => new()
+    public static AppointmentResponseDto MapToResponse(Appointment a) => new()
     {
         Id = a.Id, PetId = a.PetId, VeterinarianId = a.VeterinarianId,
         AppointmentDate = a.AppointmentDate, DurationMinutes = a.DurationMinutes,
@@ -228,6 +183,6 @@ public class AppointmentService : IAppointmentService
         CreatedAt = a.CreatedAt, UpdatedAt = a.UpdatedAt,
         Pet = a.Pet != null ? new PetSummaryDto { Id = a.Pet.Id, Name = a.Pet.Name, Species = a.Pet.Species, Breed = a.Pet.Breed, IsActive = a.Pet.IsActive } : null,
         Veterinarian = a.Veterinarian != null ? new VeterinarianSummaryDto { Id = a.Veterinarian.Id, FirstName = a.Veterinarian.FirstName, LastName = a.Veterinarian.LastName, Specialization = a.Veterinarian.Specialization } : null,
-        MedicalRecord = a.MedicalRecord != null ? new MedicalRecordSummaryDto { Id = a.MedicalRecord.Id, Diagnosis = a.MedicalRecord.Diagnosis, Treatment = a.MedicalRecord.Treatment, FollowUpDate = a.MedicalRecord.FollowUpDate } : null
+        MedicalRecord = a.MedicalRecord != null ? new MedicalRecordSummaryDto { Id = a.MedicalRecord.Id, Diagnosis = a.MedicalRecord.Diagnosis, Treatment = a.MedicalRecord.Treatment, CreatedAt = a.MedicalRecord.CreatedAt } : null
     };
 }

@@ -14,7 +14,7 @@ public class CreateOwnerDto
     [Required, EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required, Phone]
+    [Required]
     public string Phone { get; set; } = string.Empty;
 
     public string? Address { get; set; }
@@ -36,7 +36,7 @@ public class UpdateOwnerDto
     [Required, EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required, Phone]
+    [Required]
     public string Phone { get; set; } = string.Empty;
 
     public string? Address { get; set; }
@@ -47,7 +47,7 @@ public class UpdateOwnerDto
     public string? ZipCode { get; set; }
 }
 
-public class OwnerDto
+public class OwnerResponseDto
 {
     public int Id { get; set; }
     public string FirstName { get; set; } = string.Empty;

@@ -12,16 +12,19 @@ public class PrescriptionsController : ControllerBase
 
     public PrescriptionsController(IPrescriptionService service) => _service = service;
 
-    /// <summary>Get prescription by ID</summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<PrescriptionDto>> GetById(int id)
+    [ProducesResponseType(typeof(PrescriptionResponseDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetById(int id)
     {
-        return Ok(await _service.GetByIdAsync(id));
+        var result = await _service.GetByIdAsync(id);
+        return result == null ? NotFound() : Ok(result);
     }
 
-    /// <summary>Create a new prescription</summary>
     [HttpPost]
-    public async Task<ActionResult<PrescriptionDto>> Create([FromBody] CreatePrescriptionDto dto)
+    [ProducesResponseType(typeof(PrescriptionResponseDto), 201)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> Create([FromBody] CreatePrescriptionDto dto)
     {
         var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);

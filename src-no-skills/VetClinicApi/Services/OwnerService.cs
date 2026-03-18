@@ -1,21 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using VetClinicApi.Data;
 using VetClinicApi.DTOs;
-using VetClinicApi.Middleware;
 using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
-
-public interface IOwnerService
-{
-    Task<PaginatedResponse<OwnerSummaryDto>> GetAllAsync(string? search, int page, int pageSize);
-    Task<OwnerDto> GetByIdAsync(int id);
-    Task<OwnerDto> CreateAsync(CreateOwnerDto dto);
-    Task<OwnerDto> UpdateAsync(int id, UpdateOwnerDto dto);
-    Task DeleteAsync(int id);
-    Task<List<PetSummaryDto>> GetPetsAsync(int ownerId);
-    Task<PaginatedResponse<AppointmentSummaryDto>> GetAppointmentsAsync(int ownerId, int page, int pageSize);
-}
 
 public class OwnerService : IOwnerService
 {
@@ -28,70 +16,64 @@ public class OwnerService : IOwnerService
         _logger = logger;
     }
 
-    public async Task<PaginatedResponse<OwnerSummaryDto>> GetAllAsync(string? search, int page, int pageSize)
+    public async Task<PagedResponse<OwnerResponseDto>> GetAllAsync(string? search, PaginationParams pagination)
     {
         var query = _db.Owners.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.ToLower();
-            query = query.Where(o => o.FirstName.ToLower().Contains(s) ||
-                                     o.LastName.ToLower().Contains(s) ||
-                                     o.Email.ToLower().Contains(s));
+            query = query.Where(o => o.FirstName.ToLower().Contains(s) || o.LastName.ToLower().Contains(s) || o.Email.ToLower().Contains(s));
         }
 
         var totalCount = await query.CountAsync();
-
         var items = await query
             .OrderBy(o => o.LastName).ThenBy(o => o.FirstName)
-            .Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(o => new OwnerSummaryDto
-            {
-                Id = o.Id, FirstName = o.FirstName, LastName = o.LastName,
-                Email = o.Email, Phone = o.Phone
-            }).ToListAsync();
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .Select(o => MapToResponse(o, false))
+            .ToListAsync();
 
-        return new PaginatedResponse<OwnerSummaryDto>
-        {
-            Data = items, Page = page, PageSize = pageSize, TotalCount = totalCount
-        };
+        return new PagedResponse<OwnerResponseDto> { Items = items, TotalCount = totalCount, Page = pagination.Page, PageSize = pagination.PageSize };
     }
 
-    public async Task<OwnerDto> GetByIdAsync(int id)
+    public async Task<OwnerResponseDto?> GetByIdAsync(int id)
     {
-        var owner = await _db.Owners.Include(o => o.Pets)
-            .FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new NotFoundException("Owner", id);
-
-        return MapToDto(owner);
+        var owner = await _db.Owners.Include(o => o.Pets).FirstOrDefaultAsync(o => o.Id == id);
+        return owner == null ? null : MapToResponse(owner, true);
     }
 
-    public async Task<OwnerDto> CreateAsync(CreateOwnerDto dto)
+    public async Task<OwnerResponseDto> CreateAsync(CreateOwnerDto dto)
     {
         if (await _db.Owners.AnyAsync(o => o.Email == dto.Email))
-            throw new BusinessRuleException("An owner with this email already exists.", StatusCodes.Status409Conflict);
+            throw new ArgumentException($"An owner with email '{dto.Email}' already exists.");
 
         var owner = new Owner
         {
-            FirstName = dto.FirstName, LastName = dto.LastName, Email = dto.Email,
-            Phone = dto.Phone, Address = dto.Address, City = dto.City,
-            State = dto.State, ZipCode = dto.ZipCode
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            Email = dto.Email,
+            Phone = dto.Phone,
+            Address = dto.Address,
+            City = dto.City,
+            State = dto.State,
+            ZipCode = dto.ZipCode,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         _db.Owners.Add(owner);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created owner {OwnerId}: {FirstName} {LastName}", owner.Id, owner.FirstName, owner.LastName);
-        return MapToDto(owner);
+        _logger.LogInformation("Owner created: {OwnerId} {Name}", owner.Id, $"{owner.FirstName} {owner.LastName}");
+        return MapToResponse(owner, false);
     }
 
-    public async Task<OwnerDto> UpdateAsync(int id, UpdateOwnerDto dto)
+    public async Task<OwnerResponseDto> UpdateAsync(int id, UpdateOwnerDto dto)
     {
-        var owner = await _db.Owners.Include(o => o.Pets)
-            .FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new NotFoundException("Owner", id);
+        var owner = await _db.Owners.FindAsync(id) ?? throw new KeyNotFoundException($"Owner with ID {id} not found.");
 
         if (await _db.Owners.AnyAsync(o => o.Email == dto.Email && o.Id != id))
-            throw new BusinessRuleException("An owner with this email already exists.", StatusCodes.Status409Conflict);
+            throw new ArgumentException($"An owner with email '{dto.Email}' already exists.");
 
         owner.FirstName = dto.FirstName;
         owner.LastName = dto.LastName;
@@ -104,76 +86,69 @@ public class OwnerService : IOwnerService
         owner.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated owner {OwnerId}", owner.Id);
-        return MapToDto(owner);
+        return MapToResponse(owner, false);
     }
 
     public async Task DeleteAsync(int id)
     {
-        var owner = await _db.Owners.Include(o => o.Pets)
-            .FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new NotFoundException("Owner", id);
+        var owner = await _db.Owners.Include(o => o.Pets).FirstOrDefaultAsync(o => o.Id == id)
+            ?? throw new KeyNotFoundException($"Owner with ID {id} not found.");
 
         if (owner.Pets.Any(p => p.IsActive))
-            throw new BusinessRuleException("Cannot delete owner with active pets. Deactivate all pets first.");
+            throw new InvalidOperationException("Cannot delete owner with active pets. Deactivate or transfer pets first.");
 
         _db.Owners.Remove(owner);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Deleted owner {OwnerId}", owner.Id);
+        _logger.LogInformation("Owner deleted: {OwnerId}", id);
     }
 
-    public async Task<List<PetSummaryDto>> GetPetsAsync(int ownerId)
+    public async Task<List<PetResponseDto>> GetPetsAsync(int ownerId)
     {
         if (!await _db.Owners.AnyAsync(o => o.Id == ownerId))
-            throw new NotFoundException("Owner", ownerId);
+            throw new KeyNotFoundException($"Owner with ID {ownerId} not found.");
 
-        return await _db.Pets.Where(p => p.OwnerId == ownerId)
-            .Select(p => new PetSummaryDto
+        return await _db.Pets
+            .Where(p => p.OwnerId == ownerId)
+            .Include(p => p.Owner)
+            .Select(p => new PetResponseDto
             {
-                Id = p.Id, Name = p.Name, Species = p.Species,
-                Breed = p.Breed, IsActive = p.IsActive
+                Id = p.Id, Name = p.Name, Species = p.Species, Breed = p.Breed,
+                DateOfBirth = p.DateOfBirth, Weight = p.Weight, Color = p.Color,
+                MicrochipNumber = p.MicrochipNumber, IsActive = p.IsActive, OwnerId = p.OwnerId,
+                CreatedAt = p.CreatedAt, UpdatedAt = p.UpdatedAt
             }).ToListAsync();
     }
 
-    public async Task<PaginatedResponse<AppointmentSummaryDto>> GetAppointmentsAsync(int ownerId, int page, int pageSize)
+    public async Task<PagedResponse<AppointmentResponseDto>> GetAppointmentsAsync(int ownerId, PaginationParams pagination)
     {
         if (!await _db.Owners.AnyAsync(o => o.Id == ownerId))
-            throw new NotFoundException("Owner", ownerId);
+            throw new KeyNotFoundException($"Owner with ID {ownerId} not found.");
+
+        var petIds = await _db.Pets.Where(p => p.OwnerId == ownerId).Select(p => p.Id).ToListAsync();
 
         var query = _db.Appointments
-            .Include(a => a.Pet).Include(a => a.Veterinarian)
-            .Where(a => a.Pet.OwnerId == ownerId);
+            .Include(a => a.Pet).Include(a => a.Veterinarian).Include(a => a.MedicalRecord)
+            .Where(a => petIds.Contains(a.PetId))
+            .OrderByDescending(a => a.AppointmentDate);
 
         var totalCount = await query.CountAsync();
-
         var items = await query
-            .OrderByDescending(a => a.AppointmentDate)
-            .Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(a => new AppointmentSummaryDto
-            {
-                Id = a.Id, AppointmentDate = a.AppointmentDate,
-                DurationMinutes = a.DurationMinutes, Status = a.Status,
-                Reason = a.Reason,
-                Pet = new PetSummaryDto { Id = a.Pet.Id, Name = a.Pet.Name, Species = a.Pet.Species, Breed = a.Pet.Breed, IsActive = a.Pet.IsActive },
-                Veterinarian = new VeterinarianSummaryDto { Id = a.Veterinarian.Id, FirstName = a.Veterinarian.FirstName, LastName = a.Veterinarian.LastName, Specialization = a.Veterinarian.Specialization }
-            }).ToListAsync();
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ToListAsync();
 
-        return new PaginatedResponse<AppointmentSummaryDto>
+        return new PagedResponse<AppointmentResponseDto>
         {
-            Data = items, Page = page, PageSize = pageSize, TotalCount = totalCount
+            Items = items.Select(AppointmentService.MapToResponse).ToList(),
+            TotalCount = totalCount, Page = pagination.Page, PageSize = pagination.PageSize
         };
     }
 
-    private static OwnerDto MapToDto(Owner owner) => new()
+    private static OwnerResponseDto MapToResponse(Owner o, bool includePets) => new()
     {
-        Id = owner.Id, FirstName = owner.FirstName, LastName = owner.LastName,
-        Email = owner.Email, Phone = owner.Phone, Address = owner.Address,
-        City = owner.City, State = owner.State, ZipCode = owner.ZipCode,
-        CreatedAt = owner.CreatedAt, UpdatedAt = owner.UpdatedAt,
-        Pets = owner.Pets.Select(p => new PetSummaryDto
-        {
-            Id = p.Id, Name = p.Name, Species = p.Species,
-            Breed = p.Breed, IsActive = p.IsActive
-        }).ToList()
+        Id = o.Id, FirstName = o.FirstName, LastName = o.LastName, Email = o.Email,
+        Phone = o.Phone, Address = o.Address, City = o.City, State = o.State, ZipCode = o.ZipCode,
+        CreatedAt = o.CreatedAt, UpdatedAt = o.UpdatedAt,
+        Pets = includePets ? o.Pets.Select(p => new PetSummaryDto { Id = p.Id, Name = p.Name, Species = p.Species, Breed = p.Breed, IsActive = p.IsActive }).ToList() : new()
     };
 }

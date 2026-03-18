@@ -6,51 +6,59 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// EF Core with SQLite
+// Database
 builder.Services.AddDbContext<FitnessDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register services
-builder.Services.AddScoped<MembershipPlanService>();
-builder.Services.AddScoped<MemberService>();
-builder.Services.AddScoped<MembershipService>();
-builder.Services.AddScoped<InstructorService>();
-builder.Services.AddScoped<ClassTypeService>();
-builder.Services.AddScoped<ClassScheduleService>();
-builder.Services.AddScoped<BookingService>();
+// Services
+builder.Services.AddScoped<IMembershipPlanService, MembershipPlanService>();
+builder.Services.AddScoped<IMemberService, MemberService>();
+builder.Services.AddScoped<IMembershipService, MembershipService>();
+builder.Services.AddScoped<IInstructorService, InstructorService>();
+builder.Services.AddScoped<IClassTypeService, ClassTypeService>();
+builder.Services.AddScoped<IClassScheduleService, ClassScheduleService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 
-// Controllers with JSON enum-as-string serialization
+// Controllers & JSON
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-// Swagger / OpenAPI
+// Exception handling
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
+// OpenAPI / Swagger
+builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Global error handling middleware
-app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-// Swagger UI
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Zenith Fitness Studio API v1");
-});
-
-app.UseHttpsRedirection();
-app.MapControllers();
-
-// Ensure DB is created and seed data
+// Seed database
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FitnessDbContext>();
-    await db.Database.EnsureCreatedAsync();
-    await DataSeeder.SeedAsync(db);
+    db.Database.EnsureCreated();
+    DataSeeder.Seed(db);
 }
+
+// Middleware
+app.UseExceptionHandler();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Zenith Fitness Studio API v1");
+        options.RoutePrefix = "swagger";
+    });
+}
+
+app.MapControllers();
 
 app.Run();

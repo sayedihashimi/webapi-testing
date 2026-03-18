@@ -15,7 +15,7 @@ public class Veterinarian
     [Required, EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required, Phone]
+    [Required]
     public string Phone { get; set; } = string.Empty;
 
     public string? Specialization { get; set; }
@@ -25,7 +25,6 @@ public class Veterinarian
 
     public bool IsAvailable { get; set; } = true;
 
-    [Required]
     public DateOnly HireDate { get; set; }
 
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();

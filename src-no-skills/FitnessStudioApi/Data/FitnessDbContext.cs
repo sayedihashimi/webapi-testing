@@ -19,17 +19,20 @@ public class FitnessDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // MembershipPlan
         modelBuilder.Entity<MembershipPlan>(entity =>
         {
             entity.HasIndex(e => e.Name).IsUnique();
             entity.Property(e => e.Price).HasColumnType("decimal(10,2)");
         });
 
+        // Member
         modelBuilder.Entity<Member>(entity =>
         {
             entity.HasIndex(e => e.Email).IsUnique();
         });
 
+        // Membership
         modelBuilder.Entity<Membership>(entity =>
         {
             entity.HasOne(e => e.Member)
@@ -43,16 +46,19 @@ public class FitnessDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        // Instructor
         modelBuilder.Entity<Instructor>(entity =>
         {
             entity.HasIndex(e => e.Email).IsUnique();
         });
 
+        // ClassType
         modelBuilder.Entity<ClassType>(entity =>
         {
             entity.HasIndex(e => e.Name).IsUnique();
         });
 
+        // ClassSchedule
         modelBuilder.Entity<ClassSchedule>(entity =>
         {
             entity.HasOne(e => e.ClassType)
@@ -66,19 +72,47 @@ public class FitnessDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        // Booking
         modelBuilder.Entity<Booking>(entity =>
         {
             entity.HasOne(e => e.ClassSchedule)
                 .WithMany(cs => cs.Bookings)
                 .HasForeignKey(e => e.ClassScheduleId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Member)
                 .WithMany(m => m.Bookings)
                 .HasForeignKey(e => e.MemberId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasIndex(e => new { e.ClassScheduleId, e.MemberId, e.Status });
+                .OnDelete(DeleteBehavior.Cascade);
         });
+    }
+
+    public override int SaveChanges()
+    {
+        SetTimestamps();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        SetTimestamps();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void SetTimestamps()
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Modified);
+
+        foreach (var entry in entries)
+        {
+            if (entry.Entity is MembershipPlan mp) mp.UpdatedAt = DateTime.UtcNow;
+            else if (entry.Entity is Member m) m.UpdatedAt = DateTime.UtcNow;
+            else if (entry.Entity is Membership ms) ms.UpdatedAt = DateTime.UtcNow;
+            else if (entry.Entity is Instructor i) i.UpdatedAt = DateTime.UtcNow;
+            else if (entry.Entity is ClassType ct) ct.UpdatedAt = DateTime.UtcNow;
+            else if (entry.Entity is ClassSchedule cs) cs.UpdatedAt = DateTime.UtcNow;
+            else if (entry.Entity is Booking b) b.UpdatedAt = DateTime.UtcNow;
+        }
     }
 }

@@ -15,12 +15,11 @@ public class Prescription
     [Required, MaxLength(100)]
     public string Dosage { get; set; } = string.Empty;
 
-    [Range(1, int.MaxValue, ErrorMessage = "DurationDays must be positive.")]
     public int DurationDays { get; set; }
 
     public DateOnly StartDate { get; set; }
 
-    public DateOnly EndDate => StartDate.AddDays(DurationDays);
+    public DateOnly EndDate { get; set; }
 
     [MaxLength(500)]
     public string? Instructions { get; set; }

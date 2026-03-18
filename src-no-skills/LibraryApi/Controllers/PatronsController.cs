@@ -7,60 +7,103 @@ namespace LibraryApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class PatronsController : ControllerBase
 {
-    private readonly PatronService _service;
+    private readonly IPatronService _patronService;
 
-    public PatronsController(PatronService service) => _service = service;
-
-    /// <summary>Get all patrons with search, membership type filter, and pagination.</summary>
-    [HttpGet]
-    public async Task<ActionResult<PaginatedResponse<PatronDto>>> GetAll(
-        [FromQuery] string? search, [FromQuery] MembershipType? membershipType,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAllAsync(search, membershipType, page, pageSize));
-
-    /// <summary>Get patron by ID with active loans count and fines balance.</summary>
-    [HttpGet("{id}")]
-    public async Task<ActionResult<PatronDetailDto>> GetById(int id)
-        => Ok(await _service.GetByIdAsync(id));
-
-    /// <summary>Create a new patron.</summary>
-    [HttpPost]
-    public async Task<ActionResult<PatronDto>> Create(CreatePatronDto dto)
+    public PatronsController(IPatronService patronService)
     {
-        var patron = await _service.CreateAsync(dto);
+        _patronService = patronService;
+    }
+
+    /// <summary>List patrons with search and filter by membership type</summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PaginatedResponse<PatronDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? search,
+        [FromQuery] MembershipType? membershipType,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await _patronService.GetAllAsync(search, membershipType, page, pageSize);
+        return Ok(result);
+    }
+
+    /// <summary>Get patron details with summary (active loans, unpaid fines)</summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(PatronDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var patron = await _patronService.GetByIdAsync(id);
+        if (patron == null) return NotFound(new ProblemDetails { Title = "Patron not found", Status = 404 });
+        return Ok(patron);
+    }
+
+    /// <summary>Create a new patron</summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(PatronDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreatePatronDto dto)
+    {
+        var patron = await _patronService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = patron.Id }, patron);
     }
 
-    /// <summary>Update an existing patron.</summary>
+    /// <summary>Update an existing patron</summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<PatronDto>> Update(int id, UpdatePatronDto dto)
-        => Ok(await _service.UpdateAsync(id, dto));
-
-    /// <summary>Deactivate a patron (fails if active loans).</summary>
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    [ProducesResponseType(typeof(PatronDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdatePatronDto dto)
     {
-        await _service.DeleteAsync(id);
+        var patron = await _patronService.UpdateAsync(id, dto);
+        if (patron == null) return NotFound(new ProblemDetails { Title = "Patron not found", Status = 404 });
+        return Ok(patron);
+    }
+
+    /// <summary>Deactivate patron (set IsActive = false; fails if patron has active loans)</summary>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Deactivate(int id)
+    {
+        var (success, error) = await _patronService.DeactivateAsync(id);
+        if (!success)
+        {
+            if (error == "Patron not found")
+                return NotFound(new ProblemDetails { Title = error, Status = 404 });
+            return Conflict(new ProblemDetails { Title = "Deactivation failed", Detail = error, Status = 409 });
+        }
         return NoContent();
     }
 
-    /// <summary>Get patron's loans with optional status filter.</summary>
+    /// <summary>Get patron's loans (filter by status)</summary>
     [HttpGet("{id}/loans")]
-    public async Task<ActionResult<PaginatedResponse<LoanDto>>> GetLoans(
-        int id, [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetPatronLoansAsync(id, status, page, pageSize));
+    [ProducesResponseType(typeof(PaginatedResponse<LoanDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPatronLoans(int id, [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _patronService.GetPatronLoansAsync(id, status, page, pageSize);
+        return Ok(result);
+    }
 
-    /// <summary>Get patron's reservations.</summary>
+    /// <summary>Get patron's reservations</summary>
     [HttpGet("{id}/reservations")]
-    public async Task<ActionResult<PaginatedResponse<ReservationDto>>> GetReservations(
-        int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetPatronReservationsAsync(id, page, pageSize));
+    [ProducesResponseType(typeof(PaginatedResponse<ReservationDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPatronReservations(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _patronService.GetPatronReservationsAsync(id, page, pageSize);
+        return Ok(result);
+    }
 
-    /// <summary>Get patron's fines with optional status filter.</summary>
+    /// <summary>Get patron's fines (filter by status)</summary>
     [HttpGet("{id}/fines")]
-    public async Task<ActionResult<PaginatedResponse<FineDto>>> GetFines(
-        int id, [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetPatronFinesAsync(id, status, page, pageSize));
+    [ProducesResponseType(typeof(PaginatedResponse<FineDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPatronFines(int id, [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _patronService.GetPatronFinesAsync(id, status, page, pageSize);
+        return Ok(result);
+    }
 }

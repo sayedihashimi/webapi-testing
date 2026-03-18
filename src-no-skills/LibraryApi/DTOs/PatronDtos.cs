@@ -3,7 +3,6 @@ using LibraryApi.Models;
 
 namespace LibraryApi.DTOs;
 
-// --- Patron DTOs ---
 public class PatronDto
 {
     public int Id { get; set; }
@@ -13,15 +12,16 @@ public class PatronDto
     public string? Phone { get; set; }
     public string? Address { get; set; }
     public DateOnly MembershipDate { get; set; }
-    public string MembershipType { get; set; } = string.Empty;
+    public MembershipType MembershipType { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
 public class PatronDetailDto : PatronDto
 {
     public int ActiveLoansCount { get; set; }
-    public decimal UnpaidFinesBalance { get; set; }
+    public decimal TotalUnpaidFines { get; set; }
 }
 
 public class CreatePatronDto

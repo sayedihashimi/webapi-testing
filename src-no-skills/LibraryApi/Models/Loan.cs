@@ -16,7 +16,7 @@ public class Loan
 
     public LoanStatus Status { get; set; } = LoanStatus.Active;
 
-    public int RenewalCount { get; set; }
+    public int RenewalCount { get; set; } = 0;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

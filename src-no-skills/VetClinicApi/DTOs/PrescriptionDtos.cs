@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
+// --- Prescription DTOs ---
 public class CreatePrescriptionDto
 {
     [Required]
@@ -13,7 +14,7 @@ public class CreatePrescriptionDto
     [Required, MaxLength(100)]
     public string Dosage { get; set; } = string.Empty;
 
-    [Range(1, int.MaxValue, ErrorMessage = "DurationDays must be positive.")]
+    [Range(1, int.MaxValue, ErrorMessage = "DurationDays must be positive")]
     public int DurationDays { get; set; }
 
     [Required]
@@ -23,7 +24,7 @@ public class CreatePrescriptionDto
     public string? Instructions { get; set; }
 }
 
-public class PrescriptionDto
+public class PrescriptionResponseDto
 {
     public int Id { get; set; }
     public int MedicalRecordId { get; set; }

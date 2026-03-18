@@ -6,41 +6,79 @@ namespace LibraryApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class ReservationsController : ControllerBase
 {
-    private readonly ReservationService _service;
+    private readonly IReservationService _reservationService;
 
-    public ReservationsController(ReservationService service) => _service = service;
-
-    /// <summary>Get all reservations with optional status filter and pagination.</summary>
-    [HttpGet]
-    public async Task<ActionResult<PaginatedResponse<ReservationDto>>> GetAll(
-        [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAllAsync(status, page, pageSize));
-
-    /// <summary>Get reservation by ID.</summary>
-    [HttpGet("{id}")]
-    public async Task<ActionResult<ReservationDto>> GetById(int id)
-        => Ok(await _service.GetByIdAsync(id));
-
-    /// <summary>Create a new reservation.</summary>
-    [HttpPost]
-    public async Task<ActionResult<ReservationDto>> Create(CreateReservationDto dto)
+    public ReservationsController(IReservationService reservationService)
     {
-        var reservation = await _service.CreateAsync(dto);
+        _reservationService = reservationService;
+    }
+
+    /// <summary>List reservations with filter by status and pagination</summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PaginatedResponse<ReservationDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _reservationService.GetAllAsync(status, page, pageSize);
+        return Ok(result);
+    }
+
+    /// <summary>Get reservation details</summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ReservationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var reservation = await _reservationService.GetByIdAsync(id);
+        if (reservation == null) return NotFound(new ProblemDetails { Title = "Reservation not found", Status = 404 });
+        return Ok(reservation);
+    }
+
+    /// <summary>Create a reservation enforcing all reservation rules</summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(ReservationDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreateReservationDto dto)
+    {
+        var (reservation, error) = await _reservationService.CreateAsync(dto);
+        if (reservation == null)
+            return BadRequest(new ProblemDetails { Title = "Reservation denied", Detail = error, Status = 400 });
         return CreatedAtAction(nameof(GetById), new { id = reservation.Id }, reservation);
     }
 
-    /// <summary>Cancel a reservation.</summary>
+    /// <summary>Cancel a reservation</summary>
     [HttpPost("{id}/cancel")]
-    public async Task<ActionResult<ReservationDto>> Cancel(int id)
-        => Ok(await _service.CancelAsync(id));
-
-    /// <summary>Fulfill a reservation (creates a loan).</summary>
-    [HttpPost("{id}/fulfill")]
-    public async Task<ActionResult<LoanDto>> Fulfill(int id)
+    [ProducesResponseType(typeof(ReservationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Cancel(int id)
     {
-        var loan = await _service.FulfillAsync(id);
-        return CreatedAtAction("GetById", "Loans", new { id = loan.Id }, loan);
+        var (reservation, error) = await _reservationService.CancelAsync(id);
+        if (reservation == null)
+        {
+            if (error == "Reservation not found.")
+                return NotFound(new ProblemDetails { Title = "Reservation not found", Status = 404 });
+            return BadRequest(new ProblemDetails { Title = "Cancel failed", Detail = error, Status = 400 });
+        }
+        return Ok(reservation);
+    }
+
+    /// <summary>Fulfill a "Ready" reservation (creates a loan for the patron)</summary>
+    [HttpPost("{id}/fulfill")]
+    [ProducesResponseType(typeof(LoanDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Fulfill(int id)
+    {
+        var (loan, error) = await _reservationService.FulfillAsync(id);
+        if (loan == null)
+        {
+            if (error == "Reservation not found.")
+                return NotFound(new ProblemDetails { Title = "Reservation not found", Status = 404 });
+            return BadRequest(new ProblemDetails { Title = "Fulfillment failed", Detail = error, Status = 400 });
+        }
+        return Ok(loan);
     }
 }

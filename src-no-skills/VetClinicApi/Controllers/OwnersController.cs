@@ -12,56 +12,55 @@ public class OwnersController : ControllerBase
 
     public OwnersController(IOwnerService service) => _service = service;
 
-    /// <summary>Get all owners with optional search and pagination</summary>
     [HttpGet]
-    public async Task<ActionResult<PaginatedResponse<OwnerSummaryDto>>> GetAll(
-        [FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-    {
-        return Ok(await _service.GetAllAsync(search, page, pageSize));
-    }
+    [ProducesResponseType(typeof(PagedResponse<OwnerResponseDto>), 200)]
+    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetAllAsync(search, pagination));
 
-    /// <summary>Get owner by ID including their pets</summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<OwnerDto>> GetById(int id)
+    [ProducesResponseType(typeof(OwnerResponseDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetById(int id)
     {
-        return Ok(await _service.GetByIdAsync(id));
+        var result = await _service.GetByIdAsync(id);
+        return result == null ? NotFound() : Ok(result);
     }
 
-    /// <summary>Create a new owner</summary>
     [HttpPost]
-    public async Task<ActionResult<OwnerDto>> Create([FromBody] CreateOwnerDto dto)
+    [ProducesResponseType(typeof(OwnerResponseDto), 201)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> Create([FromBody] CreateOwnerDto dto)
     {
         var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update an existing owner</summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<OwnerDto>> Update(int id, [FromBody] UpdateOwnerDto dto)
-    {
-        return Ok(await _service.UpdateAsync(id, dto));
-    }
+    [ProducesResponseType(typeof(OwnerResponseDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateOwnerDto dto)
+        => Ok(await _service.UpdateAsync(id, dto));
 
-    /// <summary>Delete an owner (fails if they have active pets)</summary>
     [HttpDelete("{id}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteAsync(id);
         return NoContent();
     }
 
-    /// <summary>Get all pets belonging to an owner</summary>
     [HttpGet("{id}/pets")]
-    public async Task<ActionResult<List<PetSummaryDto>>> GetPets(int id)
-    {
-        return Ok(await _service.GetPetsAsync(id));
-    }
+    [ProducesResponseType(typeof(List<PetResponseDto>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetPets(int id)
+        => Ok(await _service.GetPetsAsync(id));
 
-    /// <summary>Get all appointments for an owner's pets</summary>
     [HttpGet("{id}/appointments")]
-    public async Task<ActionResult<PaginatedResponse<AppointmentSummaryDto>>> GetAppointments(
-        int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-    {
-        return Ok(await _service.GetAppointmentsAsync(id, page, pageSize));
-    }
+    [ProducesResponseType(typeof(PagedResponse<AppointmentResponseDto>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetAppointments(int id, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetAppointmentsAsync(id, pagination));
 }

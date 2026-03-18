@@ -15,7 +15,7 @@ public class Owner
     [Required, EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required, Phone]
+    [Required]
     public string Phone { get; set; } = string.Empty;
 
     public string? Address { get; set; }

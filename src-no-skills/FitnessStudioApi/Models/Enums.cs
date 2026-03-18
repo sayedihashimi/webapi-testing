@@ -15,14 +15,6 @@ public enum PaymentStatus
     Refunded
 }
 
-public enum DifficultyLevel
-{
-    Beginner,
-    Intermediate,
-    Advanced,
-    AllLevels
-}
-
 public enum ClassScheduleStatus
 {
     Scheduled,
@@ -38,4 +30,12 @@ public enum BookingStatus
     Cancelled,
     Attended,
     NoShow
+}
+
+public enum DifficultyLevel
+{
+    Beginner,
+    Intermediate,
+    Advanced,
+    AllLevels
 }

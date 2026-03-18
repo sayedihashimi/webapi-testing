@@ -9,30 +9,40 @@ namespace FitnessStudioApi.Controllers;
 [Produces("application/json")]
 public class InstructorsController : ControllerBase
 {
-    private readonly InstructorService _service;
+    private readonly IInstructorService _service;
 
-    public InstructorsController(InstructorService service)
+    public InstructorsController(IInstructorService service)
     {
         _service = service;
     }
 
-    /// <summary>Get all instructors with optional filters</summary>
+    /// <summary>List instructors with optional filters</summary>
     [HttpGet]
-    public async Task<ActionResult<List<InstructorDto>>> GetAll(
-        [FromQuery] string? specialization, [FromQuery] bool? isActive)
-        => Ok(await _service.GetAllAsync(specialization, isActive));
+    [ProducesResponseType(typeof(List<InstructorDto>), 200)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? specialization,
+        [FromQuery] bool? isActive)
+    {
+        var instructors = await _service.GetAllAsync(specialization, isActive);
+        return Ok(instructors);
+    }
 
-    /// <summary>Get an instructor by ID</summary>
+    /// <summary>Get instructor details</summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<InstructorDto>> GetById(int id)
+    [ProducesResponseType(typeof(InstructorDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetById(int id)
     {
         var instructor = await _service.GetByIdAsync(id);
-        return instructor == null ? NotFound() : Ok(instructor);
+        return Ok(instructor);
     }
 
     /// <summary>Create a new instructor</summary>
     [HttpPost]
-    public async Task<ActionResult<InstructorDto>> Create(CreateInstructorDto dto)
+    [ProducesResponseType(typeof(InstructorDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> Create([FromBody] CreateInstructorDto dto)
     {
         var instructor = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = instructor.Id }, instructor);
@@ -40,12 +50,26 @@ public class InstructorsController : ControllerBase
 
     /// <summary>Update an instructor</summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<InstructorDto>> Update(int id, UpdateInstructorDto dto)
-        => Ok(await _service.UpdateAsync(id, dto));
+    [ProducesResponseType(typeof(InstructorDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateInstructorDto dto)
+    {
+        var instructor = await _service.UpdateAsync(id, dto);
+        return Ok(instructor);
+    }
 
-    /// <summary>Get an instructor's schedule</summary>
+    /// <summary>Get instructor's class schedule</summary>
     [HttpGet("{id}/schedule")]
-    public async Task<ActionResult<List<ClassScheduleDto>>> GetSchedule(
-        int id, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
-        => Ok(await _service.GetScheduleAsync(id, from, to));
+    [ProducesResponseType(typeof(List<ClassScheduleDto>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetSchedule(
+        int id,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to)
+    {
+        var schedule = await _service.GetScheduleAsync(id, from, to);
+        return Ok(schedule);
+    }
 }

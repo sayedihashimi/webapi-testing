@@ -2,10 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using FitnessStudioApi.Data;
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Models;
+using FitnessStudioApi.Middleware;
 
 namespace FitnessStudioApi.Services;
 
-public class MembershipPlanService
+public class MembershipPlanService : IMembershipPlanService
 {
     private readonly FitnessDbContext _db;
     private readonly ILogger<MembershipPlanService> _logger;
@@ -19,20 +20,22 @@ public class MembershipPlanService
     public async Task<List<MembershipPlanDto>> GetAllAsync()
     {
         return await _db.MembershipPlans
+            .Where(p => p.IsActive)
             .Select(p => MapToDto(p))
             .ToListAsync();
     }
 
-    public async Task<MembershipPlanDto?> GetByIdAsync(int id)
+    public async Task<MembershipPlanDto> GetByIdAsync(int id)
     {
-        var plan = await _db.MembershipPlans.FindAsync(id);
-        return plan == null ? null : MapToDto(plan);
+        var plan = await _db.MembershipPlans.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Membership plan with ID {id} not found.");
+        return MapToDto(plan);
     }
 
     public async Task<MembershipPlanDto> CreateAsync(CreateMembershipPlanDto dto)
     {
         if (await _db.MembershipPlans.AnyAsync(p => p.Name == dto.Name))
-            throw new BusinessRuleException($"A membership plan with name '{dto.Name}' already exists.", 409);
+            throw new BusinessRuleException($"A membership plan with name '{dto.Name}' already exists.", 409, "Conflict");
 
         var plan = new MembershipPlan
         {
@@ -46,17 +49,18 @@ public class MembershipPlanService
 
         _db.MembershipPlans.Add(plan);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created membership plan {PlanName} with ID {PlanId}", plan.Name, plan.Id);
+
+        _logger.LogInformation("Created membership plan '{Name}' with ID {Id}", plan.Name, plan.Id);
         return MapToDto(plan);
     }
 
     public async Task<MembershipPlanDto> UpdateAsync(int id, UpdateMembershipPlanDto dto)
     {
         var plan = await _db.MembershipPlans.FindAsync(id)
-            ?? throw new BusinessRuleException($"Membership plan with ID {id} not found.", 404);
+            ?? throw new KeyNotFoundException($"Membership plan with ID {id} not found.");
 
         if (await _db.MembershipPlans.AnyAsync(p => p.Name == dto.Name && p.Id != id))
-            throw new BusinessRuleException($"A membership plan with name '{dto.Name}' already exists.", 409);
+            throw new BusinessRuleException($"A membership plan with name '{dto.Name}' already exists.", 409, "Conflict");
 
         plan.Name = dto.Name;
         plan.Description = dto.Description;
@@ -65,22 +69,22 @@ public class MembershipPlanService
         plan.MaxClassBookingsPerWeek = dto.MaxClassBookingsPerWeek;
         plan.AllowsPremiumClasses = dto.AllowsPremiumClasses;
         plan.IsActive = dto.IsActive;
-        plan.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated membership plan {PlanId}", id);
+
+        _logger.LogInformation("Updated membership plan '{Name}' (ID {Id})", plan.Name, plan.Id);
         return MapToDto(plan);
     }
 
     public async Task DeleteAsync(int id)
     {
         var plan = await _db.MembershipPlans.FindAsync(id)
-            ?? throw new BusinessRuleException($"Membership plan with ID {id} not found.", 404);
+            ?? throw new KeyNotFoundException($"Membership plan with ID {id} not found.");
 
         plan.IsActive = false;
-        plan.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Deactivated membership plan {PlanId}", id);
+
+        _logger.LogInformation("Deactivated membership plan '{Name}' (ID {Id})", plan.Name, plan.Id);
     }
 
     private static MembershipPlanDto MapToDto(MembershipPlan p) => new()

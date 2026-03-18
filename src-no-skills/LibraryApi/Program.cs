@@ -5,57 +5,55 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// EF Core + SQLite
+// Add services to the container.
+builder.Services.AddControllers();
+
+// Swagger / OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Sunrise Community Library API",
+        Version = "v1",
+        Description = "Community Library Management API for Sunrise Community Library. Manages books, authors, categories, patrons, loans, reservations, and fines."
+    });
+});
+
+// Database
 builder.Services.AddDbContext<LibraryDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Services
-builder.Services.AddScoped<AuthorService>();
-builder.Services.AddScoped<CategoryService>();
-builder.Services.AddScoped<BookService>();
-builder.Services.AddScoped<PatronService>();
-builder.Services.AddScoped<LoanService>();
-builder.Services.AddScoped<ReservationService>();
-builder.Services.AddScoped<FineService>();
-
-// Controllers + JSON options
-builder.Services.AddControllers()
-    .AddJsonOptions(opts =>
-    {
-        opts.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-    });
-
-// OpenAPI / Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new()
-    {
-        Title = "Sunrise Community Library API",
-        Version = "v1",
-        Description = "Community library management system API"
-    });
-});
+builder.Services.AddScoped<IAuthorService, AuthorService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<IPatronService, PatronService>();
+builder.Services.AddScoped<ILoanService, LoanService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<IFineService, FineService>();
 
 var app = builder.Build();
 
-// Seed database
+// Global error handling middleware
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Configure the HTTP request pipeline.
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Sunrise Community Library API v1");
+    options.RoutePrefix = string.Empty; // Swagger UI at root
+});
+
+app.MapControllers();
+
+// Ensure database is created and seeded
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
-    SeedData.Initialize(db);
+    var context = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
+    await context.Database.EnsureCreatedAsync();
+    await DataSeeder.SeedAsync(context);
 }
-
-// Middleware
-app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sunrise Community Library API v1"));
-}
-
-app.UseHttpsRedirection();
-app.MapControllers();
 
 app.Run();

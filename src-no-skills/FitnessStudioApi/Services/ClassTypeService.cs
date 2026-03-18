@@ -2,10 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using FitnessStudioApi.Data;
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Models;
+using FitnessStudioApi.Middleware;
 
 namespace FitnessStudioApi.Services;
 
-public class ClassTypeService
+public class ClassTypeService : IClassTypeService
 {
     private readonly FitnessDbContext _db;
     private readonly ILogger<ClassTypeService> _logger;
@@ -18,7 +19,7 @@ public class ClassTypeService
 
     public async Task<List<ClassTypeDto>> GetAllAsync(DifficultyLevel? difficulty, bool? isPremium)
     {
-        var query = _db.ClassTypes.AsQueryable();
+        var query = _db.ClassTypes.Where(ct => ct.IsActive);
 
         if (difficulty.HasValue)
             query = query.Where(ct => ct.DifficultyLevel == difficulty.Value);
@@ -32,18 +33,19 @@ public class ClassTypeService
             .ToListAsync();
     }
 
-    public async Task<ClassTypeDto?> GetByIdAsync(int id)
+    public async Task<ClassTypeDto> GetByIdAsync(int id)
     {
-        var ct = await _db.ClassTypes.FindAsync(id);
-        return ct == null ? null : MapToDto(ct);
+        var classType = await _db.ClassTypes.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Class type with ID {id} not found.");
+        return MapToDto(classType);
     }
 
     public async Task<ClassTypeDto> CreateAsync(CreateClassTypeDto dto)
     {
         if (await _db.ClassTypes.AnyAsync(ct => ct.Name == dto.Name))
-            throw new BusinessRuleException($"A class type with name '{dto.Name}' already exists.", 409);
+            throw new BusinessRuleException($"A class type with name '{dto.Name}' already exists.", 409, "Conflict");
 
-        var ct = new ClassType
+        var classType = new ClassType
         {
             Name = dto.Name,
             Description = dto.Description,
@@ -54,33 +56,34 @@ public class ClassTypeService
             DifficultyLevel = dto.DifficultyLevel
         };
 
-        _db.ClassTypes.Add(ct);
+        _db.ClassTypes.Add(classType);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created class type {ClassTypeName} with ID {ClassTypeId}", ct.Name, ct.Id);
-        return MapToDto(ct);
+
+        _logger.LogInformation("Created class type '{Name}' (ID {Id})", classType.Name, classType.Id);
+        return MapToDto(classType);
     }
 
     public async Task<ClassTypeDto> UpdateAsync(int id, UpdateClassTypeDto dto)
     {
-        var ct = await _db.ClassTypes.FindAsync(id)
-            ?? throw new BusinessRuleException($"Class type with ID {id} not found.", 404);
+        var classType = await _db.ClassTypes.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Class type with ID {id} not found.");
 
-        if (await _db.ClassTypes.AnyAsync(c => c.Name == dto.Name && c.Id != id))
-            throw new BusinessRuleException($"A class type with name '{dto.Name}' already exists.", 409);
+        if (await _db.ClassTypes.AnyAsync(ct => ct.Name == dto.Name && ct.Id != id))
+            throw new BusinessRuleException($"A class type with name '{dto.Name}' already exists.", 409, "Conflict");
 
-        ct.Name = dto.Name;
-        ct.Description = dto.Description;
-        ct.DefaultDurationMinutes = dto.DefaultDurationMinutes;
-        ct.DefaultCapacity = dto.DefaultCapacity;
-        ct.IsPremium = dto.IsPremium;
-        ct.CaloriesPerSession = dto.CaloriesPerSession;
-        ct.DifficultyLevel = dto.DifficultyLevel;
-        ct.IsActive = dto.IsActive;
-        ct.UpdatedAt = DateTime.UtcNow;
+        classType.Name = dto.Name;
+        classType.Description = dto.Description;
+        classType.DefaultDurationMinutes = dto.DefaultDurationMinutes;
+        classType.DefaultCapacity = dto.DefaultCapacity;
+        classType.IsPremium = dto.IsPremium;
+        classType.CaloriesPerSession = dto.CaloriesPerSession;
+        classType.DifficultyLevel = dto.DifficultyLevel;
+        classType.IsActive = dto.IsActive;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated class type {ClassTypeId}", id);
-        return MapToDto(ct);
+
+        _logger.LogInformation("Updated class type '{Name}' (ID {Id})", classType.Name, classType.Id);
+        return MapToDto(classType);
     }
 
     private static ClassTypeDto MapToDto(ClassType ct) => new()

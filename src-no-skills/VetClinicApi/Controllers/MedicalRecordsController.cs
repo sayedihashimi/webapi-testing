@@ -12,25 +12,29 @@ public class MedicalRecordsController : ControllerBase
 
     public MedicalRecordsController(IMedicalRecordService service) => _service = service;
 
-    /// <summary>Get medical record by ID with prescriptions</summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<MedicalRecordDto>> GetById(int id)
+    [ProducesResponseType(typeof(MedicalRecordResponseDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetById(int id)
     {
-        return Ok(await _service.GetByIdAsync(id));
+        var result = await _service.GetByIdAsync(id);
+        return result == null ? NotFound() : Ok(result);
     }
 
-    /// <summary>Create a medical record (appointment must be Completed or InProgress)</summary>
     [HttpPost]
-    public async Task<ActionResult<MedicalRecordDto>> Create([FromBody] CreateMedicalRecordDto dto)
+    [ProducesResponseType(typeof(MedicalRecordResponseDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> Create([FromBody] CreateMedicalRecordDto dto)
     {
         var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update a medical record</summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<MedicalRecordDto>> Update(int id, [FromBody] UpdateMedicalRecordDto dto)
-    {
-        return Ok(await _service.UpdateAsync(id, dto));
-    }
+    [ProducesResponseType(typeof(MedicalRecordResponseDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateMedicalRecordDto dto)
+        => Ok(await _service.UpdateAsync(id, dto));
 }

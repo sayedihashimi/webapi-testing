@@ -12,10 +12,8 @@ public class Appointment
     public int VeterinarianId { get; set; }
     public Veterinarian Veterinarian { get; set; } = null!;
 
-    [Required]
     public DateTime AppointmentDate { get; set; }
 
-    [Range(15, 120)]
     public int DurationMinutes { get; set; } = 30;
 
     public AppointmentStatus Status { get; set; } = AppointmentStatus.Scheduled;

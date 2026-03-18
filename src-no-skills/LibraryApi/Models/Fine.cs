@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LibraryApi.Models;
 
@@ -13,7 +12,6 @@ public class Fine
     public int LoanId { get; set; }
     public Loan Loan { get; set; } = null!;
 
-    [Column(TypeName = "decimal(10,2)")]
     [Range(0.01, double.MaxValue)]
     public decimal Amount { get; set; }
 

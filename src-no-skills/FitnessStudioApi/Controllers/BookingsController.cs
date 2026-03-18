@@ -9,41 +9,65 @@ namespace FitnessStudioApi.Controllers;
 [Produces("application/json")]
 public class BookingsController : ControllerBase
 {
-    private readonly BookingService _service;
+    private readonly IBookingService _service;
 
-    public BookingsController(BookingService service)
+    public BookingsController(IBookingService service)
     {
         _service = service;
     }
 
-    /// <summary>Create a new booking (enforces all business rules)</summary>
+    /// <summary>Book a class (enforces all booking rules)</summary>
     [HttpPost]
-    public async Task<ActionResult<BookingDto>> Create(CreateBookingDto dto)
+    [ProducesResponseType(typeof(BookingDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> Create([FromBody] CreateBookingDto dto)
     {
         var booking = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = booking.Id }, booking);
     }
 
-    /// <summary>Get a booking by ID</summary>
+    /// <summary>Get booking details</summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<BookingDto>> GetById(int id)
+    [ProducesResponseType(typeof(BookingDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetById(int id)
     {
         var booking = await _service.GetByIdAsync(id);
-        return booking == null ? NotFound() : Ok(booking);
+        return Ok(booking);
     }
 
-    /// <summary>Cancel a booking (enforces cancellation policy, promotes waitlist)</summary>
+    /// <summary>Cancel a booking (enforces cancellation policy, promotes from waitlist)</summary>
     [HttpPost("{id}/cancel")]
-    public async Task<ActionResult<BookingDto>> Cancel(int id, CancelBookingDto dto)
-        => Ok(await _service.CancelAsync(id, dto));
+    [ProducesResponseType(typeof(BookingDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Cancel(int id, [FromBody] CancelBookingDto dto)
+    {
+        var booking = await _service.CancelAsync(id, dto);
+        return Ok(booking);
+    }
 
-    /// <summary>Check in to a class (15 min window around start time)</summary>
+    /// <summary>Check in for a class (within check-in window)</summary>
     [HttpPost("{id}/check-in")]
-    public async Task<ActionResult<BookingDto>> CheckIn(int id)
-        => Ok(await _service.CheckInAsync(id));
+    [ProducesResponseType(typeof(BookingDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> CheckIn(int id)
+    {
+        var booking = await _service.CheckInAsync(id);
+        return Ok(booking);
+    }
 
-    /// <summary>Mark a booking as no-show (after 15 min past start)</summary>
+    /// <summary>Mark booking as no-show</summary>
     [HttpPost("{id}/no-show")]
-    public async Task<ActionResult<BookingDto>> NoShow(int id)
-        => Ok(await _service.NoShowAsync(id));
+    [ProducesResponseType(typeof(BookingDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> NoShow(int id)
+    {
+        var booking = await _service.MarkNoShowAsync(id);
+        return Ok(booking);
+    }
 }
