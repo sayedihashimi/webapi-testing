@@ -1,47 +1,79 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Generates three variants of the apps by calling the Copilot CLI with different skill configurations.
+    Generates variants of the apps by calling the Copilot CLI with different skill configurations.
 
 .DESCRIPTION
-    Deletes the src-no-skills, src-dotnet-webapi, and src-dotnet-artisan folders,
-    then invokes the Copilot CLI three times with different prompts and skill settings.
+    Deletes and regenerates one or more src-* folders by invoking the Copilot CLI
+    with different prompts and skill settings.
 
 .PARAMETER Path
     The folder to generate files in. Defaults to the current working directory.
+
+.PARAMETER Apps
+    One or more app names to generate. Valid values: no-skills, dotnet-webapi, dotnet-artisan.
+    If not specified, all three apps are generated.
+
+.EXAMPLE
+    .\generate-apps.ps1
+    # Generates all three variants.
+
+.EXAMPLE
+    .\generate-apps.ps1 -Apps no-skills
+    # Generates only the no-skills variant.
+
+.EXAMPLE
+    .\generate-apps.ps1 -Apps dotnet-webapi, dotnet-artisan
+    # Generates the dotnet-webapi and dotnet-artisan variants.
 #>
 param(
-    [string]$Path = $PWD
+    [string]$Path = $PWD,
+
+    [ValidateSet('no-skills', 'dotnet-webapi', 'dotnet-artisan')]
+    [string[]]$Apps
 )
 
 $ErrorActionPreference = 'Stop'
 
 Push-Location $Path
 try {
-    # Clean up existing output folders
-    $folders = @('src-no-skills', 'src-dotnet-webapi', 'src-dotnet-artisan')
-    foreach ($folder in $folders) {
+    # Define all available copilot invocations keyed by app name
+    $allRuns = [ordered]@{
+        'no-skills' = @{
+            Label  = 'No skills'
+            Folder = 'src-no-skills'
+            Prompt = 'Follow the instructions in the file @.github\prompts\create-all-apps.md. Instead of putting the files in `src` put them in `src-no-skills`. Do NOT use any skills during this process.'
+        }
+        'dotnet-webapi' = @{
+            Label  = 'dotnet-webapi skill'
+            Folder = 'src-dotnet-webapi'
+            Prompt = 'Follow the instructions in the file @.github\prompts\create-all-apps.md. Instead of putting the files in `src` put them in `src-dotnet-webapi`. Use the `dotnet-webapi` but do NOT use any other skills.'
+        }
+        'dotnet-artisan' = @{
+            Label  = 'dotnet-artisan skill'
+            Folder = 'src-dotnet-artisan'
+            Prompt = 'Follow the instructions in the file @.github\prompts\create-all-apps.md. Instead of putting the files in `src` put them in `src-dotnet-artisan`. Use the `dotnet-artisan` skills but do NOT use the `dotnet-webapi` skill.'
+        }
+    }
+
+    # If no apps specified, run all of them
+    if (-not $Apps -or $Apps.Count -eq 0) {
+        $Apps = @($allRuns.Keys)
+    }
+
+    # Build the list of runs to execute
+    $runs = foreach ($app in $Apps) {
+        $allRuns[$app]
+    }
+
+    # Clean up only the folders that will be regenerated
+    foreach ($run in $runs) {
+        $folder = $run.Folder
         if (Test-Path $folder) {
             Write-Host "Removing $folder ..." -ForegroundColor Yellow
             Remove-Item -Recurse -Force $folder
         }
     }
-
-    # Define the three copilot invocations
-    $runs = @(
-        @{
-            Label  = 'No skills'
-            Prompt = 'Follow the instructions in the file @.github\prompts\create-all-apps.md. Instead of putting the files in `src` put them in `src-no-skills`. Do NOT use any skills during this process.'
-        },
-        @{
-            Label  = 'dotnet-webapi skill'
-            Prompt = 'Follow the instructions in the file @.github\prompts\create-all-apps.md. Instead of putting the files in `src` put them in `src-dotnet-webapi`. Use the `dotnet-webapi` but do NOT use any other skills.'
-        },
-        @{
-            Label  = 'dotnet-artisan skill'
-            Prompt = 'Follow the instructions in the file @.github\prompts\create-all-apps.md. Instead of putting the files in `src` put them in `src-dotnet-artisan`. Use the `dotnet-artisan` skills but do NOT use the `dotnet-webapi` skill.'
-        }
-    )
 
     foreach ($run in $runs) {
         Write-Host "`n========================================" -ForegroundColor Cyan
