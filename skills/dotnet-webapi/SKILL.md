@@ -214,15 +214,14 @@ Every ASP.NET Core Web API should have OpenAPI documentation. Check whether
 the project already has OpenAPI configured before adding it.
 
 **For .NET 9+ projects**, use the built-in ASP.NET Core OpenAPI support
-(`builder.Services.AddOpenApi()` + `app.MapOpenApi()`). For a visual
-explorer in development, use `Scalar` or the built-in Swagger UI endpoint
-(`app.UseSwaggerUI(o => o.SwaggerEndpoint("/openapi/v1.json", "v1"))`)
-which reads the OpenAPI document directly — **no Swashbuckle package needed**.
+(`builder.Services.AddOpenApi()` + `app.MapOpenApi()` in development).
+This is all that is needed — no additional packages required.
 
-**Do not add the `Swashbuckle.AspNetCore` NuGet package** to new projects.
-Swashbuckle has known compatibility issues with .NET 9+ OpenAPI types and is
-no longer the recommended approach. Only use Swashbuckle if the project
-already has it installed and the user has not asked to remove it.
+**Do NOT add any `Swashbuckle.*` NuGet package** (`Swashbuckle.AspNetCore`,
+`Swashbuckle.AspNetCore.SwaggerUI`, `Swashbuckle.AspNetCore.SwaggerGen`,
+etc.) to projects that don't already use it. Swashbuckle has known
+compatibility issues with .NET 9+ and .NET 10 OpenAPI types. If the project
+already has Swashbuckle installed, keep it unless the user asks to remove it.
 
 Reference: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/overview
 
@@ -440,8 +439,7 @@ paths (e.g., non-existent IDs). Match the port to `launchSettings.json`.
 ### Step 8: Build and verify
 
 1. Run `dotnet build` — confirm zero errors and zero warnings.
-2. Start the app and verify the OpenAPI document loads at `/openapi/v1.json`
-   (or `/swagger` if using Swagger UI).
+2. Start the app and verify the OpenAPI document loads at `/openapi/v1.json`.
 3. Run the requests in the `.http` file and confirm correct status codes.
 4. If migrations were created, verify the database schema matches expectations.
 
@@ -487,7 +485,7 @@ paths (e.g., non-existent IDs). Match the port to `launchSettings.json`.
 | Not sealing types | Seal all types by default (CA1852). Enables JIT devirtualization. |
 | Returning `List<T>` in responses | Use `IReadOnlyList<T>` to signal immutability. |
 | Registering services without interfaces | Define `IService` and register with `AddScoped<IService, Service>()`. |
-| Adding `Swashbuckle.AspNetCore` to new .NET 9+ projects | Use built-in `AddOpenApi()` + `MapOpenApi()`. Swashbuckle has compatibility issues with .NET 9+ OpenAPI types. |
+| Adding any `Swashbuckle.*` package to new .NET 9+ projects | Use built-in `AddOpenApi()` + `MapOpenApi()`. Do not add `Swashbuckle.AspNetCore`, `Swashbuckle.AspNetCore.SwaggerUI`, or any other Swashbuckle package. |
 
 ## More Info
 
