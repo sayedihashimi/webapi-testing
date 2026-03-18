@@ -5,7 +5,7 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public class PrescriptionService(VetClinicDbContext db) : IPrescriptionService
+public class PrescriptionService(VetClinicDbContext db, ILogger<PrescriptionService> logger) : IPrescriptionService
 {
     public async Task<PrescriptionResponse?> GetByIdAsync(int id, CancellationToken ct)
     {
@@ -17,7 +17,7 @@ public class PrescriptionService(VetClinicDbContext db) : IPrescriptionService
 
     public async Task<PrescriptionResponse> CreateAsync(CreatePrescriptionRequest request, CancellationToken ct)
     {
-        var recordExists = await db.MedicalRecords.AnyAsync(m => m.Id == request.MedicalRecordId, ct);
+        var recordExists = await db.MedicalRecords.AsNoTracking().AnyAsync(mr => mr.Id == request.MedicalRecordId, ct);
         if (!recordExists)
             throw new KeyNotFoundException($"Medical record with ID {request.MedicalRecordId} not found.");
 
@@ -28,12 +28,14 @@ public class PrescriptionService(VetClinicDbContext db) : IPrescriptionService
             Dosage = request.Dosage,
             DurationDays = request.DurationDays,
             StartDate = request.StartDate,
+            EndDate = request.StartDate.AddDays(request.DurationDays),
             Instructions = request.Instructions,
             CreatedAt = DateTime.UtcNow
         };
 
         db.Prescriptions.Add(prescription);
         await db.SaveChangesAsync(ct);
+        logger.LogInformation("Created prescription {PrescriptionId} for medical record {RecordId}", prescription.Id, prescription.MedicalRecordId);
 
         return MapToResponse(prescription);
     }
@@ -47,8 +49,8 @@ public class PrescriptionService(VetClinicDbContext db) : IPrescriptionService
         DurationDays = p.DurationDays,
         StartDate = p.StartDate,
         EndDate = p.EndDate,
-        IsActive = p.IsActive,
         Instructions = p.Instructions,
+        IsActive = p.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow),
         CreatedAt = p.CreatedAt
     };
 }

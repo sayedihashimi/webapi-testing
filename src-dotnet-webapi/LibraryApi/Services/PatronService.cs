@@ -7,17 +7,18 @@ namespace LibraryApi.Services;
 
 public class PatronService(LibraryDbContext db) : IPatronService
 {
-    public async Task<PagedResponse<PatronResponse>> GetAllAsync(string? search, MembershipType? membershipType, int page, int pageSize, CancellationToken ct)
+    public async Task<PagedResponse<PatronResponse>> GetAllAsync(
+        string? search, MembershipType? membershipType, int page, int pageSize, CancellationToken ct)
     {
         var query = db.Patrons.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.ToLower();
+            var s = search.ToLower();
             query = query.Where(p =>
-                p.FirstName.ToLower().Contains(term) ||
-                p.LastName.ToLower().Contains(term) ||
-                p.Email.ToLower().Contains(term));
+                p.FirstName.ToLower().Contains(s) ||
+                p.LastName.ToLower().Contains(s) ||
+                p.Email.ToLower().Contains(s));
         }
 
         if (membershipType.HasValue)
@@ -38,8 +39,9 @@ public class PatronService(LibraryDbContext db) : IPatronService
         var patron = await db.Patrons.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
         if (patron is null) return null;
 
-        var activeLoansCount = await db.Loans.CountAsync(l => l.PatronId == id && (l.Status == LoanStatus.Active || l.Status == LoanStatus.Overdue), ct);
+        var activeLoans = await db.Loans.CountAsync(l => l.PatronId == id && l.Status == LoanStatus.Active, ct);
         var unpaidFines = await db.Fines.Where(f => f.PatronId == id && f.Status == FineStatus.Unpaid).SumAsync(f => f.Amount, ct);
+        var reservations = await db.Reservations.CountAsync(r => r.PatronId == id && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Ready), ct);
 
         return new PatronDetailResponse
         {
@@ -54,16 +56,18 @@ public class PatronService(LibraryDbContext db) : IPatronService
             IsActive = patron.IsActive,
             CreatedAt = patron.CreatedAt,
             UpdatedAt = patron.UpdatedAt,
-            ActiveLoansCount = activeLoansCount,
-            UnpaidFinesBalance = unpaidFines
+            ActiveLoanCount = activeLoans,
+            UnpaidFinesTotal = unpaidFines,
+            ReservationCount = reservations
         };
     }
 
     public async Task<PatronResponse> CreateAsync(CreatePatronRequest request, CancellationToken ct)
     {
         if (await db.Patrons.AnyAsync(p => p.Email == request.Email, ct))
-            throw new InvalidOperationException($"A patron with email '{request.Email}' already exists.");
+            throw new ArgumentException($"A patron with email '{request.Email}' already exists.");
 
+        var now = DateTime.UtcNow;
         var patron = new Patron
         {
             FirstName = request.FirstName,
@@ -71,15 +75,16 @@ public class PatronService(LibraryDbContext db) : IPatronService
             Email = request.Email,
             Phone = request.Phone,
             Address = request.Address,
-            MembershipDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            MembershipDate = DateOnly.FromDateTime(DateTime.Today),
             MembershipType = request.MembershipType,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         };
 
         db.Patrons.Add(patron);
         await db.SaveChangesAsync(ct);
+
         return MapToResponse(patron);
     }
 
@@ -89,7 +94,7 @@ public class PatronService(LibraryDbContext db) : IPatronService
         if (patron is null) return null;
 
         if (await db.Patrons.AnyAsync(p => p.Email == request.Email && p.Id != id, ct))
-            throw new InvalidOperationException($"A patron with email '{request.Email}' already exists.");
+            throw new ArgumentException($"A patron with email '{request.Email}' already exists.");
 
         patron.FirstName = request.FirstName;
         patron.LastName = request.LastName;
@@ -105,19 +110,18 @@ public class PatronService(LibraryDbContext db) : IPatronService
 
     public async Task DeleteAsync(int id, CancellationToken ct)
     {
-        var patron = await db.Patrons.FindAsync([id], ct)
-            ?? throw new KeyNotFoundException($"Patron with ID {id} not found.");
+        var patron = await db.Patrons.FirstOrDefaultAsync(p => p.Id == id, ct);
+        if (patron is null) throw new KeyNotFoundException($"Patron with ID {id} not found.");
 
-        var hasActiveLoans = await db.Loans.AnyAsync(l => l.PatronId == id && (l.Status == LoanStatus.Active || l.Status == LoanStatus.Overdue), ct);
-        if (hasActiveLoans)
-            throw new InvalidOperationException("Cannot deactivate patron with active or overdue loans.");
+        var hasActiveLoans = await db.Loans.AnyAsync(l => l.PatronId == id && l.Status == LoanStatus.Active, ct);
+        if (hasActiveLoans) throw new InvalidOperationException("Cannot deactivate patron with active loans.");
 
         patron.IsActive = false;
         patron.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task<PagedResponse<LoanResponse>> GetPatronLoansAsync(int patronId, LoanStatus? status, int page, int pageSize, CancellationToken ct)
+    public async Task<PagedResponse<LoanResponse>> GetLoansAsync(int patronId, LoanStatus? status, int page, int pageSize, CancellationToken ct)
     {
         if (!await db.Patrons.AnyAsync(p => p.Id == patronId, ct))
             throw new KeyNotFoundException($"Patron with ID {patronId} not found.");
@@ -126,18 +130,18 @@ public class PatronService(LibraryDbContext db) : IPatronService
             .Include(l => l.Book).Include(l => l.Patron)
             .Where(l => l.PatronId == patronId);
 
-        if (status.HasValue)
-            query = query.Where(l => l.Status == status.Value);
+        if (status.HasValue) query = query.Where(l => l.Status == status.Value);
 
         query = query.OrderByDescending(l => l.LoanDate);
-
         var totalCount = await query.CountAsync(ct);
-        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(l => MapLoanToResponse(l))
+            .ToListAsync(ct);
 
-        return Paginate(items.Select(MapLoanResponse).ToList(), page, pageSize, totalCount);
+        return Paginate(items, page, pageSize, totalCount);
     }
 
-    public async Task<List<ReservationResponse>> GetPatronReservationsAsync(int patronId, CancellationToken ct)
+    public async Task<List<ReservationResponse>> GetReservationsAsync(int patronId, CancellationToken ct)
     {
         if (!await db.Patrons.AnyAsync(p => p.Id == patronId, ct))
             throw new KeyNotFoundException($"Patron with ID {patronId} not found.");
@@ -156,7 +160,7 @@ public class PatronService(LibraryDbContext db) : IPatronService
             .ToListAsync(ct);
     }
 
-    public async Task<List<FineResponse>> GetPatronFinesAsync(int patronId, FineStatus? status, CancellationToken ct)
+    public async Task<PagedResponse<FineResponse>> GetFinesAsync(int patronId, FineStatus? status, int page, int pageSize, CancellationToken ct)
     {
         if (!await db.Patrons.AnyAsync(p => p.Id == patronId, ct))
             throw new KeyNotFoundException($"Patron with ID {patronId} not found.");
@@ -165,30 +169,32 @@ public class PatronService(LibraryDbContext db) : IPatronService
             .Include(f => f.Patron).Include(f => f.Loan).ThenInclude(l => l.Book)
             .Where(f => f.PatronId == patronId);
 
-        if (status.HasValue)
-            query = query.Where(f => f.Status == status.Value);
+        if (status.HasValue) query = query.Where(f => f.Status == status.Value);
 
-        return await query.OrderByDescending(f => f.IssuedDate)
+        query = query.OrderByDescending(f => f.IssuedDate);
+        var totalCount = await query.CountAsync(ct);
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize)
             .Select(f => new FineResponse
             {
-                Id = f.Id, PatronId = f.PatronId,
-                PatronName = f.Patron.FirstName + " " + f.Patron.LastName,
+                Id = f.Id, PatronId = f.PatronId, PatronName = f.Patron.FirstName + " " + f.Patron.LastName,
                 LoanId = f.LoanId, BookTitle = f.Loan.Book.Title,
                 Amount = f.Amount, Reason = f.Reason, IssuedDate = f.IssuedDate,
                 PaidDate = f.PaidDate, Status = f.Status, CreatedAt = f.CreatedAt
             })
             .ToListAsync(ct);
+
+        return Paginate(items, page, pageSize, totalCount);
     }
 
     private static PatronResponse MapToResponse(Patron p) => new()
     {
-        Id = p.Id, FirstName = p.FirstName, LastName = p.LastName,
-        Email = p.Email, Phone = p.Phone, Address = p.Address,
-        MembershipDate = p.MembershipDate, MembershipType = p.MembershipType,
-        IsActive = p.IsActive, CreatedAt = p.CreatedAt, UpdatedAt = p.UpdatedAt
+        Id = p.Id, FirstName = p.FirstName, LastName = p.LastName, Email = p.Email,
+        Phone = p.Phone, Address = p.Address, MembershipDate = p.MembershipDate,
+        MembershipType = p.MembershipType, IsActive = p.IsActive,
+        CreatedAt = p.CreatedAt, UpdatedAt = p.UpdatedAt
     };
 
-    private static LoanResponse MapLoanResponse(Loan l) => new()
+    private static LoanResponse MapLoanToResponse(Loan l) => new()
     {
         Id = l.Id, BookId = l.BookId, BookTitle = l.Book.Title, BookISBN = l.Book.ISBN,
         PatronId = l.PatronId, PatronName = l.Patron.FirstName + " " + l.Patron.LastName,
@@ -196,14 +202,10 @@ public class PatronService(LibraryDbContext db) : IPatronService
         Status = l.Status, RenewalCount = l.RenewalCount, CreatedAt = l.CreatedAt
     };
 
-    private static PagedResponse<T> Paginate<T>(List<T> items, int page, int pageSize, int totalCount)
+    private static PagedResponse<T> Paginate<T>(List<T> items, int page, int pageSize, int totalCount) => new()
     {
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-        return new PagedResponse<T>
-        {
-            Items = items, Page = page, PageSize = pageSize,
-            TotalCount = totalCount, TotalPages = totalPages,
-            HasNextPage = page < totalPages, HasPreviousPage = page > 1
-        };
-    }
+        Items = items, Page = page, PageSize = pageSize, TotalCount = totalCount,
+        TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+        HasNextPage = page * pageSize < totalCount, HasPreviousPage = page > 1
+    };
 }

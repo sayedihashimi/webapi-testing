@@ -52,6 +52,7 @@ public class UpdateAppointmentStatusRequest
     [Required]
     public AppointmentStatus Status { get; set; }
 
+    [MaxLength(500)]
     public string? CancellationReason { get; set; }
 }
 
@@ -59,9 +60,7 @@ public class AppointmentResponse
 {
     public int Id { get; set; }
     public int PetId { get; set; }
-    public PetSummaryResponse? Pet { get; set; }
     public int VeterinarianId { get; set; }
-    public VeterinarianSummaryResponse? Veterinarian { get; set; }
     public DateTime AppointmentDate { get; set; }
     public int DurationMinutes { get; set; }
     public AppointmentStatus Status { get; set; }
@@ -70,5 +69,16 @@ public class AppointmentResponse
     public string? CancellationReason { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public PetSummaryResponse? Pet { get; set; }
+    public VeterinarianSummaryResponse? Veterinarian { get; set; }
     public MedicalRecordSummaryResponse? MedicalRecord { get; set; }
+}
+
+public class AppointmentSummaryResponse
+{
+    public int Id { get; set; }
+    public DateTime AppointmentDate { get; set; }
+    public int DurationMinutes { get; set; }
+    public AppointmentStatus Status { get; set; }
+    public string Reason { get; set; } = string.Empty;
 }

@@ -37,14 +37,9 @@ public class CategoryService(LibraryDbContext db) : ICategoryService
     public async Task<CategoryResponse> CreateAsync(CreateCategoryRequest request, CancellationToken ct)
     {
         if (await db.Categories.AnyAsync(c => c.Name == request.Name, ct))
-            throw new InvalidOperationException($"Category '{request.Name}' already exists.");
+            throw new ArgumentException($"Category '{request.Name}' already exists.");
 
-        var category = new Category
-        {
-            Name = request.Name,
-            Description = request.Description
-        };
-
+        var category = new Category { Name = request.Name, Description = request.Description };
         db.Categories.Add(category);
         await db.SaveChangesAsync(ct);
 
@@ -57,7 +52,7 @@ public class CategoryService(LibraryDbContext db) : ICategoryService
         if (category is null) return null;
 
         if (await db.Categories.AnyAsync(c => c.Name == request.Name && c.Id != id, ct))
-            throw new InvalidOperationException($"Category '{request.Name}' already exists.");
+            throw new ArgumentException($"Category '{request.Name}' already exists.");
 
         category.Name = request.Name;
         category.Description = request.Description;
@@ -68,11 +63,9 @@ public class CategoryService(LibraryDbContext db) : ICategoryService
 
     public async Task DeleteAsync(int id, CancellationToken ct)
     {
-        var category = await db.Categories.Include(c => c.BookCategories).FirstOrDefaultAsync(c => c.Id == id, ct)
-            ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
-
-        if (category.BookCategories.Count != 0)
-            throw new InvalidOperationException("Cannot delete category with associated books.");
+        var category = await db.Categories.Include(c => c.BookCategories).FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (category is null) throw new KeyNotFoundException($"Category with ID {id} not found.");
+        if (category.BookCategories.Count != 0) throw new InvalidOperationException("Cannot delete category with associated books.");
 
         db.Categories.Remove(category);
         await db.SaveChangesAsync(ct);

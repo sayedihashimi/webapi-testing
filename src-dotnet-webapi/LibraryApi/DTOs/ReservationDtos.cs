@@ -1,10 +1,14 @@
+using System.ComponentModel.DataAnnotations;
 using LibraryApi.Models;
 
 namespace LibraryApi.DTOs;
 
 public class CreateReservationRequest
 {
+    [Required]
     public int BookId { get; set; }
+
+    [Required]
     public int PatronId { get; set; }
 }
 

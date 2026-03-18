@@ -13,19 +13,18 @@ public class AuthorService(LibraryDbContext db) : IAuthorService
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.ToLower();
-            query = query.Where(a => a.FirstName.ToLower().Contains(term) || a.LastName.ToLower().Contains(term));
+            var s = search.ToLower();
+            query = query.Where(a => a.FirstName.ToLower().Contains(s) || a.LastName.ToLower().Contains(s));
         }
 
         var totalCount = await query.CountAsync(ct);
         var items = await query
             .OrderBy(a => a.LastName).ThenBy(a => a.FirstName)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((page - 1) * pageSize).Take(pageSize)
             .Select(a => MapToResponse(a))
             .ToListAsync(ct);
 
-        return CreatePagedResponse(items, page, pageSize, totalCount);
+        return Paginate(items, page, pageSize, totalCount);
     }
 
     public async Task<AuthorDetailResponse?> GetByIdAsync(int id, CancellationToken ct)
@@ -49,8 +48,7 @@ public class AuthorService(LibraryDbContext db) : IAuthorService
             {
                 Id = ba.Book.Id,
                 Title = ba.Book.Title,
-                ISBN = ba.Book.ISBN,
-                PublicationYear = ba.Book.PublicationYear
+                ISBN = ba.Book.ISBN
             }).ToList()
         };
     }
@@ -69,6 +67,7 @@ public class AuthorService(LibraryDbContext db) : IAuthorService
 
         db.Authors.Add(author);
         await db.SaveChangesAsync(ct);
+
         return MapToResponse(author);
     }
 
@@ -89,11 +88,9 @@ public class AuthorService(LibraryDbContext db) : IAuthorService
 
     public async Task DeleteAsync(int id, CancellationToken ct)
     {
-        var author = await db.Authors.Include(a => a.BookAuthors).FirstOrDefaultAsync(a => a.Id == id, ct)
-            ?? throw new KeyNotFoundException($"Author with ID {id} not found.");
-
-        if (author.BookAuthors.Count != 0)
-            throw new InvalidOperationException("Cannot delete author with associated books.");
+        var author = await db.Authors.Include(a => a.BookAuthors).FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (author is null) throw new KeyNotFoundException($"Author with ID {id} not found.");
+        if (author.BookAuthors.Count != 0) throw new InvalidOperationException("Cannot delete author with associated books.");
 
         db.Authors.Remove(author);
         await db.SaveChangesAsync(ct);
@@ -110,18 +107,14 @@ public class AuthorService(LibraryDbContext db) : IAuthorService
         CreatedAt = a.CreatedAt
     };
 
-    private static PagedResponse<T> CreatePagedResponse<T>(List<T> items, int page, int pageSize, int totalCount)
+    private static PagedResponse<T> Paginate<T>(List<T> items, int page, int pageSize, int totalCount) => new()
     {
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-        return new PagedResponse<T>
-        {
-            Items = items,
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount,
-            TotalPages = totalPages,
-            HasNextPage = page < totalPages,
-            HasPreviousPage = page > 1
-        };
-    }
+        Items = items,
+        Page = page,
+        PageSize = pageSize,
+        TotalCount = totalCount,
+        TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+        HasNextPage = page * pageSize < totalCount,
+        HasPreviousPage = page > 1
+    };
 }

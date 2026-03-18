@@ -17,11 +17,10 @@ public class CreatePetRequest
 
     public DateOnly? DateOfBirth { get; set; }
 
-    [Range(0.01, double.MaxValue, ErrorMessage = "Weight must be positive.")]
+    [Range(0.01, 9999.99)]
     public decimal? Weight { get; set; }
 
     public string? Color { get; set; }
-
     public string? MicrochipNumber { get; set; }
 
     [Required]
@@ -41,11 +40,10 @@ public class UpdatePetRequest
 
     public DateOnly? DateOfBirth { get; set; }
 
-    [Range(0.01, double.MaxValue, ErrorMessage = "Weight must be positive.")]
+    [Range(0.01, 9999.99)]
     public decimal? Weight { get; set; }
 
     public string? Color { get; set; }
-
     public string? MicrochipNumber { get; set; }
 
     [Required]
@@ -64,9 +62,9 @@ public class PetResponse
     public string? MicrochipNumber { get; set; }
     public bool IsActive { get; set; }
     public int OwnerId { get; set; }
-    public OwnerSummaryResponse? Owner { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public OwnerSummaryResponse? Owner { get; set; }
 }
 
 public class PetSummaryResponse

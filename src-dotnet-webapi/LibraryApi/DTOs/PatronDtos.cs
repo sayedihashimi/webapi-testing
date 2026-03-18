@@ -5,13 +5,17 @@ namespace LibraryApi.DTOs;
 
 public class CreatePatronRequest
 {
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string LastName { get; set; } = string.Empty;
 
-    [Required, EmailAddress]
+    [Required]
+    [EmailAddress]
+    [MaxLength(200)]
     public string Email { get; set; } = string.Empty;
 
     [Phone]
@@ -20,18 +24,23 @@ public class CreatePatronRequest
     [MaxLength(500)]
     public string? Address { get; set; }
 
-    public MembershipType MembershipType { get; set; } = MembershipType.Standard;
+    [Required]
+    public MembershipType MembershipType { get; set; }
 }
 
 public class UpdatePatronRequest
 {
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string LastName { get; set; } = string.Empty;
 
-    [Required, EmailAddress]
+    [Required]
+    [EmailAddress]
+    [MaxLength(200)]
     public string Email { get; set; } = string.Empty;
 
     [Phone]
@@ -40,6 +49,7 @@ public class UpdatePatronRequest
     [MaxLength(500)]
     public string? Address { get; set; }
 
+    [Required]
     public MembershipType MembershipType { get; set; }
 }
 
@@ -60,6 +70,7 @@ public class PatronResponse
 
 public class PatronDetailResponse : PatronResponse
 {
-    public int ActiveLoansCount { get; set; }
-    public decimal UnpaidFinesBalance { get; set; }
+    public int ActiveLoanCount { get; set; }
+    public decimal UnpaidFinesTotal { get; set; }
+    public int ReservationCount { get; set; }
 }

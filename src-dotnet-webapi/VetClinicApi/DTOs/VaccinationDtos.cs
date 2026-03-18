@@ -31,15 +31,14 @@ public class VaccinationResponse
 {
     public int Id { get; set; }
     public int PetId { get; set; }
-    public PetSummaryResponse? Pet { get; set; }
     public string VaccineName { get; set; } = string.Empty;
     public DateOnly DateAdministered { get; set; }
     public DateOnly ExpirationDate { get; set; }
     public string? BatchNumber { get; set; }
     public int AdministeredByVetId { get; set; }
-    public VeterinarianSummaryResponse? AdministeredByVet { get; set; }
     public string? Notes { get; set; }
     public bool IsExpired { get; set; }
     public bool IsDueSoon { get; set; }
     public DateTime CreatedAt { get; set; }
+    public VeterinarianSummaryResponse? AdministeredByVet { get; set; }
 }

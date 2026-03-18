@@ -1,51 +1,56 @@
 # Code Generation Notes
 
-## Skills Used During Generation
+## Skills Used
 
-### `dotnet-webapi` Skill
+All three applications were generated using the **`dotnet-webapi`** skill. This skill provides specialized guidance for creating and modifying ASP.NET Core Web API endpoints with correct HTTP semantics, OpenAPI metadata, error handling, and data access wiring.
 
-The **dotnet-webapi** skill was used for the generation of **all three** API projects. This skill provides specialized guidance for creating and modifying ASP.NET Core Web API endpoints with correct HTTP semantics, OpenAPI metadata, error handling, and data access wiring.
+### Skill: `dotnet-webapi`
 
-#### Projects Built
+**Description**: Guides creation and modification of ASP.NET Core Web API endpoints with correct HTTP semantics, OpenAPI metadata, error handling, and data access wiring.
 
-| Project | Location | Description |
-|---------|----------|-------------|
-| **FitnessStudioApi** | `./src/FitnessStudioApi/` | Fitness & Wellness Studio Booking API for "Zenith Fitness Studio" |
-| **LibraryApi** | `./src/LibraryApi/` | Community Library Management API for "Sunrise Community Library" |
-| **VetClinicApi** | `./src/VetClinicApi/` | Veterinary Clinic Management API for "Happy Paws Veterinary Clinic" |
+**Used for**: Adding new API endpoints (minimal APIs), wiring up OpenAPI/Swagger, creating `.http` test files, connecting endpoints to EF Core, adding pagination/filtering/sorting to list endpoints, and setting up global error handling middleware.
 
-#### What the Skill Guided
+**Key conventions enforced by this skill across all three apps**:
 
-The `dotnet-webapi` skill provided conventions and best practices applied consistently across all three projects:
+| Convention | Detail |
+|---|---|
+| API Style | Minimal APIs (`app.MapGet`, `app.MapPost`, etc.) — no controllers |
+| Request/Response Types | Dedicated `Create{Entity}Request`, `Update{Entity}Request`, `{Entity}Response` types — never expose EF Core entities directly |
+| HTTP Status Codes | `201 Created` with Location header for POST creates, `204 No Content` for deletes, `200 OK` / `404 Not Found` for GETs |
+| CancellationToken | Accepted in every endpoint and forwarded to all async calls |
+| OpenAPI Metadata | `.WithSummary()`, `.WithDescription()`, `.Produces<>()` on every endpoint; Swagger UI enabled |
+| Enum Serialization | `JsonStringEnumConverter` so enums appear as strings in JSON |
+| Error Handling | `IExceptionHandler` with `AddProblemDetails()` returning RFC 7807 ProblemDetails |
+| Service Layer | Service interfaces + implementations between endpoints and DbContext |
+| Read-Only Queries | `AsNoTracking()` on all read-only EF Core queries |
+| EF Core Migrations | Used `dotnet ef migrations add` — not `EnsureCreated()` |
+| Pagination | `page`/`pageSize` query params returning `{ items, totalCount, totalPages, hasNextPage, hasPreviousPage }` |
+| Validation | `System.ComponentModel.DataAnnotations` on DTOs |
+| .http Files | Comprehensive test files covering all endpoints with realistic request data |
 
-1. **API Endpoint Design** — Controller-based APIs with `[ApiController]` attribute, proper HTTP verb usage, and RESTful route conventions.
+## Applications Generated
 
-2. **HTTP Semantics** — `201 Created` with `Location` header for POST create operations (via `CreatedAtAction`), `204 No Content` for DELETE, `200 OK` / `404 Not Found` for GET, proper use of `400 Bad Request` and `409 Conflict` for business rule violations.
+### 1. FitnessStudioApi (Zenith Fitness Studio)
 
-3. **OpenAPI / Swagger** — `.NET 10` native `AddOpenApi()` + `MapOpenApi()` combined with Swashbuckle for Swagger UI. All endpoints annotated with `[ProducesResponseType]`, `[EndpointSummary]`, and `[EndpointDescription]`.
+- **Location**: `./FitnessStudioApi/`
+- **Skill Used**: `dotnet-webapi`
+- **Description**: Fitness and wellness studio booking API managing members, membership plans, memberships, instructors, class types, class schedules, bookings, and waitlists.
+- **Build Status**: ✅ 0 errors, 0 warnings
 
-4. **Error Handling** — Global exception handling using `IExceptionHandler` implementation registered with `AddProblemDetails()` and `AddExceptionHandler<T>()`. Returns RFC 7807 ProblemDetails responses.
+### 2. LibraryApi (Sunrise Community Library)
 
-5. **Request/Response DTOs** — Dedicated DTOs following the naming convention `Create{Entity}Request`, `Update{Entity}Request`, `{Entity}Response`. EF Core entities are never exposed directly in API responses.
+- **Location**: `./LibraryApi/`
+- **Skill Used**: `dotnet-webapi`
+- **Description**: Community library management API managing books, authors, categories, patrons, loans, reservations, and fines.
+- **Build Status**: ✅ 0 errors, 0 warnings
 
-6. **CancellationToken** — Accepted in every controller action and forwarded to all async service/EF Core calls.
+### 3. VetClinicApi (Happy Paws Veterinary Clinic)
 
-7. **EF Core Data Access** — SQLite database with EF Core migrations (not `EnsureCreated()`). Seed data using `HasData()` in `OnModelCreating`. `AsNoTracking()` for read-only queries. Enums stored as strings with `.HasConversion<string>()`. Decimal column types explicitly specified.
+- **Location**: `./VetClinicApi/`
+- **Skill Used**: `dotnet-webapi`
+- **Description**: Veterinary clinic management API managing pet owners, pets, veterinarians, appointments, medical records, prescriptions, and vaccinations.
+- **Build Status**: ✅ 0 errors, 0 warnings
 
-8. **Service Layer Pattern** — Interface + implementation pattern for all business logic, registered via dependency injection. Controllers remain thin, delegating to services.
+## Isolation
 
-9. **Enum Serialization** — `JsonStringEnumConverter` configured so enums serialize as human-readable strings in JSON responses.
-
-10. **Pagination** — Consistent `page` and `pageSize` query parameters across all list endpoints. Responses include `PagedResponse<T>` with `totalCount`, `totalPages`, `hasNextPage`, `hasPreviousPage` metadata.
-
-11. **`.http` Test Files** — Each project includes a `.http` file with `@baseUrl` variable, `###` section separators, realistic request bodies, and requests covering all endpoints. IDs correspond to seed data for out-of-the-box testing.
-
-#### Build Results
-
-All three projects compile successfully with **0 warnings and 0 errors**. Each project has an initial EF Core migration (`InitialCreate`) generated and ready to apply.
-
-| Project | Build Status | Warnings | Errors | Migrations |
-|---------|-------------|----------|--------|------------|
-| FitnessStudioApi | ✅ Succeeded | 0 | 0 | InitialCreate |
-| LibraryApi | ✅ Succeeded | 0 | 0 | InitialCreate |
-| VetClinicApi | ✅ Succeeded | 0 | 0 | InitialCreate |
+Each application was built by a separate, isolated agent with no shared knowledge or context between them. This ensures each project is fully independent and self-contained.

@@ -23,6 +23,9 @@ public class CreateVeterinarianRequest
     [Required]
     public string LicenseNumber { get; set; } = string.Empty;
 
+    public bool IsAvailable { get; set; } = true;
+
+    [Required]
     public DateOnly HireDate { get; set; }
 }
 
@@ -45,7 +48,10 @@ public class UpdateVeterinarianRequest
     [Required]
     public string LicenseNumber { get; set; } = string.Empty;
 
-    public bool IsAvailable { get; set; }
+    public bool IsAvailable { get; set; } = true;
+
+    [Required]
+    public DateOnly HireDate { get; set; }
 }
 
 public class VeterinarianResponse

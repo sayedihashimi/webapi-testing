@@ -5,16 +5,16 @@ namespace FitnessStudioApi.DTOs;
 
 public class CreateMembershipRequest
 {
+    [Required]
     public int MemberId { get; set; }
-    public int MembershipPlanId { get; set; }
-    public DateOnly StartDate { get; set; }
-    public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Paid;
-}
 
-public class FreezeMembershipRequest
-{
-    [Range(7, 30, ErrorMessage = "Freeze duration must be between 7 and 30 days")]
-    public int FreezeDurationDays { get; set; }
+    [Required]
+    public int MembershipPlanId { get; set; }
+
+    [Required]
+    public DateOnly StartDate { get; set; }
+
+    public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Paid;
 }
 
 public class MembershipResponse
@@ -32,4 +32,13 @@ public class MembershipResponse
     public DateOnly? FreezeEndDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+}
+
+public class FreezeMembershipRequest
+{
+    [Required]
+    public DateOnly FreezeStartDate { get; set; }
+
+    [Required]
+    public DateOnly FreezeEndDate { get; set; }
 }

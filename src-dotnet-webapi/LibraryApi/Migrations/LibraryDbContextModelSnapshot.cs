@@ -50,68 +50,6 @@ namespace LibraryApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Authors");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Biography = "English novelist and essayist, journalist and critic.",
-                            BirthDate = new DateOnly(1903, 6, 25),
-                            Country = "United Kingdom",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FirstName = "George",
-                            LastName = "Orwell"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Biography = "English novelist known primarily for her six major novels.",
-                            BirthDate = new DateOnly(1775, 12, 16),
-                            Country = "United Kingdom",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FirstName = "Jane",
-                            LastName = "Austen"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Biography = "American writer and professor of biochemistry, known for science fiction.",
-                            BirthDate = new DateOnly(1920, 1, 2),
-                            Country = "United States",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FirstName = "Isaac",
-                            LastName = "Asimov"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Biography = "Israeli public intellectual, historian and professor.",
-                            BirthDate = new DateOnly(1976, 2, 24),
-                            Country = "Israel",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FirstName = "Yuval Noah",
-                            LastName = "Harari"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Biography = "English writer known for her detective novels.",
-                            BirthDate = new DateOnly(1890, 9, 15),
-                            Country = "United Kingdom",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FirstName = "Agatha",
-                            LastName = "Christie"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Biography = "American astronomer, planetary scientist, and science communicator.",
-                            BirthDate = new DateOnly(1934, 11, 9),
-                            Country = "United States",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FirstName = "Carl",
-                            LastName = "Sagan"
-                        });
                 });
 
             modelBuilder.Entity("LibraryApi.Models.Book", b =>
@@ -132,12 +70,13 @@ namespace LibraryApi.Migrations
 
                     b.Property<string>("ISBN")
                         .IsRequired()
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Language")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(100)
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT")
                         .HasDefaultValue("English");
 
@@ -168,188 +107,6 @@ namespace LibraryApi.Migrations
                         .IsUnique();
 
                     b.ToTable("Books");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            AvailableCopies = 3,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "A dystopian novel set in a totalitarian society.",
-                            ISBN = "978-0-451-52493-5",
-                            Language = "English",
-                            PageCount = 328,
-                            PublicationYear = 1949,
-                            Publisher = "Secker & Warburg",
-                            Title = "1984",
-                            TotalCopies = 5,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 2,
-                            AvailableCopies = 2,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "An allegorical novella about a group of farm animals.",
-                            ISBN = "978-0-451-52634-2",
-                            Language = "English",
-                            PageCount = 112,
-                            PublicationYear = 1945,
-                            Publisher = "Secker & Warburg",
-                            Title = "Animal Farm",
-                            TotalCopies = 3,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 3,
-                            AvailableCopies = 4,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "A romantic novel following Elizabeth Bennet.",
-                            ISBN = "978-0-14-143951-8",
-                            Language = "English",
-                            PageCount = 432,
-                            PublicationYear = 1813,
-                            Publisher = "T. Egerton",
-                            Title = "Pride and Prejudice",
-                            TotalCopies = 4,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 4,
-                            AvailableCopies = 2,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "A novel about the Dashwood sisters.",
-                            ISBN = "978-0-14-143966-2",
-                            Language = "English",
-                            PageCount = 409,
-                            PublicationYear = 1811,
-                            Publisher = "T. Egerton",
-                            Title = "Sense and Sensibility",
-                            TotalCopies = 2,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 5,
-                            AvailableCopies = 1,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "The first novel in the Foundation series.",
-                            ISBN = "978-0-553-29335-7",
-                            Language = "English",
-                            PageCount = 244,
-                            PublicationYear = 1951,
-                            Publisher = "Gnome Press",
-                            Title = "Foundation",
-                            TotalCopies = 3,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 6,
-                            AvailableCopies = 1,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "A collection of robot short stories.",
-                            ISBN = "978-0-553-29438-5",
-                            Language = "English",
-                            PageCount = 253,
-                            PublicationYear = 1950,
-                            Publisher = "Gnome Press",
-                            Title = "I, Robot",
-                            TotalCopies = 2,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 7,
-                            AvailableCopies = 2,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "A book about the history of the human species.",
-                            ISBN = "978-0-06-231609-7",
-                            Language = "English",
-                            PageCount = 443,
-                            PublicationYear = 2011,
-                            Publisher = "Harper",
-                            Title = "Sapiens: A Brief History of Humankind",
-                            TotalCopies = 4,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 8,
-                            AvailableCopies = 3,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "An exploration of humanity's future.",
-                            ISBN = "978-0-06-246431-6",
-                            Language = "English",
-                            PageCount = 450,
-                            PublicationYear = 2015,
-                            Publisher = "Harper",
-                            Title = "Homo Deus: A Brief History of Tomorrow",
-                            TotalCopies = 3,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 9,
-                            AvailableCopies = 2,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "A detective novel featuring Hercule Poirot.",
-                            ISBN = "978-0-00-711931-8",
-                            Language = "English",
-                            PageCount = 256,
-                            PublicationYear = 1934,
-                            Publisher = "Collins Crime Club",
-                            Title = "Murder on the Orient Express",
-                            TotalCopies = 3,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 10,
-                            AvailableCopies = 2,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "A Poirot mystery novel.",
-                            ISBN = "978-0-00-712717-7",
-                            Language = "English",
-                            PageCount = 312,
-                            PublicationYear = 1926,
-                            Publisher = "Collins Crime Club",
-                            Title = "The Murder of Roger Ackroyd",
-                            TotalCopies = 2,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 11,
-                            AvailableCopies = 2,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "A popular science book on astronomy.",
-                            ISBN = "978-0-345-53943-4",
-                            Language = "English",
-                            PageCount = 396,
-                            PublicationYear = 1980,
-                            Publisher = "Random House",
-                            Title = "Cosmos",
-                            TotalCopies = 3,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 12,
-                            AvailableCopies = 2,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "A book about scientific thinking and skepticism.",
-                            ISBN = "978-0-345-40946-1",
-                            Language = "English",
-                            PageCount = 457,
-                            PublicationYear = 1995,
-                            Publisher = "Random House",
-                            Title = "The Demon-Haunted World",
-                            TotalCopies = 2,
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        });
                 });
 
             modelBuilder.Entity("LibraryApi.Models.BookAuthor", b =>
@@ -365,68 +122,6 @@ namespace LibraryApi.Migrations
                     b.HasIndex("AuthorId");
 
                     b.ToTable("BookAuthors");
-
-                    b.HasData(
-                        new
-                        {
-                            BookId = 1,
-                            AuthorId = 1
-                        },
-                        new
-                        {
-                            BookId = 2,
-                            AuthorId = 1
-                        },
-                        new
-                        {
-                            BookId = 3,
-                            AuthorId = 2
-                        },
-                        new
-                        {
-                            BookId = 4,
-                            AuthorId = 2
-                        },
-                        new
-                        {
-                            BookId = 5,
-                            AuthorId = 3
-                        },
-                        new
-                        {
-                            BookId = 6,
-                            AuthorId = 3
-                        },
-                        new
-                        {
-                            BookId = 7,
-                            AuthorId = 4
-                        },
-                        new
-                        {
-                            BookId = 8,
-                            AuthorId = 4
-                        },
-                        new
-                        {
-                            BookId = 9,
-                            AuthorId = 5
-                        },
-                        new
-                        {
-                            BookId = 10,
-                            AuthorId = 5
-                        },
-                        new
-                        {
-                            BookId = 11,
-                            AuthorId = 6
-                        },
-                        new
-                        {
-                            BookId = 12,
-                            AuthorId = 6
-                        });
                 });
 
             modelBuilder.Entity("LibraryApi.Models.BookCategory", b =>
@@ -442,93 +137,6 @@ namespace LibraryApi.Migrations
                     b.HasIndex("CategoryId");
 
                     b.ToTable("BookCategories");
-
-                    b.HasData(
-                        new
-                        {
-                            BookId = 1,
-                            CategoryId = 1
-                        },
-                        new
-                        {
-                            BookId = 1,
-                            CategoryId = 2
-                        },
-                        new
-                        {
-                            BookId = 2,
-                            CategoryId = 1
-                        },
-                        new
-                        {
-                            BookId = 3,
-                            CategoryId = 1
-                        },
-                        new
-                        {
-                            BookId = 4,
-                            CategoryId = 1
-                        },
-                        new
-                        {
-                            BookId = 5,
-                            CategoryId = 2
-                        },
-                        new
-                        {
-                            BookId = 6,
-                            CategoryId = 2
-                        },
-                        new
-                        {
-                            BookId = 7,
-                            CategoryId = 3
-                        },
-                        new
-                        {
-                            BookId = 7,
-                            CategoryId = 5
-                        },
-                        new
-                        {
-                            BookId = 8,
-                            CategoryId = 3
-                        },
-                        new
-                        {
-                            BookId = 8,
-                            CategoryId = 4
-                        },
-                        new
-                        {
-                            BookId = 9,
-                            CategoryId = 1
-                        },
-                        new
-                        {
-                            BookId = 9,
-                            CategoryId = 6
-                        },
-                        new
-                        {
-                            BookId = 10,
-                            CategoryId = 1
-                        },
-                        new
-                        {
-                            BookId = 10,
-                            CategoryId = 6
-                        },
-                        new
-                        {
-                            BookId = 11,
-                            CategoryId = 4
-                        },
-                        new
-                        {
-                            BookId = 12,
-                            CategoryId = 4
-                        });
                 });
 
             modelBuilder.Entity("LibraryApi.Models.Category", b =>
@@ -552,44 +160,6 @@ namespace LibraryApi.Migrations
                         .IsUnique();
 
                     b.ToTable("Categories");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "Literary works of imaginative narration",
-                            Name = "Fiction"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Fiction based on imagined future scientific advances",
-                            Name = "Science Fiction"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Description = "Non-fiction works about historical events",
-                            Name = "History"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Description = "Non-fiction works about scientific topics",
-                            Name = "Science"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Description = "Accounts of someone's life written by another",
-                            Name = "Biography"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Description = "Fiction dealing with the solution of a crime",
-                            Name = "Mystery"
-                        });
                 });
 
             modelBuilder.Entity("LibraryApi.Models.Fine", b =>
@@ -633,42 +203,6 @@ namespace LibraryApi.Migrations
                     b.HasIndex("PatronId");
 
                     b.ToTable("Fines");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Amount = 2.00m,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            IssuedDate = new DateTime(2024, 5, 24, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanId = 5,
-                            PatronId = 2,
-                            Reason = "Overdue return - 8 days late",
-                            Status = "Unpaid"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Amount = 1.00m,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            IssuedDate = new DateTime(2024, 5, 5, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanId = 8,
-                            PaidDate = new DateTime(2024, 5, 10, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 5,
-                            Reason = "Overdue return - 4 days late",
-                            Status = "Paid"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Amount = 0.50m,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            IssuedDate = new DateTime(2024, 5, 30, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanId = 9,
-                            PatronId = 4,
-                            Reason = "Damaged book cover",
-                            Status = "Unpaid"
-                        });
                 });
 
             modelBuilder.Entity("LibraryApi.Models.Loan", b =>
@@ -710,142 +244,6 @@ namespace LibraryApi.Migrations
                     b.HasIndex("PatronId");
 
                     b.ToTable("Loans");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BookId = 1,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 6, 10, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 20, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 1,
-                            RenewalCount = 0,
-                            Status = "Active"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            BookId = 1,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 6, 5, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 22, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 2,
-                            RenewalCount = 0,
-                            Status = "Active"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            BookId = 5,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 6, 5, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 15, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 1,
-                            RenewalCount = 1,
-                            Status = "Active"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            BookId = 5,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 25, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 3,
-                            RenewalCount = 0,
-                            Status = "Active"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            BookId = 7,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 5, 24, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 10, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 2,
-                            RenewalCount = 0,
-                            Status = "Overdue"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            BookId = 7,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 18, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 4,
-                            RenewalCount = 0,
-                            Status = "Active"
-                        },
-                        new
-                        {
-                            Id = 7,
-                            BookId = 3,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 4, 22, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 4, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 1,
-                            RenewalCount = 0,
-                            ReturnDate = new DateTime(2024, 4, 20, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Status = "Returned"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            BookId = 9,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 5, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 4, 10, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 5,
-                            RenewalCount = 0,
-                            ReturnDate = new DateTime(2024, 5, 5, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Status = "Returned"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            BookId = 2,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 6, 11, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 28, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 4,
-                            RenewalCount = 0,
-                            Status = "Active"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            BookId = 6,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 6, 10, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 20, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 5,
-                            RenewalCount = 0,
-                            Status = "Active"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            BookId = 9,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 6, 2, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 26, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 3,
-                            RenewalCount = 0,
-                            Status = "Active"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            BookId = 11,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            DueDate = new DateTime(2024, 6, 12, 10, 0, 0, 0, DateTimeKind.Utc),
-                            LoanDate = new DateTime(2024, 5, 22, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 1,
-                            RenewalCount = 0,
-                            Status = "Active"
-                        });
                 });
 
             modelBuilder.Entity("LibraryApi.Models.Patron", b =>
@@ -855,7 +253,6 @@ namespace LibraryApi.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Address")
-                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -863,6 +260,7 @@ namespace LibraryApi.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FirstName")
@@ -871,9 +269,7 @@ namespace LibraryApi.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(true);
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -889,7 +285,6 @@ namespace LibraryApi.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Phone")
-                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -901,92 +296,6 @@ namespace LibraryApi.Migrations
                         .IsUnique();
 
                     b.ToTable("Patrons");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Address = "123 Main St, Springfield",
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "alice.johnson@email.com",
-                            FirstName = "Alice",
-                            IsActive = true,
-                            LastName = "Johnson",
-                            MembershipDate = new DateOnly(2023, 1, 15),
-                            MembershipType = "Premium",
-                            Phone = "555-0101",
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Address = "456 Oak Ave, Springfield",
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "bob.smith@email.com",
-                            FirstName = "Bob",
-                            IsActive = true,
-                            LastName = "Smith",
-                            MembershipDate = new DateOnly(2023, 3, 20),
-                            MembershipType = "Standard",
-                            Phone = "555-0102",
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Address = "789 Pine Rd, Springfield",
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "carol.williams@email.com",
-                            FirstName = "Carol",
-                            IsActive = true,
-                            LastName = "Williams",
-                            MembershipDate = new DateOnly(2023, 6, 10),
-                            MembershipType = "Student",
-                            Phone = "555-0103",
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Address = "321 Elm St, Springfield",
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "david.brown@email.com",
-                            FirstName = "David",
-                            IsActive = true,
-                            LastName = "Brown",
-                            MembershipDate = new DateOnly(2023, 9, 5),
-                            MembershipType = "Standard",
-                            Phone = "555-0104",
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Address = "654 Birch Ln, Springfield",
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "eva.martinez@email.com",
-                            FirstName = "Eva",
-                            IsActive = true,
-                            LastName = "Martinez",
-                            MembershipDate = new DateOnly(2024, 1, 1),
-                            MembershipType = "Premium",
-                            Phone = "555-0105",
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Address = "987 Cedar Dr, Springfield",
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "frank.davis@email.com",
-                            FirstName = "Frank",
-                            IsActive = false,
-                            LastName = "Davis",
-                            MembershipDate = new DateOnly(2022, 5, 1),
-                            MembershipType = "Standard",
-                            Phone = "555-0106",
-                            UpdatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc)
-                        });
                 });
 
             modelBuilder.Entity("LibraryApi.Models.Reservation", b =>
@@ -1025,38 +334,6 @@ namespace LibraryApi.Migrations
                     b.HasIndex("PatronId");
 
                     b.ToTable("Reservations");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BookId = 5,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 4,
-                            QueuePosition = 1,
-                            ReservationDate = new DateTime(2024, 5, 28, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Status = "Pending"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            BookId = 5,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 5,
-                            QueuePosition = 2,
-                            ReservationDate = new DateTime(2024, 5, 29, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Status = "Pending"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            BookId = 1,
-                            CreatedAt = new DateTime(2024, 6, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            PatronId = 3,
-                            QueuePosition = 1,
-                            ReservationDate = new DateTime(2024, 5, 30, 10, 0, 0, 0, DateTimeKind.Utc),
-                            Status = "Pending"
-                        });
                 });
 
             modelBuilder.Entity("LibraryApi.Models.BookAuthor", b =>

@@ -5,24 +5,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessStudioApi.Services;
 
-public class InstructorService(FitnessDbContext db) : IInstructorService
+public class InstructorService(FitnessDbContext db, ILogger<InstructorService> logger) : IInstructorService
 {
     public async Task<PagedResponse<InstructorResponse>> GetAllAsync(string? specialization, bool? isActive, int page, int pageSize, CancellationToken ct)
     {
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 100);
-
         var query = db.Instructors.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(specialization))
-            query = query.Where(i => i.Specializations != null && i.Specializations.Contains(specialization));
+            query = query.Where(i => i.Specializations != null && i.Specializations.ToLower().Contains(specialization.ToLower()));
 
         if (isActive.HasValue)
             query = query.Where(i => i.IsActive == isActive.Value);
 
         var totalCount = await query.CountAsync(ct);
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
         var items = await query
             .OrderBy(i => i.LastName).ThenBy(i => i.FirstName)
             .Skip((page - 1) * pageSize)
@@ -30,31 +25,18 @@ public class InstructorService(FitnessDbContext db) : IInstructorService
             .Select(i => MapToResponse(i))
             .ToListAsync(ct);
 
-        return new PagedResponse<InstructorResponse>
-        {
-            Items = items,
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount,
-            TotalPages = totalPages,
-            HasNextPage = page < totalPages,
-            HasPreviousPage = page > 1
-        };
+        return PagedResponse<InstructorResponse>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task<InstructorResponse?> GetByIdAsync(int id, CancellationToken ct)
     {
-        var instructor = await db.Instructors.AsNoTracking()
-            .FirstOrDefaultAsync(i => i.Id == id, ct);
-
+        var instructor = await db.Instructors.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id, ct);
         return instructor is null ? null : MapToResponse(instructor);
     }
 
     public async Task<InstructorResponse> CreateAsync(CreateInstructorRequest request, CancellationToken ct)
     {
-        var emailExists = await db.Instructors.AsNoTracking()
-            .AnyAsync(i => i.Email == request.Email, ct);
-
+        var emailExists = await db.Instructors.AnyAsync(i => i.Email == request.Email, ct);
         if (emailExists)
             throw new InvalidOperationException($"An instructor with email '{request.Email}' already exists.");
 
@@ -66,27 +48,22 @@ public class InstructorService(FitnessDbContext db) : IInstructorService
             Phone = request.Phone,
             Bio = request.Bio,
             Specializations = request.Specializations,
-            HireDate = request.HireDate,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            HireDate = request.HireDate
         };
 
         db.Instructors.Add(instructor);
         await db.SaveChangesAsync(ct);
-
+        logger.LogInformation("Created instructor {InstructorId} '{Name}'", instructor.Id, $"{instructor.FirstName} {instructor.LastName}");
         return MapToResponse(instructor);
     }
 
-    public async Task<InstructorResponse> UpdateAsync(int id, UpdateInstructorRequest request, CancellationToken ct)
+    public async Task<InstructorResponse?> UpdateAsync(int id, UpdateInstructorRequest request, CancellationToken ct)
     {
-        var instructor = await db.Instructors.FindAsync([id], ct)
-            ?? throw new KeyNotFoundException($"Instructor with ID {id} not found.");
+        var instructor = await db.Instructors.FindAsync([id], ct);
+        if (instructor is null) return null;
 
-        var emailExists = await db.Instructors.AsNoTracking()
-            .AnyAsync(i => i.Email == request.Email && i.Id != id, ct);
-
-        if (emailExists)
+        var emailConflict = await db.Instructors.AnyAsync(i => i.Email == request.Email && i.Id != id, ct);
+        if (emailConflict)
             throw new InvalidOperationException($"An instructor with email '{request.Email}' already exists.");
 
         instructor.FirstName = request.FirstName;
@@ -96,18 +73,16 @@ public class InstructorService(FitnessDbContext db) : IInstructorService
         instructor.Bio = request.Bio;
         instructor.Specializations = request.Specializations;
         instructor.IsActive = request.IsActive;
-        instructor.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-
+        logger.LogInformation("Updated instructor {InstructorId}", id);
         return MapToResponse(instructor);
     }
 
     public async Task<List<ClassScheduleResponse>> GetScheduleAsync(int instructorId, DateOnly? fromDate, DateOnly? toDate, CancellationToken ct)
     {
-        var exists = await db.Instructors.AsNoTracking().AnyAsync(i => i.Id == instructorId, ct);
-        if (!exists)
-            throw new KeyNotFoundException($"Instructor with ID {instructorId} not found.");
+        var exists = await db.Instructors.AnyAsync(i => i.Id == instructorId, ct);
+        if (!exists) throw new KeyNotFoundException($"Instructor {instructorId} not found.");
 
         var query = db.ClassSchedules.AsNoTracking()
             .Include(cs => cs.ClassType)
@@ -115,38 +90,14 @@ public class InstructorService(FitnessDbContext db) : IInstructorService
             .Where(cs => cs.InstructorId == instructorId);
 
         if (fromDate.HasValue)
-        {
-            var from = fromDate.Value.ToDateTime(TimeOnly.MinValue);
-            query = query.Where(cs => cs.StartTime >= from);
-        }
+            query = query.Where(cs => DateOnly.FromDateTime(cs.StartTime) >= fromDate.Value);
 
         if (toDate.HasValue)
-        {
-            var to = toDate.Value.ToDateTime(TimeOnly.MaxValue);
-            query = query.Where(cs => cs.StartTime <= to);
-        }
+            query = query.Where(cs => DateOnly.FromDateTime(cs.StartTime) <= toDate.Value);
 
         return await query
             .OrderBy(cs => cs.StartTime)
-            .Select(cs => new ClassScheduleResponse
-            {
-                Id = cs.Id,
-                ClassTypeId = cs.ClassTypeId,
-                ClassTypeName = cs.ClassType.Name,
-                InstructorId = cs.InstructorId,
-                InstructorName = cs.Instructor.FirstName + " " + cs.Instructor.LastName,
-                StartTime = cs.StartTime,
-                EndTime = cs.EndTime,
-                Capacity = cs.Capacity,
-                CurrentEnrollment = cs.CurrentEnrollment,
-                WaitlistCount = cs.WaitlistCount,
-                Room = cs.Room,
-                Status = cs.Status,
-                CancellationReason = cs.CancellationReason,
-                IsPremium = cs.ClassType.IsPremium,
-                CreatedAt = cs.CreatedAt,
-                UpdatedAt = cs.UpdatedAt
-            })
+            .Select(cs => MapScheduleToResponse(cs))
             .ToListAsync(ct);
     }
 
@@ -163,5 +114,24 @@ public class InstructorService(FitnessDbContext db) : IInstructorService
         IsActive = i.IsActive,
         CreatedAt = i.CreatedAt,
         UpdatedAt = i.UpdatedAt
+    };
+
+    private static ClassScheduleResponse MapScheduleToResponse(ClassSchedule cs) => new()
+    {
+        Id = cs.Id,
+        ClassTypeId = cs.ClassTypeId,
+        ClassTypeName = cs.ClassType?.Name ?? string.Empty,
+        InstructorId = cs.InstructorId,
+        InstructorName = cs.Instructor is not null ? $"{cs.Instructor.FirstName} {cs.Instructor.LastName}" : string.Empty,
+        StartTime = cs.StartTime,
+        EndTime = cs.EndTime,
+        Capacity = cs.Capacity,
+        CurrentEnrollment = cs.CurrentEnrollment,
+        WaitlistCount = cs.WaitlistCount,
+        Room = cs.Room,
+        Status = cs.Status,
+        CancellationReason = cs.CancellationReason,
+        CreatedAt = cs.CreatedAt,
+        UpdatedAt = cs.UpdatedAt
     };
 }

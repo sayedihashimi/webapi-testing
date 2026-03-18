@@ -4,10 +4,12 @@ namespace LibraryApi.DTOs;
 
 public class CreateBookRequest
 {
-    [Required, MaxLength(300)]
+    [Required]
+    [MaxLength(300)]
     public string Title { get; set; } = string.Empty;
 
     [Required]
+    [MaxLength(20)]
     public string ISBN { get; set; } = string.Empty;
 
     [MaxLength(200)]
@@ -21,9 +23,10 @@ public class CreateBookRequest
     [Range(1, int.MaxValue)]
     public int? PageCount { get; set; }
 
-    [MaxLength(100)]
+    [MaxLength(50)]
     public string? Language { get; set; }
 
+    [Required]
     [Range(1, int.MaxValue)]
     public int TotalCopies { get; set; }
 
@@ -33,10 +36,12 @@ public class CreateBookRequest
 
 public class UpdateBookRequest
 {
-    [Required, MaxLength(300)]
+    [Required]
+    [MaxLength(300)]
     public string Title { get; set; } = string.Empty;
 
     [Required]
+    [MaxLength(20)]
     public string ISBN { get; set; } = string.Empty;
 
     [MaxLength(200)]
@@ -50,9 +55,10 @@ public class UpdateBookRequest
     [Range(1, int.MaxValue)]
     public int? PageCount { get; set; }
 
-    [MaxLength(100)]
+    [MaxLength(50)]
     public string? Language { get; set; }
 
+    [Required]
     [Range(1, int.MaxValue)]
     public int TotalCopies { get; set; }
 
@@ -78,7 +84,10 @@ public class BookResponse
     public List<CategorySummaryResponse> Categories { get; set; } = [];
 }
 
-public class BookDetailResponse : BookResponse
+public class BookSummaryResponse
 {
-    public bool IsAvailable => AvailableCopies > 0;
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string ISBN { get; set; } = string.Empty;
+    public int AvailableCopies { get; set; }
 }

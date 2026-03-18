@@ -4,10 +4,12 @@ namespace LibraryApi.DTOs;
 
 public class CreateAuthorRequest
 {
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string LastName { get; set; } = string.Empty;
 
     [MaxLength(2000)]
@@ -21,10 +23,12 @@ public class CreateAuthorRequest
 
 public class UpdateAuthorRequest
 {
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string LastName { get; set; } = string.Empty;
 
     [MaxLength(2000)]
@@ -57,7 +61,6 @@ public class AuthorBookResponse
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string ISBN { get; set; } = string.Empty;
-    public int? PublicationYear { get; set; }
 }
 
 public class AuthorSummaryResponse

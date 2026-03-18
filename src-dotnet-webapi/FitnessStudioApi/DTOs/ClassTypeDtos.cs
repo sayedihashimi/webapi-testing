@@ -11,16 +11,16 @@ public class CreateClassTypeRequest
     [MaxLength(500)]
     public string? Description { get; set; }
 
-    [Range(30, 120)]
+    [Required, Range(30, 120)]
     public int DefaultDurationMinutes { get; set; }
 
-    [Range(1, 50)]
+    [Required, Range(1, 50)]
     public int DefaultCapacity { get; set; }
 
     public bool IsPremium { get; set; }
-
     public int? CaloriesPerSession { get; set; }
 
+    [Required]
     public DifficultyLevel DifficultyLevel { get; set; }
 }
 
@@ -32,16 +32,16 @@ public class UpdateClassTypeRequest
     [MaxLength(500)]
     public string? Description { get; set; }
 
-    [Range(30, 120)]
+    [Required, Range(30, 120)]
     public int DefaultDurationMinutes { get; set; }
 
-    [Range(1, 50)]
+    [Required, Range(1, 50)]
     public int DefaultCapacity { get; set; }
 
     public bool IsPremium { get; set; }
-
     public int? CaloriesPerSession { get; set; }
 
+    [Required]
     public DifficultyLevel DifficultyLevel { get; set; }
 
     public bool IsActive { get; set; }

@@ -15,7 +15,7 @@ public class CreatePrescriptionRequest
     [Required, MaxLength(100)]
     public string Dosage { get; set; } = string.Empty;
 
-    [Range(1, int.MaxValue, ErrorMessage = "DurationDays must be positive.")]
+    [Required, Range(1, 365)]
     public int DurationDays { get; set; }
 
     [Required]
@@ -34,7 +34,7 @@ public class PrescriptionResponse
     public int DurationDays { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
-    public bool IsActive { get; set; }
     public string? Instructions { get; set; }
+    public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
 }

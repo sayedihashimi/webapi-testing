@@ -5,37 +5,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessStudioApi.Services;
 
-public class ClassTypeService(FitnessDbContext db) : IClassTypeService
+public class ClassTypeService(FitnessDbContext db, ILogger<ClassTypeService> logger) : IClassTypeService
 {
-    public async Task<List<ClassTypeResponse>> GetAllAsync(DifficultyLevel? difficulty, bool? isPremium, CancellationToken ct)
+    public async Task<PagedResponse<ClassTypeResponse>> GetAllAsync(string? difficulty, bool? isPremium, int page, int pageSize, CancellationToken ct)
     {
-        var query = db.ClassTypes.AsNoTracking().Where(c => c.IsActive);
+        var query = db.ClassTypes.AsNoTracking().AsQueryable();
 
-        if (difficulty.HasValue)
-            query = query.Where(c => c.DifficultyLevel == difficulty.Value);
+        if (!string.IsNullOrWhiteSpace(difficulty) && Enum.TryParse<DifficultyLevel>(difficulty, true, out var level))
+            query = query.Where(c => c.DifficultyLevel == level);
 
         if (isPremium.HasValue)
             query = query.Where(c => c.IsPremium == isPremium.Value);
 
-        return await query
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
             .OrderBy(c => c.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(c => MapToResponse(c))
             .ToListAsync(ct);
+
+        return PagedResponse<ClassTypeResponse>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task<ClassTypeResponse?> GetByIdAsync(int id, CancellationToken ct)
     {
-        var classType = await db.ClassTypes.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == id, ct);
-
+        var classType = await db.ClassTypes.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
         return classType is null ? null : MapToResponse(classType);
     }
 
     public async Task<ClassTypeResponse> CreateAsync(CreateClassTypeRequest request, CancellationToken ct)
     {
-        var exists = await db.ClassTypes.AsNoTracking()
-            .AnyAsync(c => c.Name == request.Name, ct);
-
+        var exists = await db.ClassTypes.AnyAsync(c => c.Name == request.Name, ct);
         if (exists)
             throw new InvalidOperationException($"A class type with name '{request.Name}' already exists.");
 
@@ -47,27 +48,22 @@ public class ClassTypeService(FitnessDbContext db) : IClassTypeService
             DefaultCapacity = request.DefaultCapacity,
             IsPremium = request.IsPremium,
             CaloriesPerSession = request.CaloriesPerSession,
-            DifficultyLevel = request.DifficultyLevel,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            DifficultyLevel = request.DifficultyLevel
         };
 
         db.ClassTypes.Add(classType);
         await db.SaveChangesAsync(ct);
-
+        logger.LogInformation("Created class type {ClassTypeId} '{Name}'", classType.Id, classType.Name);
         return MapToResponse(classType);
     }
 
-    public async Task<ClassTypeResponse> UpdateAsync(int id, UpdateClassTypeRequest request, CancellationToken ct)
+    public async Task<ClassTypeResponse?> UpdateAsync(int id, UpdateClassTypeRequest request, CancellationToken ct)
     {
-        var classType = await db.ClassTypes.FindAsync([id], ct)
-            ?? throw new KeyNotFoundException($"Class type with ID {id} not found.");
+        var classType = await db.ClassTypes.FindAsync([id], ct);
+        if (classType is null) return null;
 
-        var duplicate = await db.ClassTypes.AsNoTracking()
-            .AnyAsync(c => c.Name == request.Name && c.Id != id, ct);
-
-        if (duplicate)
+        var nameConflict = await db.ClassTypes.AnyAsync(c => c.Name == request.Name && c.Id != id, ct);
+        if (nameConflict)
             throw new InvalidOperationException($"A class type with name '{request.Name}' already exists.");
 
         classType.Name = request.Name;
@@ -78,10 +74,9 @@ public class ClassTypeService(FitnessDbContext db) : IClassTypeService
         classType.CaloriesPerSession = request.CaloriesPerSession;
         classType.DifficultyLevel = request.DifficultyLevel;
         classType.IsActive = request.IsActive;
-        classType.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-
+        logger.LogInformation("Updated class type {ClassTypeId}", id);
         return MapToResponse(classType);
     }
 

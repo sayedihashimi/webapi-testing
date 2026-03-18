@@ -1,10 +1,14 @@
+using System.ComponentModel.DataAnnotations;
 using LibraryApi.Models;
 
 namespace LibraryApi.DTOs;
 
 public class CreateLoanRequest
 {
+    [Required]
     public int BookId { get; set; }
+
+    [Required]
     public int PatronId { get; set; }
 }
 
@@ -22,10 +26,4 @@ public class LoanResponse
     public LoanStatus Status { get; set; }
     public int RenewalCount { get; set; }
     public DateTime CreatedAt { get; set; }
-}
-
-public class ReturnLoanResponse : LoanResponse
-{
-    public decimal? FineAmount { get; set; }
-    public string? FineReason { get; set; }
 }

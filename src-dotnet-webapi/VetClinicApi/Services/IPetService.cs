@@ -9,7 +9,7 @@ public interface IPetService
     Task<PetResponse> CreateAsync(CreatePetRequest request, CancellationToken ct);
     Task<PetResponse?> UpdateAsync(int id, UpdatePetRequest request, CancellationToken ct);
     Task<bool> SoftDeleteAsync(int id, CancellationToken ct);
-    Task<List<MedicalRecordResponse>> GetMedicalRecordsAsync(int petId, CancellationToken ct);
+    Task<PagedResponse<MedicalRecordResponse>> GetMedicalRecordsAsync(int petId, int page, int pageSize, CancellationToken ct);
     Task<List<VaccinationResponse>> GetVaccinationsAsync(int petId, CancellationToken ct);
     Task<List<VaccinationResponse>> GetUpcomingVaccinationsAsync(int petId, CancellationToken ct);
     Task<List<PrescriptionResponse>> GetActivePrescriptionsAsync(int petId, CancellationToken ct);

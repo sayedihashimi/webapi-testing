@@ -4,7 +4,8 @@ namespace LibraryApi.DTOs;
 
 public class CreateCategoryRequest
 {
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
     [MaxLength(500)]
@@ -13,7 +14,8 @@ public class CreateCategoryRequest
 
 public class UpdateCategoryRequest
 {
-    [Required, MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
     [MaxLength(500)]

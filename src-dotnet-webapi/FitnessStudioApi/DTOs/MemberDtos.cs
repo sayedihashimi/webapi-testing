@@ -16,12 +16,13 @@ public class CreateMemberRequest
     [Required, Phone]
     public string Phone { get; set; } = string.Empty;
 
+    [Required]
     public DateOnly DateOfBirth { get; set; }
 
     [Required, MaxLength(200)]
     public string EmergencyContactName { get; set; } = string.Empty;
 
-    [Required, Phone]
+    [Required]
     public string EmergencyContactPhone { get; set; } = string.Empty;
 }
 
@@ -39,12 +40,10 @@ public class UpdateMemberRequest
     [Required, Phone]
     public string Phone { get; set; } = string.Empty;
 
-    public DateOnly DateOfBirth { get; set; }
-
     [Required, MaxLength(200)]
     public string EmergencyContactName { get; set; } = string.Empty;
 
-    [Required, Phone]
+    [Required]
     public string EmergencyContactPhone { get; set; } = string.Empty;
 }
 
@@ -60,20 +59,21 @@ public class MemberResponse
     public string EmergencyContactPhone { get; set; } = string.Empty;
     public DateOnly JoinDate { get; set; }
     public bool IsActive { get; set; }
-    public MembershipResponse? ActiveMembership { get; set; }
-    public int TotalBookings { get; set; }
-    public int AttendedClasses { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
 
-public class MemberListResponse
+public class MemberDetailResponse : MemberResponse
 {
-    public int Id { get; set; }
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
-    public bool IsActive { get; set; }
-    public DateOnly JoinDate { get; set; }
+    public MembershipResponse? ActiveMembership { get; set; }
+    public MemberBookingStats BookingStats { get; set; } = new();
+}
+
+public class MemberBookingStats
+{
+    public int TotalBookings { get; set; }
+    public int ConfirmedBookings { get; set; }
+    public int AttendedBookings { get; set; }
+    public int CancelledBookings { get; set; }
+    public int NoShowBookings { get; set; }
 }

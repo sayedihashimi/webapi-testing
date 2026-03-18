@@ -5,22 +5,22 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public class MedicalRecordService(VetClinicDbContext db) : IMedicalRecordService
+public class MedicalRecordService(VetClinicDbContext db, ILogger<MedicalRecordService> logger) : IMedicalRecordService
 {
     public async Task<MedicalRecordResponse?> GetByIdAsync(int id, CancellationToken ct)
     {
         var record = await db.MedicalRecords.AsNoTracking()
-            .Include(m => m.Pet)
-            .Include(m => m.Veterinarian)
-            .Include(m => m.Prescriptions)
-            .FirstOrDefaultAsync(m => m.Id == id, ct);
+            .Include(mr => mr.Pet)
+            .Include(mr => mr.Veterinarian)
+            .Include(mr => mr.Prescriptions)
+            .FirstOrDefaultAsync(mr => mr.Id == id, ct);
 
         return record is null ? null : MapToResponse(record);
     }
 
     public async Task<MedicalRecordResponse> CreateAsync(CreateMedicalRecordRequest request, CancellationToken ct)
     {
-        var appointment = await db.Appointments
+        var appointment = await db.Appointments.AsNoTracking()
             .Include(a => a.Pet)
             .Include(a => a.Veterinarian)
             .FirstOrDefaultAsync(a => a.Id == request.AppointmentId, ct);
@@ -28,12 +28,12 @@ public class MedicalRecordService(VetClinicDbContext db) : IMedicalRecordService
         if (appointment is null)
             throw new KeyNotFoundException($"Appointment with ID {request.AppointmentId} not found.");
 
-        if (appointment.Status != AppointmentStatus.Completed && appointment.Status != AppointmentStatus.InProgress)
+        if (appointment.Status is not (AppointmentStatus.Completed or AppointmentStatus.InProgress))
             throw new ArgumentException($"Medical records can only be created for appointments with status 'Completed' or 'InProgress'. Current status: '{appointment.Status}'.");
 
-        var existingRecord = await db.MedicalRecords.AnyAsync(m => m.AppointmentId == request.AppointmentId, ct);
+        var existingRecord = await db.MedicalRecords.AsNoTracking().AnyAsync(mr => mr.AppointmentId == request.AppointmentId, ct);
         if (existingRecord)
-            throw new InvalidOperationException($"A medical record already exists for appointment ID {request.AppointmentId}.");
+            throw new InvalidOperationException($"A medical record already exists for appointment {request.AppointmentId}.");
 
         var record = new MedicalRecord
         {
@@ -50,19 +50,24 @@ public class MedicalRecordService(VetClinicDbContext db) : IMedicalRecordService
         db.MedicalRecords.Add(record);
         await db.SaveChangesAsync(ct);
 
-        record.Pet = appointment.Pet;
-        record.Veterinarian = appointment.Veterinarian;
+        var created = await db.MedicalRecords.AsNoTracking()
+            .Include(mr => mr.Pet)
+            .Include(mr => mr.Veterinarian)
+            .Include(mr => mr.Prescriptions)
+            .FirstAsync(mr => mr.Id == record.Id, ct);
 
-        return MapToResponse(record);
+        logger.LogInformation("Created medical record {RecordId} for appointment {AppointmentId}", record.Id, record.AppointmentId);
+
+        return MapToResponse(created);
     }
 
     public async Task<MedicalRecordResponse?> UpdateAsync(int id, UpdateMedicalRecordRequest request, CancellationToken ct)
     {
         var record = await db.MedicalRecords
-            .Include(m => m.Pet)
-            .Include(m => m.Veterinarian)
-            .Include(m => m.Prescriptions)
-            .FirstOrDefaultAsync(m => m.Id == id, ct);
+            .Include(mr => mr.Pet)
+            .Include(mr => mr.Veterinarian)
+            .Include(mr => mr.Prescriptions)
+            .FirstOrDefaultAsync(mr => mr.Id == id, ct);
 
         if (record is null) return null;
 
@@ -72,23 +77,38 @@ public class MedicalRecordService(VetClinicDbContext db) : IMedicalRecordService
         record.FollowUpDate = request.FollowUpDate;
 
         await db.SaveChangesAsync(ct);
+        logger.LogInformation("Updated medical record {RecordId}", id);
+
         return MapToResponse(record);
     }
 
-    private static MedicalRecordResponse MapToResponse(MedicalRecord m) => new()
+    private static MedicalRecordResponse MapToResponse(MedicalRecord mr) => new()
     {
-        Id = m.Id,
-        AppointmentId = m.AppointmentId,
-        PetId = m.PetId,
-        Pet = m.Pet is null ? null : new PetSummaryResponse { Id = m.Pet.Id, Name = m.Pet.Name, Species = m.Pet.Species, Breed = m.Pet.Breed, IsActive = m.Pet.IsActive },
-        VeterinarianId = m.VeterinarianId,
-        Veterinarian = m.Veterinarian is null ? null : new VeterinarianSummaryResponse { Id = m.Veterinarian.Id, FirstName = m.Veterinarian.FirstName, LastName = m.Veterinarian.LastName, Specialization = m.Veterinarian.Specialization },
-        Diagnosis = m.Diagnosis,
-        Treatment = m.Treatment,
-        Notes = m.Notes,
-        FollowUpDate = m.FollowUpDate,
-        CreatedAt = m.CreatedAt,
-        Prescriptions = m.Prescriptions.Select(p => new PrescriptionResponse
+        Id = mr.Id,
+        AppointmentId = mr.AppointmentId,
+        PetId = mr.PetId,
+        VeterinarianId = mr.VeterinarianId,
+        Diagnosis = mr.Diagnosis,
+        Treatment = mr.Treatment,
+        Notes = mr.Notes,
+        FollowUpDate = mr.FollowUpDate,
+        CreatedAt = mr.CreatedAt,
+        Pet = mr.Pet != null ? new PetSummaryResponse
+        {
+            Id = mr.Pet.Id,
+            Name = mr.Pet.Name,
+            Species = mr.Pet.Species,
+            Breed = mr.Pet.Breed,
+            IsActive = mr.Pet.IsActive
+        } : null,
+        Veterinarian = mr.Veterinarian != null ? new VeterinarianSummaryResponse
+        {
+            Id = mr.Veterinarian.Id,
+            FirstName = mr.Veterinarian.FirstName,
+            LastName = mr.Veterinarian.LastName,
+            Specialization = mr.Veterinarian.Specialization
+        } : null,
+        Prescriptions = mr.Prescriptions.Select(p => new PrescriptionResponse
         {
             Id = p.Id,
             MedicalRecordId = p.MedicalRecordId,
@@ -97,8 +117,8 @@ public class MedicalRecordService(VetClinicDbContext db) : IMedicalRecordService
             DurationDays = p.DurationDays,
             StartDate = p.StartDate,
             EndDate = p.EndDate,
-            IsActive = p.IsActive,
             Instructions = p.Instructions,
+            IsActive = p.EndDate >= DateOnly.FromDateTime(DateTime.UtcNow),
             CreatedAt = p.CreatedAt
         }).ToList()
     };

@@ -10,7 +10,7 @@ public interface IPatronService
     Task<PatronResponse> CreateAsync(CreatePatronRequest request, CancellationToken ct);
     Task<PatronResponse?> UpdateAsync(int id, UpdatePatronRequest request, CancellationToken ct);
     Task DeleteAsync(int id, CancellationToken ct);
-    Task<PagedResponse<LoanResponse>> GetPatronLoansAsync(int patronId, LoanStatus? status, int page, int pageSize, CancellationToken ct);
-    Task<List<ReservationResponse>> GetPatronReservationsAsync(int patronId, CancellationToken ct);
-    Task<List<FineResponse>> GetPatronFinesAsync(int patronId, FineStatus? status, CancellationToken ct);
+    Task<PagedResponse<LoanResponse>> GetLoansAsync(int patronId, LoanStatus? status, int page, int pageSize, CancellationToken ct);
+    Task<List<ReservationResponse>> GetReservationsAsync(int patronId, CancellationToken ct);
+    Task<PagedResponse<FineResponse>> GetFinesAsync(int patronId, FineStatus? status, int page, int pageSize, CancellationToken ct);
 }

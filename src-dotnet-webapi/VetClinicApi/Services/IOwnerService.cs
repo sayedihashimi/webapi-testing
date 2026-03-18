@@ -9,6 +9,6 @@ public interface IOwnerService
     Task<OwnerResponse> CreateAsync(CreateOwnerRequest request, CancellationToken ct);
     Task<OwnerResponse?> UpdateAsync(int id, UpdateOwnerRequest request, CancellationToken ct);
     Task<bool> DeleteAsync(int id, CancellationToken ct);
-    Task<List<PetSummaryResponse>> GetPetsAsync(int ownerId, CancellationToken ct);
-    Task<PagedResponse<AppointmentResponse>> GetAppointmentsAsync(int ownerId, int page, int pageSize, CancellationToken ct);
+    Task<PagedResponse<PetSummaryResponse>> GetOwnerPetsAsync(int ownerId, CancellationToken ct);
+    Task<PagedResponse<AppointmentResponse>> GetOwnerAppointmentsAsync(int ownerId, int page, int pageSize, CancellationToken ct);
 }

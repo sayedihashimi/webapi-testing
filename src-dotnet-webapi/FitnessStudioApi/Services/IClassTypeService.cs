@@ -1,12 +1,11 @@
 using FitnessStudioApi.DTOs;
-using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.Services;
 
 public interface IClassTypeService
 {
-    Task<List<ClassTypeResponse>> GetAllAsync(DifficultyLevel? difficulty, bool? isPremium, CancellationToken ct);
+    Task<PagedResponse<ClassTypeResponse>> GetAllAsync(string? difficulty, bool? isPremium, int page, int pageSize, CancellationToken ct);
     Task<ClassTypeResponse?> GetByIdAsync(int id, CancellationToken ct);
     Task<ClassTypeResponse> CreateAsync(CreateClassTypeRequest request, CancellationToken ct);
-    Task<ClassTypeResponse> UpdateAsync(int id, UpdateClassTypeRequest request, CancellationToken ct);
+    Task<ClassTypeResponse?> UpdateAsync(int id, UpdateClassTypeRequest request, CancellationToken ct);
 }

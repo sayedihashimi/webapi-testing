@@ -10,12 +10,13 @@ public class CreateMembershipPlanRequest
     [MaxLength(500)]
     public string? Description { get; set; }
 
-    [Range(1, 24)]
+    [Required, Range(1, 24)]
     public int DurationMonths { get; set; }
 
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be positive")]
+    [Required, Range(0.01, 99999.99)]
     public decimal Price { get; set; }
 
+    [Required, Range(-1, 100)]
     public int MaxClassBookingsPerWeek { get; set; }
 
     public bool AllowsPremiumClasses { get; set; }
@@ -29,16 +30,16 @@ public class UpdateMembershipPlanRequest
     [MaxLength(500)]
     public string? Description { get; set; }
 
-    [Range(1, 24)]
+    [Required, Range(1, 24)]
     public int DurationMonths { get; set; }
 
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be positive")]
+    [Required, Range(0.01, 99999.99)]
     public decimal Price { get; set; }
 
+    [Required, Range(-1, 100)]
     public int MaxClassBookingsPerWeek { get; set; }
 
     public bool AllowsPremiumClasses { get; set; }
-
     public bool IsActive { get; set; }
 }
 

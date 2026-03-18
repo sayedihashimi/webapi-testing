@@ -21,6 +21,7 @@ public class CreateInstructorRequest
 
     public string? Specializations { get; set; }
 
+    [Required]
     public DateOnly HireDate { get; set; }
 }
 
@@ -42,7 +43,6 @@ public class UpdateInstructorRequest
     public string? Bio { get; set; }
 
     public string? Specializations { get; set; }
-
     public bool IsActive { get; set; }
 }
 
