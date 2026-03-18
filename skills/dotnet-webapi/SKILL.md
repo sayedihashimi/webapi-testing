@@ -70,19 +70,6 @@ directly in request or response bodies.
 | Output (single) | `{Entity}Response` | `ProductResponse` |
 | Output (list) | `{Entity}ListResponse` or paginated wrapper | `ProductListResponse` |
 
-**Validation:** Apply `System.ComponentModel.DataAnnotations` attributes where
-they add real value. Focus on constraints that prevent bad data from reaching
-the service layer:
-
-- `[Required]` on genuinely required fields
-- `[MaxLength]` on string fields that map to database columns with limits
-- `[Range]` on numeric fields with real domain bounds
-- `[EmailAddress]`, `[Phone]`, `[Url]` on fields with well-known formats
-
-Do not add attributes mechanically to every property. If a field is a non-nullable
-value type (e.g., `int`, `bool`), `[Required]` is redundant. If a string has no
-meaningful maximum length, skip `[MaxLength]`.
-
 ### Step 3: Implement the endpoints
 
 Whether using controllers or minimal APIs, follow these HTTP conventions
