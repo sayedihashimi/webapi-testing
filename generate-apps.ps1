@@ -11,12 +11,12 @@
     The folder to generate files in. Defaults to the current working directory.
 
 .PARAMETER Apps
-    One or more app names to generate. Valid values: no-skills, dotnet-webapi, dotnet-artisan.
-    If not specified, all three apps are generated.
+    One or more app names to generate. Valid values: no-skills, dotnet-webapi, dotnet-artisan, managedcode-dotnet-skills.
+    If not specified, all four apps are generated.
 
 .EXAMPLE
     .\generate-apps.ps1
-    # Generates all three variants.
+    # Generates all four variants.
 
 .EXAMPLE
     .\generate-apps.ps1 -Apps no-skills
@@ -25,11 +25,15 @@
 .EXAMPLE
     .\generate-apps.ps1 -Apps dotnet-webapi, dotnet-artisan
     # Generates the dotnet-webapi and dotnet-artisan variants.
+
+.EXAMPLE
+    .\generate-apps.ps1 -Apps managedcode-dotnet-skills
+    # Generates only the managedcode-dotnet-skills variant.
 #>
 param(
     [string]$Path = $PWD,
 
-    [ValidateSet('no-skills', 'dotnet-webapi', 'dotnet-artisan')]
+    [ValidateSet('no-skills', 'dotnet-webapi', 'dotnet-artisan', 'managedcode-dotnet-skills')]
     [string[]]$Apps
 )
 
@@ -124,6 +128,13 @@ try {
             Prompt      = 'Follow the instructions in the file @.github\prompts\create-all-apps.md. Instead of putting the files in `src` put them in `src-dotnet-artisan`. Use the `dotnet-artisan` skills but do NOT use the `dotnet-webapi` skill.'
             CopilotArgs = @('--plugin-dir', 'contrib\plugins\dotnet-artisan')
             SkillDirs   = @()
+        }
+        'managedcode-dotnet-skills' = @{
+            Label       = 'managedcode-dotnet-skills'
+            Folder      = 'src-managedcode-dotnet-skills'
+            Prompt      = 'Follow the instructions in the file @.github\prompts\create-all-apps.md. Instead of putting the files in `src` put them in `src-managedcode-dotnet-skills`. Use the `managedcode-dotnet-skills` skills but do NOT use any other skills.'
+            CopilotArgs = @()
+            SkillDirs   = @('contrib\skills\managedcode-dotnet-skills')
         }
     }
 
