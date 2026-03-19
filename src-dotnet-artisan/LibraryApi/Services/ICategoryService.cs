@@ -4,9 +4,9 @@ namespace LibraryApi.Services;
 
 public interface ICategoryService
 {
-    Task<List<CategoryDto>> GetCategoriesAsync(CancellationToken ct = default);
-    Task<CategoryDetailDto?> GetCategoryByIdAsync(int id, CancellationToken ct = default);
-    Task<CategoryDto> CreateCategoryAsync(CreateCategoryDto dto, CancellationToken ct = default);
-    Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryDto dto, CancellationToken ct = default);
-    Task<(bool Found, bool HasBooks)> DeleteCategoryAsync(int id, CancellationToken ct = default);
+    Task<PaginatedResponse<CategoryResponse>> GetCategoriesAsync(int page, int pageSize, CancellationToken ct);
+    Task<CategoryDetailResponse?> GetCategoryByIdAsync(int id, CancellationToken ct);
+    Task<CategoryResponse> CreateCategoryAsync(CreateCategoryRequest request, CancellationToken ct);
+    Task<CategoryResponse?> UpdateCategoryAsync(int id, UpdateCategoryRequest request, CancellationToken ct);
+    Task<(bool Found, bool HasBooks)> DeleteCategoryAsync(int id, CancellationToken ct);
 }

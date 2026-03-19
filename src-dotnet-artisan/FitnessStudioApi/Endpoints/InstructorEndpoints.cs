@@ -1,33 +1,43 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FitnessStudioApi.Endpoints;
 
 public static class InstructorEndpoints
 {
-    public static RouteGroupBuilder MapInstructorEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapInstructorEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/instructors")
-            .WithTags("Instructors");
+        var instructors = group.MapGroup("/instructors").WithTags("Instructors");
 
-        group.MapGet("/", GetAllAsync);
-        group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync);
-        group.MapPut("/{id:int}", UpdateAsync);
-        group.MapGet("/{id:int}/schedule", GetScheduleAsync);
+        instructors.MapGet("/", GetAllAsync)
+            .WithSummary("List instructors with optional filters");
+
+        instructors.MapGet("/{id:int}", GetByIdAsync)
+            .WithSummary("Get instructor details");
+
+        instructors.MapPost("/", CreateAsync)
+            .WithSummary("Create a new instructor");
+
+        instructors.MapPut("/{id:int}", UpdateAsync)
+            .WithSummary("Update instructor profile");
+
+        instructors.MapGet("/{id:int}/schedule", GetScheduleAsync)
+            .WithSummary("Get instructor's class schedule");
 
         return group;
     }
 
-    private static async Task<IResult> GetAllAsync(
+    private static async Task<Ok<IReadOnlyList<InstructorResponse>>> GetAllAsync(
+        IInstructorService service,
         string? specialization, bool? isActive,
-        IInstructorService service, CancellationToken ct)
+        CancellationToken ct)
     {
         var instructors = await service.GetAllAsync(specialization, isActive, ct);
         return TypedResults.Ok(instructors);
     }
 
-    private static async Task<IResult> GetByIdAsync(
+    private static async Task<Results<Ok<InstructorResponse>, NotFound>> GetByIdAsync(
         int id, IInstructorService service, CancellationToken ct)
     {
         var instructor = await service.GetByIdAsync(id, ct);
@@ -36,41 +46,28 @@ public static class InstructorEndpoints
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CreateAsync(
+    private static async Task<Created<InstructorResponse>> CreateAsync(
         CreateInstructorRequest request, IInstructorService service, CancellationToken ct)
     {
-        try
-        {
-            var instructor = await service.CreateAsync(request, ct);
-            return TypedResults.Created($"/api/instructors/{instructor.Id}", instructor);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.Conflict(new { error = ex.Message });
-        }
+        var instructor = await service.CreateAsync(request, ct);
+        return TypedResults.Created($"/api/instructors/{instructor.Id}", instructor);
     }
 
-    private static async Task<IResult> UpdateAsync(
+    private static async Task<Results<Ok<InstructorResponse>, NotFound>> UpdateAsync(
         int id, UpdateInstructorRequest request, IInstructorService service, CancellationToken ct)
     {
-        try
-        {
-            var instructor = await service.UpdateAsync(id, request, ct);
-            return instructor is not null
-                ? TypedResults.Ok(instructor)
-                : TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.Conflict(new { error = ex.Message });
-        }
+        var instructor = await service.UpdateAsync(id, request, ct);
+        return instructor is not null
+            ? TypedResults.Ok(instructor)
+            : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> GetScheduleAsync(
-        int id, DateOnly? from, DateOnly? to,
-        IInstructorService service, CancellationToken ct)
+    private static async Task<Ok<IReadOnlyList<ClassScheduleResponse>>> GetScheduleAsync(
+        int id, IInstructorService service,
+        DateOnly? fromDate, DateOnly? toDate,
+        CancellationToken ct)
     {
-        var schedule = await service.GetScheduleAsync(id, from, to, ct);
+        var schedule = await service.GetScheduleAsync(id, fromDate, toDate, ct);
         return TypedResults.Ok(schedule);
     }
 }

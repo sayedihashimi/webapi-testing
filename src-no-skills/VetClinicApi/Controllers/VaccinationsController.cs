@@ -1,32 +1,35 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs.Vaccination;
-using VetClinicApi.Services.Interfaces;
+using VetClinicApi.DTOs;
+using VetClinicApi.Services;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Produces("application/json")]
 public class VaccinationsController : ControllerBase
 {
-    private readonly IVaccinationService _vaccinationService;
+    private readonly IVaccinationService _service;
 
-    public VaccinationsController(IVaccinationService vaccinationService) => _vaccinationService = vaccinationService;
+    public VaccinationsController(IVaccinationService service)
+    {
+        _service = service;
+    }
 
-    /// <summary>Get vaccination details</summary>
-    [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(VaccinationDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(VaccinationResponseDto), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetById(int id)
-        => Ok(await _vaccinationService.GetByIdAsync(id));
+    {
+        var result = await _service.GetByIdAsync(id);
+        return Ok(result);
+    }
 
-    /// <summary>Record a new vaccination</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(VaccinationDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(VaccinationResponseDto), 201)]
+    [ProducesResponseType(400)]
     public async Task<IActionResult> Create([FromBody] CreateVaccinationDto dto)
     {
-        var result = await _vaccinationService.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 }

@@ -5,17 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApi.Services;
 
-public sealed class FineService(LibraryDbContext db, ILogger<FineService> logger) : IFineService
+public sealed class FineService(LibraryDbContext context, ILogger<FineService> logger) : IFineService
 {
-    public async Task<PagedResult<FineDto>> GetFinesAsync(
-        string? status, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PaginatedResponse<FineResponse>> GetFinesAsync(string? status, int page, int pageSize, CancellationToken ct)
     {
-        var query = db.Fines
-            .Include(f => f.Patron)
-            .Include(f => f.Loan).ThenInclude(l => l.Book)
-            .AsQueryable();
+        var query = context.Fines.Include(f => f.Patron).AsQueryable();
 
-        if (Enum.TryParse<FineStatus>(status, true, out var fineStatus))
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<FineStatus>(status, true, out var fineStatus))
         {
             query = query.Where(f => f.Status == fineStatus);
         }
@@ -23,92 +19,87 @@ public sealed class FineService(LibraryDbContext db, ILogger<FineService> logger
         var totalCount = await query.CountAsync(ct);
         var items = await query
             .OrderByDescending(f => f.IssuedDate)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(f => new FineDto(
-                f.Id, f.PatronId, $"{f.Patron.FirstName} {f.Patron.LastName}",
-                f.LoanId, f.Loan.Book.Title, f.Amount, f.Reason,
-                f.IssuedDate, f.PaidDate, f.Status, f.CreatedAt
-            ))
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(f => new FineResponse(f.Id, f.PatronId,
+                f.Patron.FirstName + " " + f.Patron.LastName,
+                f.LoanId, f.Amount, f.Reason, f.IssuedDate, f.PaidDate, f.Status))
             .ToListAsync(ct);
 
-        return new PagedResult<FineDto>(items, totalCount, page, pageSize);
+        return new PaginatedResponse<FineResponse>(items, totalCount, page, pageSize, (int)Math.Ceiling((double)totalCount / pageSize));
     }
 
-    public async Task<FineDto?> GetFineByIdAsync(int id, CancellationToken ct = default)
+    public async Task<FineDetailResponse?> GetFineByIdAsync(int id, CancellationToken ct)
     {
-        return await db.Fines
-            .Include(f => f.Patron)
-            .Include(f => f.Loan).ThenInclude(l => l.Book)
-            .Where(f => f.Id == id)
-            .Select(f => new FineDto(
-                f.Id, f.PatronId, $"{f.Patron.FirstName} {f.Patron.LastName}",
-                f.LoanId, f.Loan.Book.Title, f.Amount, f.Reason,
-                f.IssuedDate, f.PaidDate, f.Status, f.CreatedAt
-            ))
-            .FirstOrDefaultAsync(ct);
-    }
-
-    public async Task<(FineDto? Fine, string? Error)> PayFineAsync(int id, CancellationToken ct = default)
-    {
-        var fine = await db.Fines
+        var fine = await context.Fines
             .Include(f => f.Patron)
             .Include(f => f.Loan).ThenInclude(l => l.Book)
             .FirstOrDefaultAsync(f => f.Id == id, ct);
 
         if (fine is null)
         {
-            return (null, "Fine not found.");
+            return null;
+        }
+
+        return new FineDetailResponse(fine.Id, fine.PatronId,
+            fine.Patron.FirstName + " " + fine.Patron.LastName,
+            fine.LoanId, fine.Loan.Book.Title, fine.Amount, fine.Reason,
+            fine.IssuedDate, fine.PaidDate, fine.Status, fine.CreatedAt);
+    }
+
+    public async Task<Result<FineDetailResponse>> PayFineAsync(int id, CancellationToken ct)
+    {
+        var fine = await context.Fines
+            .Include(f => f.Patron)
+            .Include(f => f.Loan).ThenInclude(l => l.Book)
+            .FirstOrDefaultAsync(f => f.Id == id, ct);
+
+        if (fine is null)
+        {
+            return Result<FineDetailResponse>.Failure("Fine not found.", 404);
         }
 
         if (fine.Status != FineStatus.Unpaid)
         {
-            return (null, $"Fine is already {fine.Status.ToString().ToLower()}.");
+            return Result<FineDetailResponse>.Failure($"Fine is already '{fine.Status}'. Only unpaid fines can be paid.");
         }
 
         fine.Status = FineStatus.Paid;
         fine.PaidDate = DateTime.UtcNow;
+        await context.SaveChangesAsync(ct);
 
-        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Fine {FineId} paid by patron {PatronId}", id, fine.PatronId);
 
-        logger.LogInformation("Fine {FineId} paid: ${Amount}", fine.Id, fine.Amount);
-
-        var result = new FineDto(
-            fine.Id, fine.PatronId, $"{fine.Patron.FirstName} {fine.Patron.LastName}",
+        return Result<FineDetailResponse>.Success(new FineDetailResponse(
+            fine.Id, fine.PatronId, fine.Patron.FirstName + " " + fine.Patron.LastName,
             fine.LoanId, fine.Loan.Book.Title, fine.Amount, fine.Reason,
-            fine.IssuedDate, fine.PaidDate, fine.Status, fine.CreatedAt);
-
-        return (result, null);
+            fine.IssuedDate, fine.PaidDate, fine.Status, fine.CreatedAt));
     }
 
-    public async Task<(FineDto? Fine, string? Error)> WaiveFineAsync(int id, CancellationToken ct = default)
+    public async Task<Result<FineDetailResponse>> WaiveFineAsync(int id, CancellationToken ct)
     {
-        var fine = await db.Fines
+        var fine = await context.Fines
             .Include(f => f.Patron)
             .Include(f => f.Loan).ThenInclude(l => l.Book)
             .FirstOrDefaultAsync(f => f.Id == id, ct);
 
         if (fine is null)
         {
-            return (null, "Fine not found.");
+            return Result<FineDetailResponse>.Failure("Fine not found.", 404);
         }
 
         if (fine.Status != FineStatus.Unpaid)
         {
-            return (null, $"Fine is already {fine.Status.ToString().ToLower()}.");
+            return Result<FineDetailResponse>.Failure($"Fine is already '{fine.Status}'. Only unpaid fines can be waived.");
         }
 
         fine.Status = FineStatus.Waived;
+        await context.SaveChangesAsync(ct);
 
-        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Fine {FineId} waived for patron {PatronId}", id, fine.PatronId);
 
-        logger.LogInformation("Fine {FineId} waived: ${Amount}", fine.Id, fine.Amount);
-
-        var result = new FineDto(
-            fine.Id, fine.PatronId, $"{fine.Patron.FirstName} {fine.Patron.LastName}",
+        return Result<FineDetailResponse>.Success(new FineDetailResponse(
+            fine.Id, fine.PatronId, fine.Patron.FirstName + " " + fine.Patron.LastName,
             fine.LoanId, fine.Loan.Book.Title, fine.Amount, fine.Reason,
-            fine.IssuedDate, fine.PaidDate, fine.Status, fine.CreatedAt);
-
-        return (result, null);
+            fine.IssuedDate, fine.PaidDate, fine.Status, fine.CreatedAt));
     }
 }

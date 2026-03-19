@@ -1,5 +1,5 @@
-using LibraryApi.DTOs.Category;
-using LibraryApi.Services.Interfaces;
+using LibraryApi.DTOs;
+using LibraryApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApi.Controllers;
@@ -13,43 +13,47 @@ public class CategoriesController : ControllerBase
 
     public CategoriesController(ICategoryService service) => _service = service;
 
-    /// <summary>List all categories.</summary>
+    /// <summary>List all categories with pagination</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(List<CategoryListDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
-        => Ok(await _service.GetAllAsync());
+    [ProducesResponseType(typeof(PagedResult<CategoryDto>), 200)]
+    public async Task<IActionResult> GetCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        => Ok(await _service.GetCategoriesAsync(page, pageSize));
 
-    /// <summary>Get category details with book count.</summary>
+    /// <summary>Get category details with book count</summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(CategoryDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id)
-        => Ok(await _service.GetByIdAsync(id));
+    [ProducesResponseType(typeof(CategoryDetailDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetCategory(int id)
+        => Ok(await _service.GetCategoryByIdAsync(id));
 
-    /// <summary>Create a new category.</summary>
+    /// <summary>Create a new category</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(CategoryDetailDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create([FromBody] CreateCategoryDto dto)
+    [ProducesResponseType(typeof(CategoryDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> CreateCategory([FromBody] CategoryCreateDto dto)
     {
-        var result = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        var category = await _service.CreateCategoryAsync(dto);
+        return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
     }
 
-    /// <summary>Update a category.</summary>
+    /// <summary>Update an existing category</summary>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(CategoryDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateCategoryDto dto)
-        => Ok(await _service.UpdateAsync(id, dto));
+    [ProducesResponseType(typeof(CategoryDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryUpdateDto dto)
+        => Ok(await _service.UpdateCategoryAsync(id, dto));
 
-    /// <summary>Delete a category (fails if has books).</summary>
+    /// <summary>Delete a category (fails if category has books)</summary>
     [HttpDelete("{id}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Delete(int id)
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> DeleteCategory(int id)
     {
-        await _service.DeleteAsync(id);
+        await _service.DeleteCategoryAsync(id);
         return NoContent();
     }
 }

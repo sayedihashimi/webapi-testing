@@ -18,7 +18,6 @@ public class Member
     [Required]
     public string Phone { get; set; } = string.Empty;
 
-    [Required]
     public DateOnly DateOfBirth { get; set; }
 
     [Required, MaxLength(200)]
@@ -27,7 +26,7 @@ public class Member
     [Required]
     public string EmergencyContactPhone { get; set; } = string.Empty;
 
-    public DateOnly JoinDate { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+    public DateOnly JoinDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
     public bool IsActive { get; set; } = true;
 

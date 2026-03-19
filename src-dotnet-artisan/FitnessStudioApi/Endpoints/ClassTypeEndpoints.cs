@@ -1,68 +1,61 @@
 using FitnessStudioApi.DTOs;
-using FitnessStudioApi.Models;
 using FitnessStudioApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FitnessStudioApi.Endpoints;
 
 public static class ClassTypeEndpoints
 {
-    public static RouteGroupBuilder MapClassTypeEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapClassTypeEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/class-types")
-            .WithTags("Class Types");
+        var types = group.MapGroup("/class-types").WithTags("Class Types");
 
-        group.MapGet("/", GetAllAsync);
-        group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync);
-        group.MapPut("/{id:int}", UpdateAsync);
+        types.MapGet("/", GetAllAsync)
+            .WithSummary("List class types with optional filters");
+
+        types.MapGet("/{id:int}", GetByIdAsync)
+            .WithSummary("Get class type details");
+
+        types.MapPost("/", CreateAsync)
+            .WithSummary("Create a new class type");
+
+        types.MapPut("/{id:int}", UpdateAsync)
+            .WithSummary("Update a class type");
 
         return group;
     }
 
-    private static async Task<IResult> GetAllAsync(
-        DifficultyLevel? difficulty, bool? isPremium,
-        IClassTypeService service, CancellationToken ct)
+    private static async Task<Ok<IReadOnlyList<ClassTypeResponse>>> GetAllAsync(
+        IClassTypeService service,
+        string? difficulty, bool? isPremium,
+        CancellationToken ct)
     {
         var types = await service.GetAllAsync(difficulty, isPremium, ct);
         return TypedResults.Ok(types);
     }
 
-    private static async Task<IResult> GetByIdAsync(
+    private static async Task<Results<Ok<ClassTypeResponse>, NotFound>> GetByIdAsync(
         int id, IClassTypeService service, CancellationToken ct)
     {
-        var classType = await service.GetByIdAsync(id, ct);
-        return classType is not null
-            ? TypedResults.Ok(classType)
+        var type = await service.GetByIdAsync(id, ct);
+        return type is not null
+            ? TypedResults.Ok(type)
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CreateAsync(
+    private static async Task<Created<ClassTypeResponse>> CreateAsync(
         CreateClassTypeRequest request, IClassTypeService service, CancellationToken ct)
     {
-        try
-        {
-            var classType = await service.CreateAsync(request, ct);
-            return TypedResults.Created($"/api/class-types/{classType.Id}", classType);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.Conflict(new { error = ex.Message });
-        }
+        var type = await service.CreateAsync(request, ct);
+        return TypedResults.Created($"/api/class-types/{type.Id}", type);
     }
 
-    private static async Task<IResult> UpdateAsync(
+    private static async Task<Results<Ok<ClassTypeResponse>, NotFound>> UpdateAsync(
         int id, UpdateClassTypeRequest request, IClassTypeService service, CancellationToken ct)
     {
-        try
-        {
-            var classType = await service.UpdateAsync(id, request, ct);
-            return classType is not null
-                ? TypedResults.Ok(classType)
-                : TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.Conflict(new { error = ex.Message });
-        }
+        var type = await service.UpdateAsync(id, request, ct);
+        return type is not null
+            ? TypedResults.Ok(type)
+            : TypedResults.NotFound();
     }
 }

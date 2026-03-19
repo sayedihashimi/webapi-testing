@@ -1,16 +1,14 @@
-@baseUrl = https://localhost:5001
+@baseUrl = http://localhost:5254
 
 ### =============================================
-### MEMBERSHIP PLANS
+### Membership Plans
 ### =============================================
 
 ### List all active membership plans
 GET {{baseUrl}}/api/membership-plans
-Accept: application/json
 
-### Get membership plan by ID
+### Get a specific membership plan (Basic)
 GET {{baseUrl}}/api/membership-plans/1
-Accept: application/json
 
 ### Create a new membership plan
 POST {{baseUrl}}/api/membership-plans
@@ -31,7 +29,7 @@ Content-Type: application/json
 
 {
   "name": "Basic",
-  "description": "Access to standard classes with limited weekly bookings. Updated plan.",
+  "description": "Access to standard classes only. Perfect for beginners. Updated!",
   "durationMonths": 1,
   "price": 34.99,
   "maxClassBookingsPerWeek": 3,
@@ -43,20 +41,20 @@ Content-Type: application/json
 DELETE {{baseUrl}}/api/membership-plans/1
 
 ### =============================================
-### MEMBERS
+### Members
 ### =============================================
 
-### List all members
+### List all members (default pagination)
 GET {{baseUrl}}/api/members
-Accept: application/json
 
 ### List members with search
 GET {{baseUrl}}/api/members?search=emma&isActive=true&page=1&pageSize=10
-Accept: application/json
 
-### Get member by ID (includes active membership)
+### Get member details (Emma Johnson - Premium member)
 GET {{baseUrl}}/api/members/1
-Accept: application/json
+
+### Get member details (Olivia Brown - Basic member)
+GET {{baseUrl}}/api/members/3
 
 ### Register a new member
 POST {{baseUrl}}/api/members
@@ -64,12 +62,26 @@ Content-Type: application/json
 
 {
   "firstName": "Isabella",
-  "lastName": "Anderson",
-  "email": "isabella.anderson@email.com",
-  "phone": "555-0201",
-  "dateOfBirth": "1997-06-15",
-  "emergencyContactName": "David Anderson",
-  "emergencyContactPhone": "555-0202"
+  "lastName": "Wilson",
+  "email": "isabella.wilson@email.com",
+  "phone": "555-0117",
+  "dateOfBirth": "1998-06-20",
+  "emergencyContactName": "James Wilson",
+  "emergencyContactPhone": "555-0118"
+}
+
+### Register a member who is too young (should fail - under 16)
+POST {{baseUrl}}/api/members
+Content-Type: application/json
+
+{
+  "firstName": "Young",
+  "lastName": "Person",
+  "email": "young@email.com",
+  "phone": "555-9999",
+  "dateOfBirth": "2015-01-01",
+  "emergencyContactName": "Parent Person",
+  "emergencyContactPhone": "555-9998"
 }
 
 ### Update member profile
@@ -81,53 +93,48 @@ Content-Type: application/json
   "lastName": "Johnson",
   "email": "emma.johnson@email.com",
   "phone": "555-0101-updated",
-  "emergencyContactName": "Robert Johnson",
+  "emergencyContactName": "Michael Johnson",
   "emergencyContactPhone": "555-0102"
 }
 
-### Deactivate a member (fails if future bookings exist)
-DELETE {{baseUrl}}/api/members/8
+### Deactivate a member (Sophia - no active bookings, should succeed)
+DELETE {{baseUrl}}/api/members/7
 
-### Get member's bookings
-GET {{baseUrl}}/api/members/1/bookings?page=1&pageSize=10
-Accept: application/json
+### Get member's bookings with filters
+GET {{baseUrl}}/api/members/1/bookings?status=Confirmed&page=1&pageSize=10
 
-### Get member's bookings filtered by status
-GET {{baseUrl}}/api/members/1/bookings?status=Confirmed
-Accept: application/json
-
-### Get member's upcoming bookings
+### Get member's upcoming confirmed bookings
 GET {{baseUrl}}/api/members/1/bookings/upcoming
-Accept: application/json
 
-### Get member's membership history
+### Get membership history for a member
 GET {{baseUrl}}/api/members/1/memberships
-Accept: application/json
+
+### Get membership history for member with expired membership
+GET {{baseUrl}}/api/members/7/memberships
 
 ### =============================================
-### MEMBERSHIPS
+### Memberships
 ### =============================================
 
-### Create a membership for member 7 (who has an expired one)
+### Create/purchase a membership for a member without one (member 7 - Sophia)
 POST {{baseUrl}}/api/memberships
 Content-Type: application/json
 
 {
   "memberId": 7,
   "membershipPlanId": 2,
-  "startDate": "2025-01-15",
+  "startDate": "2025-07-20",
   "paymentStatus": "Paid"
 }
 
 ### Get membership details
 GET {{baseUrl}}/api/memberships/1
-Accept: application/json
 
 ### Cancel a membership
 POST {{baseUrl}}/api/memberships/6/cancel
 
-### Freeze a membership (7-30 days)
-POST {{baseUrl}}/api/memberships/1/freeze
+### Freeze a membership (member 4 - Noah, active Premium)
+POST {{baseUrl}}/api/memberships/4/freeze
 Content-Type: application/json
 
 {
@@ -135,39 +142,47 @@ Content-Type: application/json
 }
 
 ### Unfreeze a membership
-POST {{baseUrl}}/api/memberships/1/unfreeze
+POST {{baseUrl}}/api/memberships/4/unfreeze
 
-### Renew an expired membership
-POST {{baseUrl}}/api/memberships/7/renew
+### Renew an expired membership (member 8 - Mason, expired Premium)
+POST {{baseUrl}}/api/memberships/8/renew
+
+### Try to create duplicate active membership (should fail)
+POST {{baseUrl}}/api/memberships
+Content-Type: application/json
+
+{
+  "memberId": 1,
+  "membershipPlanId": 3,
+  "startDate": "2025-07-20",
+  "paymentStatus": "Paid"
+}
 
 ### =============================================
-### INSTRUCTORS
+### Instructors
 ### =============================================
 
 ### List all instructors
 GET {{baseUrl}}/api/instructors
-Accept: application/json
 
-### List instructors by specialization
-GET {{baseUrl}}/api/instructors?specialization=Yoga&isActive=true
-Accept: application/json
+### List instructors filtered by specialization
+GET {{baseUrl}}/api/instructors?specialization=yoga&isActive=true
 
-### Get instructor by ID
+### Get instructor details
 GET {{baseUrl}}/api/instructors/1
-Accept: application/json
 
 ### Create a new instructor
 POST {{baseUrl}}/api/instructors
 Content-Type: application/json
 
 {
-  "firstName": "Rachel",
-  "lastName": "Green",
-  "email": "rachel.green@zenithfitness.com",
-  "phone": "555-0305",
-  "bio": "Experienced dance and cardio instructor with 5 years of experience.",
-  "specializations": "HIIT, Dance, Cardio",
-  "hireDate": "2025-01-10"
+  "firstName": "Diana",
+  "lastName": "Cooper",
+  "email": "diana.cooper@zenithfitness.com",
+  "phone": "555-0205",
+  "bio": "Dance fitness expert with 5 years of experience.",
+  "specializations": "Dance, Zumba, Aerobics",
+  "hireDate": "2025-01-15"
 }
 
 ### Update an instructor
@@ -179,51 +194,45 @@ Content-Type: application/json
   "lastName": "Chen",
   "email": "sarah.chen@zenithfitness.com",
   "phone": "555-0201",
-  "bio": "Certified yoga instructor with 12 years of experience. Now also teaches Barre.",
-  "specializations": "Yoga, Pilates, Meditation, Barre",
+  "bio": "Certified yoga instructor with 10+ years of experience. Now also teaching dance fitness!",
+  "specializations": "Yoga, Pilates, Meditation, Dance",
   "isActive": true
 }
 
-### Get instructor's schedule
+### Get instructor's class schedule
 GET {{baseUrl}}/api/instructors/1/schedule
-Accept: application/json
 
 ### Get instructor's schedule with date range
-GET {{baseUrl}}/api/instructors/2/schedule?fromDate=2025-01-01&toDate=2025-12-31
-Accept: application/json
+GET {{baseUrl}}/api/instructors/2/schedule?fromDate=2025-07-20&toDate=2025-07-27
 
 ### =============================================
-### CLASS TYPES
+### Class Types
 ### =============================================
 
 ### List all class types
 GET {{baseUrl}}/api/class-types
-Accept: application/json
 
-### List premium class types
+### List premium class types only
 GET {{baseUrl}}/api/class-types?isPremium=true
-Accept: application/json
 
-### List by difficulty
-GET {{baseUrl}}/api/class-types?difficulty=Beginner
-Accept: application/json
+### List class types by difficulty
+GET {{baseUrl}}/api/class-types?difficulty=beginner
 
-### Get class type by ID
+### Get class type details
 GET {{baseUrl}}/api/class-types/1
-Accept: application/json
 
 ### Create a new class type
 POST {{baseUrl}}/api/class-types
 Content-Type: application/json
 
 {
-  "name": "Barre",
-  "description": "Ballet-inspired workout focusing on low-impact, high-intensity movements.",
-  "defaultDurationMinutes": 50,
-  "defaultCapacity": 18,
+  "name": "Zumba",
+  "description": "Dance-based fitness class with Latin music.",
+  "defaultDurationMinutes": 60,
+  "defaultCapacity": 25,
   "isPremium": false,
-  "caloriesPerSession": 350,
-  "difficultyLevel": "Intermediate"
+  "caloriesPerSession": 400,
+  "difficultyLevel": "AllLevels"
 }
 
 ### Update a class type
@@ -232,34 +241,36 @@ Content-Type: application/json
 
 {
   "name": "Yoga",
-  "description": "Mind-body practice combining physical postures, breathing techniques, and meditation. Updated.",
+  "description": "Traditional yoga focusing on flexibility, balance, and mindfulness. Updated with hot yoga option.",
   "defaultDurationMinutes": 60,
   "defaultCapacity": 25,
   "isPremium": false,
-  "caloriesPerSession": 280,
+  "caloriesPerSession": 300,
   "difficultyLevel": "AllLevels",
   "isActive": true
 }
 
 ### =============================================
-### CLASS SCHEDULES
+### Class Schedules
 ### =============================================
 
 ### List all scheduled classes
 GET {{baseUrl}}/api/classes
-Accept: application/json
 
-### List classes with filtering
-GET {{baseUrl}}/api/classes?classTypeId=1&hasAvailability=true&page=1&pageSize=10
-Accept: application/json
+### List classes with filters
+GET {{baseUrl}}/api/classes?classTypeId=1&page=1&pageSize=10
 
-### Get class details
+### List classes with availability only
+GET {{baseUrl}}/api/classes?hasAvailability=true
+
+### Get class details (Yoga class)
 GET {{baseUrl}}/api/classes/1
-Accept: application/json
 
-### Get class details for full class
-GET {{baseUrl}}/api/classes/2
-Accept: application/json
+### Get class details (full Spin class with waitlist)
+GET {{baseUrl}}/api/classes/3
+
+### Get available classes in next 7 days
+GET {{baseUrl}}/api/classes/available
 
 ### Schedule a new class
 POST {{baseUrl}}/api/classes
@@ -267,69 +278,67 @@ Content-Type: application/json
 
 {
   "classTypeId": 1,
-  "instructorId": 1,
+  "instructorId": 3,
   "startTime": "2025-07-25T10:00:00",
   "endTime": "2025-07-25T11:00:00",
   "capacity": 20,
   "room": "Studio A"
 }
 
-### Update class details
+### Update a class
 PUT {{baseUrl}}/api/classes/1
 Content-Type: application/json
 
 {
   "classTypeId": 1,
   "instructorId": 1,
-  "startTime": "2025-07-20T07:30:00",
-  "endTime": "2025-07-20T08:30:00",
+  "startTime": "2025-07-22T07:30:00",
+  "endTime": "2025-07-22T08:30:00",
   "capacity": 25,
-  "room": "Studio B"
+  "room": "Studio A"
 }
 
-### Cancel a class (cascades to all bookings)
+### Cancel a class (cascade cancels all bookings)
 PATCH {{baseUrl}}/api/classes/9/cancel
 Content-Type: application/json
 
 {
-  "reason": "Instructor illness"
+  "cancellationReason": "Room maintenance required"
 }
 
-### Get class roster
+### Get class roster (confirmed members)
 GET {{baseUrl}}/api/classes/1/roster
-Accept: application/json
 
 ### Get class waitlist
-GET {{baseUrl}}/api/classes/2/waitlist
-Accept: application/json
+GET {{baseUrl}}/api/classes/3/waitlist
 
-### Get available classes (next 7 days)
-GET {{baseUrl}}/api/classes/available
-Accept: application/json
+### Try to schedule with instructor conflict (should fail if overlapping)
+POST {{baseUrl}}/api/classes
+Content-Type: application/json
+
+{
+  "classTypeId": 2,
+  "instructorId": 1,
+  "startTime": "2025-07-22T07:30:00",
+  "endTime": "2025-07-22T08:15:00",
+  "capacity": 15,
+  "room": "Main Floor"
+}
 
 ### =============================================
-### BOOKINGS
+### Bookings
 ### =============================================
 
-### Book a class - member 1 (Premium) booking a regular class
+### Book a class (member 4 - Noah, Premium plan, for Yoga class)
 POST {{baseUrl}}/api/bookings
 Content-Type: application/json
 
 {
-  "classScheduleId": 9,
-  "memberId": 1
+  "classScheduleId": 1,
+  "memberId": 4
 }
 
-### Book a class - member 2 (Elite) booking a premium class (Boxing)
-POST {{baseUrl}}/api/bookings
-Content-Type: application/json
-
-{
-  "classScheduleId": 10,
-  "memberId": 6
-}
-
-### Try booking a premium class with Basic membership (should fail)
+### Book a premium class as a Basic member (should fail - member 3 is Basic)
 POST {{baseUrl}}/api/bookings
 Content-Type: application/json
 
@@ -338,29 +347,45 @@ Content-Type: application/json
   "memberId": 3
 }
 
-### Try booking for member with expired membership (should fail)
+### Book a class that is full (should go to waitlist - Spin class 3 is at capacity)
 POST {{baseUrl}}/api/bookings
 Content-Type: application/json
 
 {
-  "classScheduleId": 9,
-  "memberId": 7
+  "classScheduleId": 3,
+  "memberId": 5
 }
 
 ### Get booking details
 GET {{baseUrl}}/api/bookings/1
-Accept: application/json
 
-### Cancel a booking
-POST {{baseUrl}}/api/bookings/5/cancel
+### Cancel a booking (free cancellation - more than 2 hours before)
+POST {{baseUrl}}/api/bookings/4/cancel
 Content-Type: application/json
 
 {
-  "reason": "Schedule conflict"
+  "cancellationReason": "Personal emergency"
 }
 
-### Check in for a class
+### Cancel a confirmed booking from full class (should promote waitlisted member)
+POST {{baseUrl}}/api/bookings/6/cancel
+Content-Type: application/json
+
+{
+  "cancellationReason": "Cannot make it"
+}
+
+### Check in for a class (booking must be within 15 min window of class start)
 POST {{baseUrl}}/api/bookings/1/check-in
 
-### Mark as no-show
-POST {{baseUrl}}/api/bookings/14/no-show
+### Mark booking as no-show (must be 15+ min after class start)
+POST {{baseUrl}}/api/bookings/2/no-show
+
+### Try booking with expired membership (member 7 - should fail if no active membership)
+POST {{baseUrl}}/api/bookings
+Content-Type: application/json
+
+{
+  "classScheduleId": 1,
+  "memberId": 7
+}

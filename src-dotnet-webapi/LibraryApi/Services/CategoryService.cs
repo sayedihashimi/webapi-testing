@@ -19,14 +19,17 @@ public sealed class CategoryService(LibraryDbContext db, ILogger<CategoryService
     {
         return await db.Categories.AsNoTracking()
             .Where(c => c.Id == id)
-            .Select(c => new CategoryDetailResponse(c.Id, c.Name, c.Description, c.BookCategories.Count))
+            .Select(c => new CategoryDetailResponse(
+                c.Id, c.Name, c.Description, c.BookCategories.Count))
             .FirstOrDefaultAsync(ct);
     }
 
     public async Task<CategoryResponse> CreateAsync(CreateCategoryRequest request, CancellationToken ct)
     {
-        if (await db.Categories.AnyAsync(c => c.Name == request.Name, ct))
-            throw new InvalidOperationException($"Category with name '{request.Name}' already exists.");
+        var exists = await db.Categories.AsNoTracking()
+            .AnyAsync(c => c.Name.ToLower() == request.Name.ToLower(), ct);
+        if (exists)
+            throw new InvalidOperationException($"A category with the name '{request.Name}' already exists.");
 
         var category = new Category
         {
@@ -36,25 +39,27 @@ public sealed class CategoryService(LibraryDbContext db, ILogger<CategoryService
 
         db.Categories.Add(category);
         await db.SaveChangesAsync(ct);
-
         logger.LogInformation("Created category {CategoryId}: {Name}", category.Id, category.Name);
+
         return new CategoryResponse(category.Id, category.Name, category.Description);
     }
 
-    public async Task<CategoryResponse> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct)
+    public async Task<CategoryResponse?> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct)
     {
-        var category = await db.Categories.FindAsync([id], ct)
-            ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
+        var category = await db.Categories.FindAsync([id], ct);
+        if (category is null) return null;
 
-        if (await db.Categories.AnyAsync(c => c.Name == request.Name && c.Id != id, ct))
-            throw new InvalidOperationException($"Category with name '{request.Name}' already exists.");
+        var duplicate = await db.Categories.AsNoTracking()
+            .AnyAsync(c => c.Id != id && c.Name.ToLower() == request.Name.ToLower(), ct);
+        if (duplicate)
+            throw new InvalidOperationException($"A category with the name '{request.Name}' already exists.");
 
         category.Name = request.Name;
         category.Description = request.Description;
 
         await db.SaveChangesAsync(ct);
+        logger.LogInformation("Updated category {CategoryId}", id);
 
-        logger.LogInformation("Updated category {CategoryId}", category.Id);
         return new CategoryResponse(category.Id, category.Name, category.Description);
     }
 
@@ -62,15 +67,16 @@ public sealed class CategoryService(LibraryDbContext db, ILogger<CategoryService
     {
         var category = await db.Categories
             .Include(c => c.BookCategories)
-            .FirstOrDefaultAsync(c => c.Id == id, ct)
-            ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
+
+        if (category is null)
+            throw new KeyNotFoundException($"Category with ID {id} not found.");
 
         if (category.BookCategories.Count > 0)
-            throw new InvalidOperationException($"Cannot delete category with ID {id} because it has {category.BookCategories.Count} associated book(s).");
+            throw new InvalidOperationException($"Cannot delete category with ID {id} because it has associated books.");
 
         db.Categories.Remove(category);
         await db.SaveChangesAsync(ct);
-
         logger.LogInformation("Deleted category {CategoryId}", id);
     }
 }

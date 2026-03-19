@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
 using VetClinicApi.DTOs;
 using VetClinicApi.Services;
 
@@ -7,22 +5,27 @@ namespace VetClinicApi.Endpoints;
 
 public static class VeterinarianEndpoints
 {
-    public static RouteGroupBuilder MapVeterinarianEndpoints(this WebApplication app)
+    public static void MapVeterinarianEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/veterinarians").WithTags("Veterinarians");
 
-        group.MapGet("/", async Task<Results<Ok<PaginatedResponse<VeterinarianResponse>>, BadRequest>> (
-            string? specialization, bool? isAvailable, int? page, int? pageSize,
-            IVeterinarianService service, CancellationToken ct) =>
+        group.MapGet("/", async Task<Ok<PaginatedResponse<VeterinarianResponse>>> (
+            IVeterinarianService service,
+            string? specialization,
+            bool? isAvailable,
+            int page = 1,
+            int pageSize = 20,
+            CancellationToken ct = default) =>
         {
-            var p = Math.Clamp(page ?? 1, 1, int.MaxValue);
-            var ps = Math.Clamp(pageSize ?? 20, 1, 100);
-            var result = await service.GetAllAsync(specialization, isAvailable, p, ps, ct);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+            page = Math.Max(1, page);
+            var result = await service.GetAllAsync(specialization, isAvailable, page, pageSize, ct);
             return TypedResults.Ok(result);
         })
         .WithName("GetVeterinarians")
         .WithSummary("List all veterinarians")
-        .WithDescription("Returns a paginated list of veterinarians. Filter by specialization or availability.");
+        .WithDescription("Returns a paginated list of veterinarians. Supports filter by specialization and availability.")
+        .Produces<PaginatedResponse<VeterinarianResponse>>(StatusCodes.Status200OK);
 
         group.MapGet("/{id:int}", async Task<Results<Ok<VeterinarianResponse>, NotFound>> (
             int id, IVeterinarianService service, CancellationToken ct) =>
@@ -31,10 +34,12 @@ public static class VeterinarianEndpoints
             return vet is null ? TypedResults.NotFound() : TypedResults.Ok(vet);
         })
         .WithName("GetVeterinarianById")
-        .WithSummary("Get veterinarian by ID")
-        .WithDescription("Returns full veterinarian details.");
+        .WithSummary("Get a veterinarian by ID")
+        .WithDescription("Returns full details for the specified veterinarian.")
+        .Produces<VeterinarianResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPost("/", async Task<Results<Created<VeterinarianResponse>, Conflict<ProblemDetails>>> (
+        group.MapPost("/", async Task<Created<VeterinarianResponse>> (
             CreateVeterinarianRequest request, IVeterinarianService service, CancellationToken ct) =>
         {
             var vet = await service.CreateAsync(request, ct);
@@ -42,7 +47,10 @@ public static class VeterinarianEndpoints
         })
         .WithName("CreateVeterinarian")
         .WithSummary("Create a new veterinarian")
-        .WithDescription("Creates a new veterinarian. Email and license number must be unique.");
+        .WithDescription("Creates a new veterinarian. Email and license number must be unique.")
+        .Produces<VeterinarianResponse>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status409Conflict);
 
         group.MapPut("/{id:int}", async Task<Results<Ok<VeterinarianResponse>, NotFound>> (
             int id, UpdateVeterinarianRequest request, IVeterinarianService service, CancellationToken ct) =>
@@ -52,31 +60,35 @@ public static class VeterinarianEndpoints
         })
         .WithName("UpdateVeterinarian")
         .WithSummary("Update a veterinarian")
-        .WithDescription("Updates veterinarian details including availability.");
+        .WithDescription("Updates all fields of an existing veterinarian.")
+        .Produces<VeterinarianResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound);
 
         group.MapGet("/{id:int}/schedule", async Task<Results<Ok<IReadOnlyList<AppointmentResponse>>, NotFound>> (
-            int id, DateOnly date, IVeterinarianService service, CancellationToken ct) =>
+            int id, IVeterinarianService service, DateOnly date, CancellationToken ct) =>
         {
             var schedule = await service.GetScheduleAsync(id, date, ct);
             return TypedResults.Ok(schedule);
         })
         .WithName("GetVeterinarianSchedule")
-        .WithSummary("Get veterinarian's schedule for a date")
-        .WithDescription("Returns all appointments for the specified veterinarian on the given date.");
+        .WithSummary("Get a veterinarian's schedule for a date")
+        .WithDescription("Returns all non-cancelled appointments for the veterinarian on the specified date.")
+        .Produces<IReadOnlyList<AppointmentResponse>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
 
         group.MapGet("/{id:int}/appointments", async Task<Results<Ok<PaginatedResponse<AppointmentResponse>>, NotFound>> (
-            int id, string? status, int? page, int? pageSize,
-            IVeterinarianService service, CancellationToken ct) =>
+            int id, IVeterinarianService service, string? status, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
         {
-            var p = Math.Clamp(page ?? 1, 1, int.MaxValue);
-            var ps = Math.Clamp(pageSize ?? 20, 1, 100);
-            var result = await service.GetAppointmentsAsync(id, status, p, ps, ct);
-            return TypedResults.Ok(result);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+            page = Math.Max(1, page);
+            var appointments = await service.GetAppointmentsAsync(id, status, page, pageSize, ct);
+            return TypedResults.Ok(appointments);
         })
         .WithName("GetVeterinarianAppointments")
-        .WithSummary("Get veterinarian's appointments")
-        .WithDescription("Returns paginated appointments. Optionally filter by status.");
-
-        return group;
+        .WithSummary("Get appointments for a veterinarian")
+        .WithDescription("Returns paginated appointments for the veterinarian. Supports filter by status.")
+        .Produces<PaginatedResponse<AppointmentResponse>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
     }
 }

@@ -1,24 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.DTOs;
 
-public sealed record ClassScheduleResponse(
-    int Id,
-    int ClassTypeId,
-    string ClassTypeName,
-    int InstructorId,
-    string InstructorName,
-    DateTime StartTime,
-    DateTime EndTime,
-    int Capacity,
-    int CurrentEnrollment,
-    int WaitlistCount,
-    int AvailableSpots,
-    string Room,
-    string Status,
-    string? CancellationReason,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+// --- Requests ---
 
 public sealed record CreateClassScheduleRequest
 {
@@ -61,19 +46,40 @@ public sealed record UpdateClassScheduleRequest
 
 public sealed record CancelClassRequest
 {
-    [Required]
-    public required string Reason { get; init; }
+    [MaxLength(500)]
+    public string? Reason { get; init; }
 }
 
-public sealed record ClassRosterResponse(
+// --- Responses ---
+
+public sealed record ClassScheduleResponse(
+    int Id,
+    int ClassTypeId,
+    string ClassTypeName,
+    int InstructorId,
+    string InstructorName,
+    DateTime StartTime,
+    DateTime EndTime,
+    int Capacity,
+    int CurrentEnrollment,
+    int WaitlistCount,
+    int AvailableSpots,
+    string Room,
+    ClassStatus Status,
+    string? CancellationReason,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public sealed record ClassRosterEntryResponse(
     int BookingId,
     int MemberId,
     string MemberName,
-    string Status,
+    string Email,
+    BookingStatus Status,
     DateTime BookingDate,
     DateTime? CheckInTime);
 
-public sealed record ClassWaitlistResponse(
+public sealed record WaitlistEntryResponse(
     int BookingId,
     int MemberId,
     string MemberName,

@@ -8,8 +8,20 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
-builder.Services.AddDbContext<StudioDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<FitnessDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Data Source=FitnessStudio.db"));
+
+// OpenAPI
+builder.Services.AddOpenApi();
+
+// JSON enum serialization as strings
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Error handling
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // Services
 builder.Services.AddScoped<IMembershipPlanService, MembershipPlanService>();
@@ -20,18 +32,14 @@ builder.Services.AddScoped<IClassTypeService, ClassTypeService>();
 builder.Services.AddScoped<IClassScheduleService, ClassScheduleService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
-// Error handling
-builder.Services.AddExceptionHandler<ApiExceptionHandler>();
-builder.Services.AddProblemDetails();
-
-// OpenAPI
-builder.Services.AddOpenApi();
-
-// JSON enum serialization as strings
-builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
 var app = builder.Build();
+
+// Apply migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<FitnessDbContext>();
+    dbContext.Database.Migrate();
+}
 
 // Middleware
 app.UseExceptionHandler();
@@ -42,13 +50,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// Ensure database is created and seeded
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<StudioDbContext>();
-    db.Database.EnsureCreated();
-    await DatabaseSeeder.SeedRuntimeDataAsync(db);
-}
+app.UseHttpsRedirection();
 
 // Map endpoints
 app.MapMembershipPlanEndpoints();

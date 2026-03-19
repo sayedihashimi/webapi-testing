@@ -12,8 +12,8 @@ public sealed class Book
     public string Language { get; set; } = "English";
     public int TotalCopies { get; set; }
     public int AvailableCopies { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public ICollection<BookAuthor> BookAuthors { get; set; } = [];
     public ICollection<BookCategory> BookCategories { get; set; } = [];

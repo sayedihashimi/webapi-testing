@@ -5,7 +5,8 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public sealed class VeterinarianService(VetClinicDbContext db, ILogger<VeterinarianService> logger) : IVeterinarianService
+public sealed class VeterinarianService(VetClinicDbContext db, ILogger<VeterinarianService> logger)
+    : IVeterinarianService
 {
     public async Task<PaginatedResponse<VeterinarianResponse>> GetAllAsync(
         string? specialization, bool? isAvailable, int page, int pageSize, CancellationToken ct)
@@ -51,12 +52,13 @@ public sealed class VeterinarianService(VetClinicDbContext db, ILogger<Veterinar
             Phone = request.Phone,
             Specialization = request.Specialization,
             LicenseNumber = request.LicenseNumber,
+            IsAvailable = true,
             HireDate = request.HireDate
         };
 
         db.Veterinarians.Add(vet);
         await db.SaveChangesAsync(ct);
-        logger.LogInformation("Created veterinarian {VetId}: {Name}", vet.Id, $"{vet.FirstName} {vet.LastName}");
+        logger.LogInformation("Created veterinarian {VetId}: Dr. {Name}", vet.Id, $"{vet.FirstName} {vet.LastName}");
         return MapToResponse(vet);
     }
 
@@ -89,18 +91,22 @@ public sealed class VeterinarianService(VetClinicDbContext db, ILogger<Veterinar
         if (!await db.Veterinarians.AnyAsync(v => v.Id == vetId, ct))
             throw new KeyNotFoundException($"Veterinarian with ID {vetId} not found.");
 
-        var startOfDay = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var endOfDay = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        var startOfDay = date.ToDateTime(TimeOnly.MinValue);
+        var endOfDay = date.ToDateTime(TimeOnly.MaxValue);
 
         return await db.Appointments.AsNoTracking()
-            .Include(a => a.Pet)
-            .Include(a => a.Veterinarian)
-            .Where(a => a.VeterinarianId == vetId && a.AppointmentDate >= startOfDay && a.AppointmentDate <= endOfDay)
+            .Include(a => a.Pet).Include(a => a.Veterinarian)
+            .Where(a => a.VeterinarianId == vetId &&
+                        a.AppointmentDate >= startOfDay &&
+                        a.AppointmentDate <= endOfDay &&
+                        a.Status != AppointmentStatus.Cancelled &&
+                        a.Status != AppointmentStatus.NoShow)
             .OrderBy(a => a.AppointmentDate)
             .Select(a => new AppointmentResponse(
                 a.Id, a.PetId, a.Pet.Name, a.VeterinarianId,
                 a.Veterinarian.FirstName + " " + a.Veterinarian.LastName,
-                a.AppointmentDate, a.DurationMinutes, a.Status, a.Reason, a.Notes, a.CancellationReason,
+                a.AppointmentDate, a.DurationMinutes, a.Status,
+                a.Reason, a.Notes, a.CancellationReason,
                 a.CreatedAt, a.UpdatedAt))
             .ToListAsync(ct);
     }
@@ -112,8 +118,7 @@ public sealed class VeterinarianService(VetClinicDbContext db, ILogger<Veterinar
             throw new KeyNotFoundException($"Veterinarian with ID {vetId} not found.");
 
         var query = db.Appointments.AsNoTracking()
-            .Include(a => a.Pet)
-            .Include(a => a.Veterinarian)
+            .Include(a => a.Pet).Include(a => a.Veterinarian)
             .Where(a => a.VeterinarianId == vetId);
 
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<AppointmentStatus>(status, true, out var statusEnum))
@@ -127,7 +132,8 @@ public sealed class VeterinarianService(VetClinicDbContext db, ILogger<Veterinar
             .Select(a => new AppointmentResponse(
                 a.Id, a.PetId, a.Pet.Name, a.VeterinarianId,
                 a.Veterinarian.FirstName + " " + a.Veterinarian.LastName,
-                a.AppointmentDate, a.DurationMinutes, a.Status, a.Reason, a.Notes, a.CancellationReason,
+                a.AppointmentDate, a.DurationMinutes, a.Status,
+                a.Reason, a.Notes, a.CancellationReason,
                 a.CreatedAt, a.UpdatedAt))
             .ToListAsync(ct);
 
@@ -135,5 +141,6 @@ public sealed class VeterinarianService(VetClinicDbContext db, ILogger<Veterinar
     }
 
     private static VeterinarianResponse MapToResponse(Veterinarian v) =>
-        new(v.Id, v.FirstName, v.LastName, v.Email, v.Phone, v.Specialization, v.LicenseNumber, v.IsAvailable, v.HireDate);
+        new(v.Id, v.FirstName, v.LastName, v.Email, v.Phone,
+            v.Specialization, v.LicenseNumber, v.IsAvailable, v.HireDate);
 }

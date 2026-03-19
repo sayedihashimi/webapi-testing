@@ -6,24 +6,25 @@ namespace LibraryApi.Endpoints;
 
 public static class BookEndpoints
 {
-    public static RouteGroupBuilder MapBookEndpoints(this WebApplication app)
+    public static void MapBookEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/books").WithTags("Books");
 
         group.MapGet("/", async Task<Ok<PaginatedResponse<BookResponse>>> (
-            string? search, string? category, bool? available,
-            string? sortBy, string? sortOrder,
+            string? search, int? categoryId, int? authorId,
+            string? sortBy, string? sortDirection,
             int? page, int? pageSize,
             IBookService service, CancellationToken ct) =>
         {
-            var result = await service.GetAllAsync(
-                search, category, available, sortBy, sortOrder,
-                page ?? 1, Math.Min(pageSize ?? 20, 100), ct);
+            var p = Math.Clamp(page ?? 1, 1, int.MaxValue);
+            var ps = Math.Clamp(pageSize ?? 20, 1, 100);
+            var result = await service.GetAllAsync(search, categoryId, authorId, sortBy, sortDirection, p, ps, ct);
             return TypedResults.Ok(result);
         })
         .WithName("GetBooks")
         .WithSummary("List books")
-        .WithDescription("Returns a paginated list of books. Filter by search term, category, or availability. Sort by title or year.");
+        .WithDescription("Returns a paginated list of books with optional search, filtering by category/author, and sorting.")
+        .Produces<PaginatedResponse<BookResponse>>(StatusCodes.Status200OK);
 
         group.MapGet("/{id:int}", async Task<Results<Ok<BookDetailResponse>, NotFound>> (
             int id, IBookService service, CancellationToken ct) =>
@@ -33,27 +34,36 @@ public static class BookEndpoints
         })
         .WithName("GetBookById")
         .WithSummary("Get book by ID")
-        .WithDescription("Returns book details with authors, categories, and availability.");
+        .WithDescription("Returns book details including authors, categories, and availability.")
+        .Produces<BookDetailResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPost("/", async Task<Created<BookDetailResponse>> (
+        group.MapPost("/", async Task<Created<BookResponse>> (
             CreateBookRequest request, IBookService service, CancellationToken ct) =>
         {
             var result = await service.CreateAsync(request, ct);
             return TypedResults.Created($"/api/books/{result.Id}", result);
         })
         .WithName("CreateBook")
-        .WithSummary("Create a new book");
+        .WithSummary("Create a book")
+        .WithDescription("Creates a new book with associated authors and categories.")
+        .Produces<BookResponse>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status409Conflict);
 
-        group.MapPut("/{id:int}", async Task<Results<Ok<BookDetailResponse>, NotFound>> (
+        group.MapPut("/{id:int}", async Task<Results<Ok<BookResponse>, NotFound>> (
             int id, UpdateBookRequest request, IBookService service, CancellationToken ct) =>
         {
             var result = await service.UpdateAsync(id, request, ct);
-            return TypedResults.Ok(result);
+            return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
         })
         .WithName("UpdateBook")
-        .WithSummary("Update a book");
+        .WithSummary("Update a book")
+        .WithDescription("Updates an existing book by ID.")
+        .Produces<BookResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
 
-        group.MapDelete("/{id:int}", async Task<NoContent> (
+        group.MapDelete("/{id:int}", async Task<Results<NoContent, NotFound>> (
             int id, IBookService service, CancellationToken ct) =>
         {
             await service.DeleteAsync(id, ct);
@@ -61,17 +71,25 @@ public static class BookEndpoints
         })
         .WithName("DeleteBook")
         .WithSummary("Delete a book")
-        .WithDescription("Fails if the book has active loans.");
+        .WithDescription("Deletes a book. Fails if the book has active loans.")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status404NotFound)
+        .Produces(StatusCodes.Status409Conflict);
 
         group.MapGet("/{id:int}/loans", async Task<Ok<PaginatedResponse<LoanResponse>>> (
             int id, int? page, int? pageSize,
             IBookService service, CancellationToken ct) =>
         {
-            var result = await service.GetLoansAsync(id, page ?? 1, Math.Min(pageSize ?? 20, 100), ct);
+            var p = Math.Clamp(page ?? 1, 1, int.MaxValue);
+            var ps = Math.Clamp(pageSize ?? 20, 1, 100);
+            var result = await service.GetLoansAsync(id, p, ps, ct);
             return TypedResults.Ok(result);
         })
         .WithName("GetBookLoans")
-        .WithSummary("Get loan history for a book");
+        .WithSummary("Get book loan history")
+        .WithDescription("Returns paginated loan history for a specific book.")
+        .Produces<PaginatedResponse<LoanResponse>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
 
         group.MapGet("/{id:int}/reservations", async Task<Ok<IReadOnlyList<ReservationResponse>>> (
             int id, IBookService service, CancellationToken ct) =>
@@ -80,8 +98,9 @@ public static class BookEndpoints
             return TypedResults.Ok(result);
         })
         .WithName("GetBookReservations")
-        .WithSummary("Get active reservation queue for a book");
-
-        return group;
+        .WithSummary("Get active book reservations")
+        .WithDescription("Returns active reservations for a specific book.")
+        .Produces<IReadOnlyList<ReservationResponse>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
     }
 }

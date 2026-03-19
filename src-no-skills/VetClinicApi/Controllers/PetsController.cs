@@ -1,84 +1,103 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs.Common;
-using VetClinicApi.DTOs.Pet;
-using VetClinicApi.Services.Interfaces;
+using VetClinicApi.DTOs;
+using VetClinicApi.Services;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Produces("application/json")]
 public class PetsController : ControllerBase
 {
-    private readonly IPetService _petService;
+    private readonly IPetService _service;
 
-    public PetsController(IPetService petService) => _petService = petService;
+    public PetsController(IPetService service)
+    {
+        _service = service;
+    }
 
-    /// <summary>List active pets (optionally include inactive)</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<PetDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] bool includeInactive = false, [FromQuery] PaginationParams? pagination = null)
-        => Ok(await _petService.GetAllAsync(search, includeInactive, pagination ?? new PaginationParams()));
+    [ProducesResponseType(typeof(PaginatedResponse<PetResponseDto>), 200)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? search,
+        [FromQuery] string? species,
+        [FromQuery] bool includeInactive = false,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await _service.GetAllAsync(search, species, includeInactive, page, pageSize);
+        return Ok(result);
+    }
 
-    /// <summary>Get pet details with owner</summary>
-    [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(PetDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(PetResponseDto), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetById(int id)
-        => Ok(await _petService.GetByIdAsync(id));
+    {
+        var result = await _service.GetByIdAsync(id);
+        return Ok(result);
+    }
 
-    /// <summary>Create a new pet</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(PetDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(PetResponseDto), 201)]
+    [ProducesResponseType(400)]
     public async Task<IActionResult> Create([FromBody] CreatePetDto dto)
     {
-        var result = await _petService.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update a pet (including owner transfer)</summary>
-    [HttpPut("{id:int}")]
-    [ProducesResponseType(typeof(PetDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(PetResponseDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Update(int id, [FromBody] UpdatePetDto dto)
-        => Ok(await _petService.UpdateAsync(id, dto));
+    {
+        var result = await _service.UpdateAsync(id, dto);
+        return Ok(result);
+    }
 
-    /// <summary>Soft-delete a pet</summary>
-    [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpDelete("{id}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Delete(int id)
     {
-        await _petService.DeleteAsync(id);
+        await _service.DeleteAsync(id);
         return NoContent();
     }
 
-    /// <summary>Get pet's medical records</summary>
-    [HttpGet("{id:int}/medical-records")]
-    [ProducesResponseType(typeof(List<DTOs.MedicalRecord.MedicalRecordDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpGet("{id}/medical-records")]
+    [ProducesResponseType(typeof(List<MedicalRecordResponseDto>), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetMedicalRecords(int id)
-        => Ok(await _petService.GetMedicalRecordsAsync(id));
+    {
+        var result = await _service.GetMedicalRecordsAsync(id);
+        return Ok(result);
+    }
 
-    /// <summary>Get pet's vaccinations</summary>
-    [HttpGet("{id:int}/vaccinations")]
-    [ProducesResponseType(typeof(List<DTOs.Vaccination.VaccinationDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpGet("{id}/vaccinations")]
+    [ProducesResponseType(typeof(List<VaccinationResponseDto>), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetVaccinations(int id)
-        => Ok(await _petService.GetVaccinationsAsync(id));
+    {
+        var result = await _service.GetVaccinationsAsync(id);
+        return Ok(result);
+    }
 
-    /// <summary>Get pet's upcoming/overdue vaccinations</summary>
-    [HttpGet("{id:int}/vaccinations/upcoming")]
-    [ProducesResponseType(typeof(List<DTOs.Vaccination.VaccinationDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpGet("{id}/vaccinations/upcoming")]
+    [ProducesResponseType(typeof(List<VaccinationResponseDto>), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetUpcomingVaccinations(int id)
-        => Ok(await _petService.GetUpcomingVaccinationsAsync(id));
+    {
+        var result = await _service.GetUpcomingVaccinationsAsync(id);
+        return Ok(result);
+    }
 
-    /// <summary>Get pet's active prescriptions</summary>
-    [HttpGet("{id:int}/prescriptions/active")]
-    [ProducesResponseType(typeof(List<DTOs.Prescription.PrescriptionDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpGet("{id}/prescriptions/active")]
+    [ProducesResponseType(typeof(List<PrescriptionResponseDto>), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetActivePrescriptions(int id)
-        => Ok(await _petService.GetActivePrescriptionsAsync(id));
+    {
+        var result = await _service.GetActivePrescriptionsAsync(id);
+        return Ok(result);
+    }
 }

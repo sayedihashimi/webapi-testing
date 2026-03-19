@@ -1,6 +1,6 @@
-using FitnessStudioApi.DTOs;
-using FitnessStudioApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using FitnessStudioApi.DTOs;
+using FitnessStudioApi.Services;
 
 namespace FitnessStudioApi.Controllers;
 
@@ -11,90 +11,67 @@ public class MembersController : ControllerBase
 {
     private readonly IMemberService _service;
 
-    public MembersController(IMemberService service)
-    {
-        _service = service;
-    }
+    public MembersController(IMemberService service) => _service = service;
 
-    /// <summary>List members with search, filtering, and pagination</summary>
+    /// <summary>List members with search, filter, and pagination</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<MemberResponseDto>), 200)]
-    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] bool? isActive,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
-    {
-        var result = await _service.GetAllAsync(search, isActive, new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    [ProducesResponseType(typeof(PagedResult<MemberListDto>), 200)]
+    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] bool? isActive, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetAllAsync(search, isActive, pagination));
 
-    /// <summary>Get member details including active membership</summary>
-    [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(MemberResponseDto), 200)]
+    /// <summary>Get member details including active membership and booking stats</summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(MemberDto), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var member = await _service.GetByIdAsync(id);
-        return member is null ? NotFound() : Ok(member);
-    }
+    public async Task<IActionResult> GetById(int id) => Ok(await _service.GetByIdAsync(id));
 
     /// <summary>Register a new member</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(MemberResponseDto), 201)]
+    [ProducesResponseType(typeof(MemberDto), 201)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> Create([FromBody] MemberCreateDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateMemberDto dto)
     {
-        var member = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = member.Id }, member);
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     /// <summary>Update member profile</summary>
-    [HttpPut("{id:int}")]
-    [ProducesResponseType(typeof(MemberResponseDto), 200)]
-    [ProducesResponseType(404)]
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(MemberDto), 200)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> Update(int id, [FromBody] MemberUpdateDto dto)
-    {
-        var member = await _service.UpdateAsync(id, dto);
-        return member is null ? NotFound() : Ok(member);
-    }
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateMemberDto dto)
+        => Ok(await _service.UpdateAsync(id, dto));
 
     /// <summary>Deactivate a member (fails if they have future bookings)</summary>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id}")]
     [ProducesResponseType(204)]
-    [ProducesResponseType(404)]
     [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _service.DeactivateAsync(id);
-        return result ? NoContent() : NotFound();
+        await _service.DeleteAsync(id);
+        return NoContent();
     }
 
-    /// <summary>Get member's bookings with filtering and pagination</summary>
-    [HttpGet("{id:int}/bookings")]
-    [ProducesResponseType(typeof(PagedResult<BookingResponseDto>), 200)]
-    public async Task<IActionResult> GetBookings(int id, [FromQuery] string? status,
-        [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
-    {
-        var result = await _service.GetBookingsAsync(id, status, fromDate, toDate,
-            new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    /// <summary>Get member's bookings with filters and pagination</summary>
+    [HttpGet("{id}/bookings")]
+    [ProducesResponseType(typeof(PagedResult<BookingDto>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetBookings(int id, [FromQuery] string? status, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetBookingsAsync(id, status, fromDate, toDate, pagination));
 
     /// <summary>Get member's upcoming confirmed bookings</summary>
-    [HttpGet("{id:int}/bookings/upcoming")]
-    [ProducesResponseType(typeof(List<BookingResponseDto>), 200)]
+    [HttpGet("{id}/bookings/upcoming")]
+    [ProducesResponseType(typeof(List<BookingDto>), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetUpcomingBookings(int id)
-    {
-        var result = await _service.GetUpcomingBookingsAsync(id);
-        return Ok(result);
-    }
+        => Ok(await _service.GetUpcomingBookingsAsync(id));
 
     /// <summary>Get membership history for a member</summary>
-    [HttpGet("{id:int}/memberships")]
-    [ProducesResponseType(typeof(List<MembershipResponseDto>), 200)]
+    [HttpGet("{id}/memberships")]
+    [ProducesResponseType(typeof(List<MembershipDto>), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetMemberships(int id)
-    {
-        var result = await _service.GetMembershipsAsync(id);
-        return Ok(result);
-    }
+        => Ok(await _service.GetMembershipsAsync(id));
 }

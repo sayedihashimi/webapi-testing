@@ -17,3 +17,12 @@ public sealed class Booking
     public ClassSchedule ClassSchedule { get; set; } = null!;
     public Member Member { get; set; } = null!;
 }
+
+public enum BookingStatus
+{
+    Confirmed,
+    Waitlisted,
+    Cancelled,
+    Attended,
+    NoShow
+}

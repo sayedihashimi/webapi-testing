@@ -1,27 +1,26 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using VetClinicApi.DTOs;
-using VetClinicApi.Models;
 using VetClinicApi.Services;
 
 namespace VetClinicApi.Endpoints;
 
 public static class AppointmentEndpoints
 {
-    public static RouteGroupBuilder MapAppointmentEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapAppointmentEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/appointments")
-            .WithTags("Appointments");
+        var appointments = group.MapGroup("/appointments").WithTags("Appointments");
 
-        group.MapGet("/", GetAllAsync);
-        group.MapGet("/today", GetTodayAsync);
-        group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync);
-        group.MapPut("/{id:int}", UpdateAsync);
-        group.MapPatch("/{id:int}/status", UpdateStatusAsync);
+        appointments.MapGet("/", GetAppointments).WithSummary("List appointments with filters and pagination");
+        appointments.MapGet("/today", GetTodayAppointments).WithSummary("Get all of today's appointments");
+        appointments.MapGet("/{id:int}", GetAppointmentById).WithSummary("Get appointment details including pet, vet, and medical record");
+        appointments.MapPost("/", CreateAppointment).WithSummary("Schedule a new appointment with conflict detection");
+        appointments.MapPut("/{id:int}", UpdateAppointment).WithSummary("Update appointment details with conflict re-check");
+        appointments.MapPatch("/{id:int}/status", UpdateAppointmentStatus).WithSummary("Update appointment status with workflow validation");
 
         return group;
     }
 
-    private static async Task<IResult> GetAllAsync(
+    private static async Task<Ok<PagedResult<AppointmentResponse>>> GetAppointments(
         IAppointmentService service,
         DateTime? fromDate = null,
         DateTime? toDate = null,
@@ -30,138 +29,82 @@ public static class AppointmentEndpoints
         int? petId = null,
         int page = 1,
         int pageSize = 10,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        var result = await service.GetAllAsync(fromDate, toDate, status, vetId, petId, page, pageSize, ct);
+        var result = await service.GetAllAsync(fromDate, toDate, status, vetId, petId, page, pageSize, cancellationToken);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<IResult> GetTodayAsync(
-        IAppointmentService service,
-        CancellationToken ct = default)
-    {
-        var appointments = await service.GetTodayAsync(ct);
-        return TypedResults.Ok(appointments);
-    }
-
-    private static async Task<IResult> GetByIdAsync(
+    private static async Task<Results<Ok<AppointmentDetailResponse>, NotFound>> GetAppointmentById(
         int id,
         IAppointmentService service,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        var appointment = await service.GetByIdAsync(id, ct);
-        return appointment is not null
-            ? TypedResults.Ok(appointment)
+        var result = await service.GetByIdAsync(id, cancellationToken);
+        return result is not null
+            ? TypedResults.Ok(result)
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CreateAsync(
-        CreateAppointmentDto dto,
+    private static async Task<Results<Created<AppointmentResponse>, BadRequest<string>>> CreateAppointment(
+        CreateAppointmentRequest request,
         IAppointmentService service,
-        IPetService petService,
-        IVeterinarianService vetService,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        if (!await petService.ExistsAsync(dto.PetId, ct))
+        var (result, error) = await service.CreateAsync(request, cancellationToken);
+        if (result is null)
         {
-            return TypedResults.Problem(
-                detail: "Pet not found.",
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation Error");
+            return TypedResults.BadRequest(error!);
         }
 
-        if (!await vetService.ExistsAsync(dto.VeterinarianId, ct))
-        {
-            return TypedResults.Problem(
-                detail: "Veterinarian not found.",
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation Error");
-        }
-
-        if (dto.AppointmentDate <= DateTime.UtcNow)
-        {
-            return TypedResults.Problem(
-                detail: "Appointment date must be in the future.",
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation Error");
-        }
-
-        if (await service.HasConflictAsync(dto.VeterinarianId, dto.AppointmentDate, dto.DurationMinutes, ct: ct))
-        {
-            return TypedResults.Problem(
-                detail: "The veterinarian has a conflicting appointment at the requested time.",
-                statusCode: StatusCodes.Status409Conflict,
-                title: "Scheduling Conflict");
-        }
-
-        var appointment = await service.CreateAsync(dto, ct);
-        return TypedResults.Created($"/api/appointments/{appointment.Id}", appointment);
+        return TypedResults.Created($"/api/appointments/{result.Id}", result);
     }
 
-    private static async Task<IResult> UpdateAsync(
+    private static async Task<Results<Ok<AppointmentResponse>, NotFound, BadRequest<string>>> UpdateAppointment(
         int id,
-        UpdateAppointmentDto dto,
+        UpdateAppointmentRequest request,
         IAppointmentService service,
-        IPetService petService,
-        IVeterinarianService vetService,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        if (!await petService.ExistsAsync(dto.PetId, ct))
+        var (result, error, notFound) = await service.UpdateAsync(id, request, cancellationToken);
+        if (notFound)
         {
-            return TypedResults.Problem(
-                detail: "Pet not found.",
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation Error");
+            return TypedResults.NotFound();
         }
 
-        if (!await vetService.ExistsAsync(dto.VeterinarianId, ct))
+        if (result is null)
         {
-            return TypedResults.Problem(
-                detail: "Veterinarian not found.",
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation Error");
+            return TypedResults.BadRequest(error!);
         }
 
-        if (await service.HasConflictAsync(dto.VeterinarianId, dto.AppointmentDate, dto.DurationMinutes, id, ct))
-        {
-            return TypedResults.Problem(
-                detail: "The veterinarian has a conflicting appointment at the requested time.",
-                statusCode: StatusCodes.Status409Conflict,
-                title: "Scheduling Conflict");
-        }
-
-        var appointment = await service.UpdateAsync(id, dto, ct);
-        return appointment is not null
-            ? TypedResults.Ok(appointment)
-            : TypedResults.NotFound();
+        return TypedResults.Ok(result);
     }
 
-    private static async Task<IResult> UpdateStatusAsync(
+    private static async Task<Results<Ok, NotFound, BadRequest<string>>> UpdateAppointmentStatus(
         int id,
-        UpdateAppointmentStatusDto dto,
+        UpdateAppointmentStatusRequest request,
         IAppointmentService service,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        if (dto.NewStatus == AppointmentStatus.Cancelled && string.IsNullOrWhiteSpace(dto.CancellationReason))
+        var (success, error, notFound) = await service.UpdateStatusAsync(id, request, cancellationToken);
+        if (notFound)
         {
-            return TypedResults.Problem(
-                detail: "Cancellation reason is required when cancelling an appointment.",
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation Error");
+            return TypedResults.NotFound();
         }
 
-        var validationError = await service.ValidateStatusTransitionAsync(id, dto.NewStatus, ct);
-        if (validationError is not null)
+        if (!success)
         {
-            return TypedResults.Problem(
-                detail: validationError,
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Invalid Status Transition");
+            return TypedResults.BadRequest(error!);
         }
 
-        var appointment = await service.UpdateStatusAsync(id, dto, ct);
-        return appointment is not null
-            ? TypedResults.Ok(appointment)
-            : TypedResults.NotFound();
+        return TypedResults.Ok();
+    }
+
+    private static async Task<Ok<IReadOnlyList<AppointmentResponse>>> GetTodayAppointments(
+        IAppointmentService service,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await service.GetTodayAsync(cancellationToken);
+        return TypedResults.Ok(result);
     }
 }

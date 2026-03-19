@@ -1,95 +1,72 @@
 using LibraryApi.DTOs;
 using LibraryApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LibraryApi.Endpoints;
 
 public static class CategoryEndpoints
 {
-    public static RouteGroupBuilder MapCategoryEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapCategoryEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/categories")
-            .WithTags("Categories");
+        var categories = group.MapGroup("/categories").WithTags("Categories");
 
-        group.MapGet("/", GetCategoriesAsync);
-        group.MapGet("/{id:int}", GetCategoryByIdAsync);
-        group.MapPost("/", CreateCategoryAsync);
-        group.MapPut("/{id:int}", UpdateCategoryAsync);
-        group.MapDelete("/{id:int}", DeleteCategoryAsync);
+        categories.MapGet("/", GetCategoriesAsync)
+            .WithSummary("List all categories with pagination");
+
+        categories.MapGet("/{id:int}", GetCategoryByIdAsync)
+            .WithSummary("Get category details with book count");
+
+        categories.MapPost("/", CreateCategoryAsync)
+            .WithSummary("Create a new category");
+
+        categories.MapPut("/{id:int}", UpdateCategoryAsync)
+            .WithSummary("Update an existing category");
+
+        categories.MapDelete("/{id:int}", DeleteCategoryAsync)
+            .WithSummary("Delete a category (fails if category has books)");
 
         return group;
     }
 
-    private static async Task<IResult> GetCategoriesAsync(
-        ICategoryService service,
-        CancellationToken ct = default)
+    private static async Task<Ok<PaginatedResponse<CategoryResponse>>> GetCategoriesAsync(
+        ICategoryService service, int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
-        var result = await service.GetCategoriesAsync(ct);
+        var result = await service.GetCategoriesAsync(page, pageSize, ct);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<IResult> GetCategoryByIdAsync(
-        int id,
-        ICategoryService service,
-        CancellationToken ct = default)
+    private static async Task<Results<Ok<CategoryDetailResponse>, NotFound>> GetCategoryByIdAsync(
+        int id, ICategoryService service, CancellationToken ct = default)
     {
-        var category = await service.GetCategoryByIdAsync(id, ct);
-        return category is not null
-            ? TypedResults.Ok(category)
-            : TypedResults.NotFound();
+        var result = await service.GetCategoryByIdAsync(id, ct);
+        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CreateCategoryAsync(
-        CreateCategoryDto dto,
-        ICategoryService service,
-        CancellationToken ct = default)
+    private static async Task<Created<CategoryResponse>> CreateCategoryAsync(
+        CreateCategoryRequest request, ICategoryService service, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]> { ["Name"] = ["Name is required."] });
-        }
-
-        var category = await service.CreateCategoryAsync(dto, ct);
-        return TypedResults.Created($"/api/categories/{category.Id}", category);
+        var result = await service.CreateCategoryAsync(request, ct);
+        return TypedResults.Created($"/api/categories/{result.Id}", result);
     }
 
-    private static async Task<IResult> UpdateCategoryAsync(
-        int id,
-        UpdateCategoryDto dto,
-        ICategoryService service,
-        CancellationToken ct = default)
+    private static async Task<Results<Ok<CategoryResponse>, NotFound>> UpdateCategoryAsync(
+        int id, UpdateCategoryRequest request, ICategoryService service, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]> { ["Name"] = ["Name is required."] });
-        }
-
-        var category = await service.UpdateCategoryAsync(id, dto, ct);
-        return category is not null
-            ? TypedResults.Ok(category)
-            : TypedResults.NotFound();
+        var result = await service.UpdateCategoryAsync(id, request, ct);
+        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> DeleteCategoryAsync(
-        int id,
-        ICategoryService service,
-        CancellationToken ct = default)
+    private static async Task<Results<NoContent, NotFound, Conflict<string>>> DeleteCategoryAsync(
+        int id, ICategoryService service, CancellationToken ct = default)
     {
         var (found, hasBooks) = await service.DeleteCategoryAsync(id, ct);
-
         if (!found)
         {
             return TypedResults.NotFound();
         }
 
-        if (hasBooks)
-        {
-            return TypedResults.Problem(
-                detail: "Cannot delete category with associated books.",
-                statusCode: StatusCodes.Status409Conflict);
-        }
-
-        return TypedResults.NoContent();
+        return hasBooks
+            ? TypedResults.Conflict("Cannot delete category because it has associated books.")
+            : TypedResults.NoContent();
     }
 }

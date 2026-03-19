@@ -1,132 +1,104 @@
 using LibraryApi.DTOs;
 using LibraryApi.Models;
 using LibraryApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LibraryApi.Endpoints;
 
 public static class PatronEndpoints
 {
-    public static RouteGroupBuilder MapPatronEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapPatronEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/patrons")
-            .WithTags("Patrons");
+        var patrons = group.MapGroup("/patrons").WithTags("Patrons");
 
-        group.MapGet("/", GetPatronsAsync);
-        group.MapGet("/{id:int}", GetPatronByIdAsync);
-        group.MapPost("/", CreatePatronAsync);
-        group.MapPut("/{id:int}", UpdatePatronAsync);
-        group.MapDelete("/{id:int}", DeactivatePatronAsync);
-        group.MapGet("/{id:int}/loans", GetPatronLoansAsync);
-        group.MapGet("/{id:int}/reservations", GetPatronReservationsAsync);
-        group.MapGet("/{id:int}/fines", GetPatronFinesAsync);
+        patrons.MapGet("/", GetPatronsAsync)
+            .WithSummary("List patrons with search, membership type filter, and pagination");
+
+        patrons.MapGet("/{id:int}", GetPatronByIdAsync)
+            .WithSummary("Get patron details with active loans count and unpaid fines");
+
+        patrons.MapPost("/", CreatePatronAsync)
+            .WithSummary("Create a new patron");
+
+        patrons.MapPut("/{id:int}", UpdatePatronAsync)
+            .WithSummary("Update an existing patron");
+
+        patrons.MapDelete("/{id:int}", DeactivatePatronAsync)
+            .WithSummary("Deactivate a patron (fails if patron has active loans)");
+
+        patrons.MapGet("/{id:int}/loans", GetPatronLoansAsync)
+            .WithSummary("Get patron's loans with optional status filter");
+
+        patrons.MapGet("/{id:int}/reservations", GetPatronReservationsAsync)
+            .WithSummary("Get patron's reservations");
+
+        patrons.MapGet("/{id:int}/fines", GetPatronFinesAsync)
+            .WithSummary("Get patron's fines with optional status filter");
 
         return group;
     }
 
-    private static async Task<IResult> GetPatronsAsync(
-        IPatronService service,
-        string? search = null,
-        MembershipType? membershipType = null,
-        int page = 1,
-        int pageSize = 10,
-        CancellationToken ct = default)
+    private static async Task<Ok<PaginatedResponse<PatronResponse>>> GetPatronsAsync(
+        IPatronService service, string? search, MembershipType? membershipType,
+        int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
         var result = await service.GetPatronsAsync(search, membershipType, page, pageSize, ct);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<IResult> GetPatronByIdAsync(
-        int id,
-        IPatronService service,
-        CancellationToken ct = default)
+    private static async Task<Results<Ok<PatronDetailResponse>, NotFound>> GetPatronByIdAsync(
+        int id, IPatronService service, CancellationToken ct = default)
     {
-        var patron = await service.GetPatronByIdAsync(id, ct);
-        return patron is not null
-            ? TypedResults.Ok(patron)
-            : TypedResults.NotFound();
+        var result = await service.GetPatronByIdAsync(id, ct);
+        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CreatePatronAsync(
-        CreatePatronDto dto,
-        IPatronService service,
-        CancellationToken ct = default)
+    private static async Task<Created<PatronResponse>> CreatePatronAsync(
+        CreatePatronRequest request, IPatronService service, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(dto.FirstName) || string.IsNullOrWhiteSpace(dto.LastName) || string.IsNullOrWhiteSpace(dto.Email))
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]> { [""] = ["FirstName, LastName, and Email are required."] });
-        }
-
-        var patron = await service.CreatePatronAsync(dto, ct);
-        return TypedResults.Created($"/api/patrons/{patron.Id}", patron);
+        var result = await service.CreatePatronAsync(request, ct);
+        return TypedResults.Created($"/api/patrons/{result.Id}", result);
     }
 
-    private static async Task<IResult> UpdatePatronAsync(
-        int id,
-        UpdatePatronDto dto,
-        IPatronService service,
-        CancellationToken ct = default)
+    private static async Task<Results<Ok<PatronResponse>, NotFound>> UpdatePatronAsync(
+        int id, UpdatePatronRequest request, IPatronService service, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(dto.FirstName) || string.IsNullOrWhiteSpace(dto.LastName) || string.IsNullOrWhiteSpace(dto.Email))
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]> { [""] = ["FirstName, LastName, and Email are required."] });
-        }
-
-        var patron = await service.UpdatePatronAsync(id, dto, ct);
-        return patron is not null
-            ? TypedResults.Ok(patron)
-            : TypedResults.NotFound();
+        var result = await service.UpdatePatronAsync(id, request, ct);
+        return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> DeactivatePatronAsync(
-        int id,
-        IPatronService service,
-        CancellationToken ct = default)
+    private static async Task<Results<NoContent, NotFound, Conflict<string>>> DeactivatePatronAsync(
+        int id, IPatronService service, CancellationToken ct = default)
     {
         var (found, hasActiveLoans) = await service.DeactivatePatronAsync(id, ct);
-
         if (!found)
         {
             return TypedResults.NotFound();
         }
 
-        if (hasActiveLoans)
-        {
-            return TypedResults.Problem(
-                detail: "Cannot deactivate patron with active loans.",
-                statusCode: StatusCodes.Status409Conflict);
-        }
-
-        return TypedResults.NoContent();
+        return hasActiveLoans
+            ? TypedResults.Conflict("Cannot deactivate patron because they have active loans.")
+            : TypedResults.NoContent();
     }
 
-    private static async Task<IResult> GetPatronLoansAsync(
-        int id,
-        IPatronService service,
-        string? status = null,
-        CancellationToken ct = default)
+    private static async Task<Ok<PaginatedResponse<LoanResponse>>> GetPatronLoansAsync(
+        int id, IPatronService service, string? status, int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
-        var loans = await service.GetPatronLoansAsync(id, status, ct);
-        return TypedResults.Ok(loans);
+        var result = await service.GetPatronLoansAsync(id, status, page, pageSize, ct);
+        return TypedResults.Ok(result);
     }
 
-    private static async Task<IResult> GetPatronReservationsAsync(
-        int id,
-        IPatronService service,
-        CancellationToken ct = default)
+    private static async Task<Ok<PaginatedResponse<ReservationResponse>>> GetPatronReservationsAsync(
+        int id, IPatronService service, int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
-        var reservations = await service.GetPatronReservationsAsync(id, ct);
-        return TypedResults.Ok(reservations);
+        var result = await service.GetPatronReservationsAsync(id, page, pageSize, ct);
+        return TypedResults.Ok(result);
     }
 
-    private static async Task<IResult> GetPatronFinesAsync(
-        int id,
-        IPatronService service,
-        string? status = null,
-        CancellationToken ct = default)
+    private static async Task<Ok<PaginatedResponse<FineResponse>>> GetPatronFinesAsync(
+        int id, IPatronService service, string? status, int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
-        var fines = await service.GetPatronFinesAsync(id, status, ct);
-        return TypedResults.Ok(fines);
+        var result = await service.GetPatronFinesAsync(id, status, page, pageSize, ct);
+        return TypedResults.Ok(result);
     }
 }

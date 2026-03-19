@@ -1,8 +1,7 @@
 using LibraryApi.Data;
-using LibraryApi.DTOs.Common;
-using LibraryApi.DTOs.Fine;
-using LibraryApi.Models.Enums;
-using LibraryApi.Services.Interfaces;
+using LibraryApi.DTOs;
+using LibraryApi.Middleware;
+using LibraryApi.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApi.Services;
@@ -18,90 +17,76 @@ public class FineService : IFineService
         _logger = logger;
     }
 
-    public async Task<PagedResult<FineListDto>> GetAllAsync(FineStatus? status, PaginationParams pagination)
+    public async Task<PagedResult<FineDto>> GetFinesAsync(string? status, int page, int pageSize)
     {
-        var query = _db.Fines
-            .Include(f => f.Patron)
-            .Include(f => f.Loan).ThenInclude(l => l.Book)
-            .AsQueryable();
+        var query = _db.Fines.Include(f => f.Patron).Include(f => f.Loan).ThenInclude(l => l.Book).AsQueryable();
 
-        if (status.HasValue)
-            query = query.Where(f => f.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<FineStatus>(status, true, out var fs))
+            query = query.Where(f => f.Status == fs);
 
         var totalCount = await query.CountAsync();
+        var items = await query.OrderByDescending(f => f.IssuedDate).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-        var items = await query
-            .OrderByDescending(f => f.IssuedDate)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
-            .Select(f => new FineListDto(
-                f.Id, $"{f.Patron.FirstName} {f.Patron.LastName}", f.Loan.Book.Title,
-                f.Amount, f.Reason, f.IssuedDate, f.PaidDate, f.Status))
-            .ToListAsync();
-
-        return new PagedResult<FineListDto>
+        return new PagedResult<FineDto>
         {
-            Items = items, TotalCount = totalCount,
-            Page = pagination.Page, PageSize = pagination.PageSize
+            Items = items.Select(MapToDto).ToList(),
+            TotalCount = totalCount, Page = page, PageSize = pageSize
         };
     }
 
-    public async Task<FineDetailDto> GetByIdAsync(int id)
+    public async Task<FineDto> GetFineByIdAsync(int id)
     {
-        var fine = await _db.Fines
-            .Include(f => f.Patron)
-            .Include(f => f.Loan).ThenInclude(l => l.Book)
+        var fine = await _db.Fines.Include(f => f.Patron).Include(f => f.Loan).ThenInclude(l => l.Book)
             .FirstOrDefaultAsync(f => f.Id == id)
-            ?? throw new KeyNotFoundException($"Fine with ID {id} not found.");
-
-        return MapToDetail(fine);
+            ?? throw new NotFoundException($"Fine with ID {id} not found.");
+        return MapToDto(fine);
     }
 
-    public async Task<FineDetailDto> PayAsync(int id)
+    public async Task<FineDto> PayFineAsync(int id)
     {
-        var fine = await _db.Fines
-            .Include(f => f.Patron)
-            .Include(f => f.Loan).ThenInclude(l => l.Book)
+        var fine = await _db.Fines.Include(f => f.Patron).Include(f => f.Loan).ThenInclude(l => l.Book)
             .FirstOrDefaultAsync(f => f.Id == id)
-            ?? throw new KeyNotFoundException($"Fine with ID {id} not found.");
+            ?? throw new NotFoundException($"Fine with ID {id} not found.");
 
         if (fine.Status != FineStatus.Unpaid)
-            throw new InvalidOperationException($"Fine is already '{fine.Status}'.");
+            throw new BusinessRuleException($"Fine is already '{fine.Status}'. Only unpaid fines can be paid.");
 
         fine.Status = FineStatus.Paid;
         fine.PaidDate = DateTime.UtcNow;
-
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Paid fine {FineId} of ${Amount}", id, fine.Amount);
 
-        return MapToDetail(fine);
+        _logger.LogInformation("Fine paid: FineId={FineId}, Amount=${Amount}", fine.Id, fine.Amount);
+        return MapToDto(fine);
     }
 
-    public async Task<FineDetailDto> WaiveAsync(int id)
+    public async Task<FineDto> WaiveFineAsync(int id)
     {
-        var fine = await _db.Fines
-            .Include(f => f.Patron)
-            .Include(f => f.Loan).ThenInclude(l => l.Book)
+        var fine = await _db.Fines.Include(f => f.Patron).Include(f => f.Loan).ThenInclude(l => l.Book)
             .FirstOrDefaultAsync(f => f.Id == id)
-            ?? throw new KeyNotFoundException($"Fine with ID {id} not found.");
+            ?? throw new NotFoundException($"Fine with ID {id} not found.");
 
         if (fine.Status != FineStatus.Unpaid)
-            throw new InvalidOperationException($"Fine is already '{fine.Status}'.");
+            throw new BusinessRuleException($"Fine is already '{fine.Status}'. Only unpaid fines can be waived.");
 
         fine.Status = FineStatus.Waived;
-
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Waived fine {FineId} of ${Amount}", id, fine.Amount);
 
-        return MapToDetail(fine);
+        _logger.LogInformation("Fine waived: FineId={FineId}, Amount=${Amount}", fine.Id, fine.Amount);
+        return MapToDto(fine);
     }
 
-    private static FineDetailDto MapToDetail(Models.Fine fine)
+    internal static FineDto MapToDto(Fine f) => new()
     {
-        return new FineDetailDto(
-            fine.Id, fine.PatronId, $"{fine.Patron.FirstName} {fine.Patron.LastName}",
-            fine.LoanId, fine.Loan.Book.Title,
-            fine.Amount, fine.Reason, fine.IssuedDate,
-            fine.PaidDate, fine.Status, fine.CreatedAt);
-    }
+        Id = f.Id,
+        PatronId = f.PatronId,
+        PatronName = $"{f.Patron.FirstName} {f.Patron.LastName}",
+        LoanId = f.LoanId,
+        BookTitle = f.Loan.Book.Title,
+        Amount = f.Amount,
+        Reason = f.Reason,
+        IssuedDate = f.IssuedDate,
+        PaidDate = f.PaidDate,
+        Status = f.Status.ToString(),
+        CreatedAt = f.CreatedAt
+    };
 }

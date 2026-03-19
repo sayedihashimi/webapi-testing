@@ -1,6 +1,5 @@
-using LibraryApi.DTOs.Author;
-using LibraryApi.DTOs.Common;
-using LibraryApi.Services.Interfaces;
+using LibraryApi.DTOs;
+using LibraryApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApi.Controllers;
@@ -14,44 +13,45 @@ public class AuthorsController : ControllerBase
 
     public AuthorsController(IAuthorService service) => _service = service;
 
-    /// <summary>List authors with search and pagination.</summary>
+    /// <summary>List authors with optional name search and pagination</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<AuthorListDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] PaginationParams pagination)
-        => Ok(await _service.GetAllAsync(search, pagination));
+    [ProducesResponseType(typeof(PagedResult<AuthorDto>), 200)]
+    public async Task<IActionResult> GetAuthors([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        => Ok(await _service.GetAuthorsAsync(search, page, pageSize));
 
-    /// <summary>Get author details with books.</summary>
+    /// <summary>Get author details including their books</summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(AuthorDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id)
-        => Ok(await _service.GetByIdAsync(id));
+    [ProducesResponseType(typeof(AuthorDetailDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetAuthor(int id)
+        => Ok(await _service.GetAuthorByIdAsync(id));
 
-    /// <summary>Create a new author.</summary>
+    /// <summary>Create a new author</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(AuthorDetailDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create([FromBody] CreateAuthorDto dto)
+    [ProducesResponseType(typeof(AuthorDto), 201)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> CreateAuthor([FromBody] AuthorCreateDto dto)
     {
-        var result = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        var author = await _service.CreateAuthorAsync(dto);
+        return CreatedAtAction(nameof(GetAuthor), new { id = author.Id }, author);
     }
 
-    /// <summary>Update an author.</summary>
+    /// <summary>Update an existing author</summary>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(AuthorDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateAuthorDto dto)
-        => Ok(await _service.UpdateAsync(id, dto));
+    [ProducesResponseType(typeof(AuthorDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> UpdateAuthor(int id, [FromBody] AuthorUpdateDto dto)
+        => Ok(await _service.UpdateAuthorAsync(id, dto));
 
-    /// <summary>Delete an author (fails if has books).</summary>
+    /// <summary>Delete an author (fails if author has books)</summary>
     [HttpDelete("{id}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Delete(int id)
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> DeleteAuthor(int id)
     {
-        await _service.DeleteAsync(id);
+        await _service.DeleteAuthorAsync(id);
         return NoContent();
     }
 }

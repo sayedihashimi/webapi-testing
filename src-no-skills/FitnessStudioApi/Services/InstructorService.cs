@@ -1,8 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using FitnessStudioApi.Data;
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Models;
-using FitnessStudioApi.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using FitnessStudioApi.Middleware;
 
 namespace FitnessStudioApi.Services;
 
@@ -17,14 +17,18 @@ public class InstructorService : IInstructorService
         _logger = logger;
     }
 
-    public async Task<List<InstructorResponseDto>> GetAllAsync(string? specialization, bool? isActive)
+    public async Task<List<InstructorDto>> GetAllAsync(string? specialization, bool? isActive)
     {
         var query = _db.Instructors.AsQueryable();
 
         if (isActive.HasValue)
             query = query.Where(i => i.IsActive == isActive.Value);
+
         if (!string.IsNullOrWhiteSpace(specialization))
-            query = query.Where(i => i.Specializations != null && i.Specializations.ToLower().Contains(specialization.ToLower()));
+        {
+            var s = specialization.ToLower();
+            query = query.Where(i => i.Specializations != null && i.Specializations.ToLower().Contains(s));
+        }
 
         return await query
             .OrderBy(i => i.LastName)
@@ -32,16 +36,17 @@ public class InstructorService : IInstructorService
             .ToListAsync();
     }
 
-    public async Task<InstructorResponseDto?> GetByIdAsync(int id)
+    public async Task<InstructorDto> GetByIdAsync(int id)
     {
-        var instructor = await _db.Instructors.FindAsync(id);
-        return instructor is null ? null : MapToDto(instructor);
+        var instructor = await _db.Instructors.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Instructor with ID {id} not found.");
+        return MapToDto(instructor);
     }
 
-    public async Task<InstructorResponseDto> CreateAsync(InstructorCreateDto dto)
+    public async Task<InstructorDto> CreateAsync(CreateInstructorDto dto)
     {
         if (await _db.Instructors.AnyAsync(i => i.Email == dto.Email))
-            throw new BusinessRuleException($"An instructor with email '{dto.Email}' already exists.");
+            throw new BusinessRuleException($"An instructor with email '{dto.Email}' already exists.", 409);
 
         var instructor = new Instructor
         {
@@ -56,17 +61,17 @@ public class InstructorService : IInstructorService
 
         _db.Instructors.Add(instructor);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created instructor {InstructorName} with ID {InstructorId}", $"{instructor.FirstName} {instructor.LastName}", instructor.Id);
+        _logger.LogInformation("Created instructor: {Name}", $"{instructor.FirstName} {instructor.LastName}");
         return MapToDto(instructor);
     }
 
-    public async Task<InstructorResponseDto?> UpdateAsync(int id, InstructorUpdateDto dto)
+    public async Task<InstructorDto> UpdateAsync(int id, UpdateInstructorDto dto)
     {
-        var instructor = await _db.Instructors.FindAsync(id);
-        if (instructor is null) return null;
+        var instructor = await _db.Instructors.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Instructor with ID {id} not found.");
 
         if (await _db.Instructors.AnyAsync(i => i.Email == dto.Email && i.Id != id))
-            throw new BusinessRuleException($"An instructor with email '{dto.Email}' already exists.");
+            throw new BusinessRuleException($"An instructor with email '{dto.Email}' already exists.", 409);
 
         instructor.FirstName = dto.FirstName;
         instructor.LastName = dto.LastName;
@@ -78,14 +83,13 @@ public class InstructorService : IInstructorService
         instructor.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated instructor {InstructorId}", id);
         return MapToDto(instructor);
     }
 
-    public async Task<List<ClassScheduleResponseDto>> GetScheduleAsync(int instructorId, DateTime? fromDate, DateTime? toDate)
+    public async Task<List<ClassScheduleDto>> GetScheduleAsync(int instructorId, DateTime? fromDate, DateTime? toDate)
     {
         if (!await _db.Instructors.AnyAsync(i => i.Id == instructorId))
-            throw new BusinessRuleException("Instructor not found.", 404);
+            throw new KeyNotFoundException($"Instructor with ID {instructorId} not found.");
 
         var query = _db.ClassSchedules
             .Include(cs => cs.ClassType)
@@ -94,16 +98,15 @@ public class InstructorService : IInstructorService
 
         if (fromDate.HasValue)
             query = query.Where(cs => cs.StartTime >= fromDate.Value);
+
         if (toDate.HasValue)
             query = query.Where(cs => cs.StartTime <= toDate.Value);
 
-        return await query
-            .OrderBy(cs => cs.StartTime)
-            .Select(cs => ClassScheduleService.MapToDto(cs))
-            .ToListAsync();
+        var schedules = await query.OrderBy(cs => cs.StartTime).ToListAsync();
+        return schedules.Select(ClassScheduleService.MapToDto).ToList();
     }
 
-    private static InstructorResponseDto MapToDto(Instructor i) => new()
+    private static InstructorDto MapToDto(Instructor i) => new()
     {
         Id = i.Id,
         FirstName = i.FirstName,
@@ -113,8 +116,6 @@ public class InstructorService : IInstructorService
         Bio = i.Bio,
         Specializations = i.Specializations,
         HireDate = i.HireDate,
-        IsActive = i.IsActive,
-        CreatedAt = i.CreatedAt,
-        UpdatedAt = i.UpdatedAt
+        IsActive = i.IsActive
     };
 }

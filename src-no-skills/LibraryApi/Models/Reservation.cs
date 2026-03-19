@@ -1,5 +1,3 @@
-using LibraryApi.Models.Enums;
-
 namespace LibraryApi.Models;
 
 public class Reservation
@@ -13,7 +11,6 @@ public class Reservation
     public Patron Patron { get; set; } = null!;
 
     public DateTime ReservationDate { get; set; } = DateTime.UtcNow;
-
     public DateTime? ExpirationDate { get; set; }
 
     public ReservationStatus Status { get; set; } = ReservationStatus.Pending;

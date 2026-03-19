@@ -22,13 +22,11 @@ public sealed class ClassType
 
     public int? CaloriesPerSession { get; set; }
 
-    public DifficultyLevel DifficultyLevel { get; set; } = DifficultyLevel.AllLevels;
+    public DifficultyLevel DifficultyLevel { get; set; }
 
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-    public ICollection<ClassSchedule> ClassSchedules { get; set; } = [];
 }

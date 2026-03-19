@@ -5,13 +5,21 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public sealed class AppointmentService(VetClinicDbContext db, ILogger<AppointmentService> logger) : IAppointmentService
+public sealed class AppointmentService(VetClinicDbContext context, ILogger<AppointmentService> logger) : IAppointmentService
 {
-    public async Task<PagedResult<AppointmentDto>> GetAllAsync(
-        DateTime? fromDate, DateTime? toDate, string? status,
-        int? vetId, int? petId, int page, int pageSize, CancellationToken ct = default)
+    private static readonly Dictionary<AppointmentStatus, AppointmentStatus[]> s_validTransitions = new()
     {
-        var query = db.Appointments
+        [AppointmentStatus.Scheduled] = [AppointmentStatus.CheckedIn, AppointmentStatus.Cancelled, AppointmentStatus.NoShow],
+        [AppointmentStatus.CheckedIn] = [AppointmentStatus.InProgress, AppointmentStatus.Cancelled],
+        [AppointmentStatus.InProgress] = [AppointmentStatus.Completed],
+        [AppointmentStatus.Completed] = [],
+        [AppointmentStatus.Cancelled] = [],
+        [AppointmentStatus.NoShow] = [],
+    };
+
+    public async Task<PagedResult<AppointmentResponse>> GetAllAsync(DateTime? fromDate, DateTime? toDate, string? status, int? vetId, int? petId, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var query = context.Appointments
             .Include(a => a.Pet)
             .Include(a => a.Veterinarian)
             .AsQueryable();
@@ -26,9 +34,9 @@ public sealed class AppointmentService(VetClinicDbContext db, ILogger<Appointmen
             query = query.Where(a => a.AppointmentDate <= toDate.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<AppointmentStatus>(status, true, out var parsedStatus))
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<AppointmentStatus>(status, true, out var statusEnum))
         {
-            query = query.Where(a => a.Status == parsedStatus);
+            query = query.Where(a => a.Status == statusEnum);
         }
 
         if (vetId.HasValue)
@@ -41,167 +49,223 @@ public sealed class AppointmentService(VetClinicDbContext db, ILogger<Appointmen
             query = query.Where(a => a.PetId == petId.Value);
         }
 
-        var totalCount = await query.CountAsync(ct);
+        var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(a => a.AppointmentDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => new AppointmentDto(
+            .Select(a => new AppointmentResponse(
                 a.Id, a.PetId, a.Pet.Name,
-                a.VeterinarianId, a.Veterinarian.FirstName + " " + a.Veterinarian.LastName,
+                a.VeterinarianId, $"{a.Veterinarian.FirstName} {a.Veterinarian.LastName}",
                 a.AppointmentDate, a.DurationMinutes, a.Status,
                 a.Reason, a.Notes, a.CancellationReason,
                 a.CreatedAt, a.UpdatedAt))
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
-        return new PagedResult<AppointmentDto>(items, totalCount, page, pageSize);
+        return new PagedResult<AppointmentResponse>(items, totalCount, page, pageSize);
     }
 
-    public async Task<AppointmentDetailDto?> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<AppointmentDetailResponse?> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
-        var appointment = await db.Appointments
+        var appointment = await context.Appointments
             .Include(a => a.Pet).ThenInclude(p => p.Owner)
             .Include(a => a.Veterinarian)
-            .Include(a => a.MedicalRecord)
-            .FirstOrDefaultAsync(a => a.Id == id, ct);
+            .Include(a => a.MedicalRecord).ThenInclude(m => m!.Prescriptions)
+            .Include(a => a.MedicalRecord).ThenInclude(m => m!.Pet)
+            .Include(a => a.MedicalRecord).ThenInclude(m => m!.Veterinarian)
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
         if (appointment is null)
         {
             return null;
         }
 
-        var petSummary = new PetSummaryDto(
-            appointment.Pet.Id, appointment.Pet.Name,
-            appointment.Pet.Species, appointment.Pet.Breed, appointment.Pet.IsActive);
-
-        var vetDto = new VeterinarianDto(
-            appointment.Veterinarian.Id, appointment.Veterinarian.FirstName,
-            appointment.Veterinarian.LastName, appointment.Veterinarian.Email,
-            appointment.Veterinarian.Phone, appointment.Veterinarian.Specialization,
-            appointment.Veterinarian.LicenseNumber, appointment.Veterinarian.IsAvailable,
-            appointment.Veterinarian.HireDate);
-
-        MedicalRecordDto? medicalRecordDto = null;
+        MedicalRecordResponse? medicalRecord = null;
         if (appointment.MedicalRecord is not null)
         {
             var mr = appointment.MedicalRecord;
-            medicalRecordDto = new MedicalRecordDto(
-                mr.Id, mr.AppointmentId, mr.PetId, mr.VeterinarianId,
-                mr.Diagnosis, mr.Treatment, mr.Notes, mr.FollowUpDate, mr.CreatedAt);
+            medicalRecord = new MedicalRecordResponse(
+                mr.Id, mr.AppointmentId, mr.PetId, mr.Pet.Name,
+                mr.VeterinarianId, $"{mr.Veterinarian.FirstName} {mr.Veterinarian.LastName}",
+                mr.Diagnosis, mr.Treatment, mr.Notes, mr.FollowUpDate,
+                mr.CreatedAt);
         }
 
-        return new AppointmentDetailDto(
-            appointment.Id, appointment.PetId, petSummary,
-            appointment.VeterinarianId, vetDto,
+        return new AppointmentDetailResponse(
+            appointment.Id, appointment.PetId, appointment.Pet.Name, appointment.Pet.Species,
+            appointment.Pet.OwnerId, $"{appointment.Pet.Owner.FirstName} {appointment.Pet.Owner.LastName}",
+            appointment.VeterinarianId, $"{appointment.Veterinarian.FirstName} {appointment.Veterinarian.LastName}",
             appointment.AppointmentDate, appointment.DurationMinutes, appointment.Status,
             appointment.Reason, appointment.Notes, appointment.CancellationReason,
-            appointment.CreatedAt, appointment.UpdatedAt, medicalRecordDto);
+            appointment.CreatedAt, appointment.UpdatedAt,
+            medicalRecord);
     }
 
-    public async Task<AppointmentDto> CreateAsync(CreateAppointmentDto dto, CancellationToken ct = default)
+    public async Task<(AppointmentResponse? Result, string? Error)> CreateAsync(CreateAppointmentRequest request, CancellationToken cancellationToken)
     {
+        if (request.AppointmentDate <= DateTime.UtcNow)
+        {
+            return (null, "Appointment date must be in the future.");
+        }
+
+        var petExists = await context.Pets.AnyAsync(p => p.Id == request.PetId && p.IsActive, cancellationToken);
+        if (!petExists)
+        {
+            return (null, "Pet not found or is inactive.");
+        }
+
+        var vetExists = await context.Veterinarians.AnyAsync(v => v.Id == request.VeterinarianId, cancellationToken);
+        if (!vetExists)
+        {
+            return (null, "Veterinarian not found.");
+        }
+
+        var conflictError = await CheckSchedulingConflictAsync(request.VeterinarianId, request.AppointmentDate, request.DurationMinutes, null, cancellationToken);
+        if (conflictError is not null)
+        {
+            return (null, conflictError);
+        }
+
         var appointment = new Appointment
         {
-            PetId = dto.PetId,
-            VeterinarianId = dto.VeterinarianId,
-            AppointmentDate = dto.AppointmentDate,
-            DurationMinutes = dto.DurationMinutes,
-            Reason = dto.Reason,
-            Notes = dto.Notes
+            PetId = request.PetId,
+            VeterinarianId = request.VeterinarianId,
+            AppointmentDate = request.AppointmentDate,
+            DurationMinutes = request.DurationMinutes,
+            Reason = request.Reason,
+            Notes = request.Notes
         };
 
-        db.Appointments.Add(appointment);
-        await db.SaveChangesAsync(ct);
+        context.Appointments.Add(appointment);
+        await context.SaveChangesAsync(cancellationToken);
 
-        // Reload with navigation properties
-        await db.Entry(appointment).Reference(a => a.Pet).LoadAsync(ct);
-        await db.Entry(appointment).Reference(a => a.Veterinarian).LoadAsync(ct);
+        await context.Entry(appointment).Reference(a => a.Pet).LoadAsync(cancellationToken);
+        await context.Entry(appointment).Reference(a => a.Veterinarian).LoadAsync(cancellationToken);
 
-        logger.LogInformation("Created appointment {AppointmentId} for pet {PetId} with vet {VetId}",
+        logger.LogInformation("Appointment created: {AppointmentId} for Pet {PetId} with Vet {VetId}",
             appointment.Id, appointment.PetId, appointment.VeterinarianId);
 
-        return MapToDto(appointment);
+        return (MapToResponse(appointment), null);
     }
 
-    public async Task<AppointmentDto?> UpdateAsync(int id, UpdateAppointmentDto dto, CancellationToken ct = default)
+    public async Task<(AppointmentResponse? Result, string? Error, bool NotFound)> UpdateAsync(int id, UpdateAppointmentRequest request, CancellationToken cancellationToken)
     {
-        var appointment = await db.Appointments
+        var appointment = await context.Appointments
             .Include(a => a.Pet)
             .Include(a => a.Veterinarian)
-            .FirstOrDefaultAsync(a => a.Id == id, ct);
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
         if (appointment is null)
         {
-            return null;
+            return (null, null, true);
         }
 
-        appointment.PetId = dto.PetId;
-        appointment.VeterinarianId = dto.VeterinarianId;
-        appointment.AppointmentDate = dto.AppointmentDate;
-        appointment.DurationMinutes = dto.DurationMinutes;
-        appointment.Reason = dto.Reason;
-        appointment.Notes = dto.Notes;
-        appointment.UpdatedAt = DateTime.UtcNow;
+        if (appointment.Status is AppointmentStatus.Completed or AppointmentStatus.Cancelled or AppointmentStatus.NoShow)
+        {
+            return (null, $"Cannot update an appointment with status '{appointment.Status}'.", false);
+        }
 
-        await db.SaveChangesAsync(ct);
+        var petExists = await context.Pets.AnyAsync(p => p.Id == request.PetId && p.IsActive, cancellationToken);
+        if (!petExists)
+        {
+            return (null, "Pet not found or is inactive.", false);
+        }
 
-        // Reload navigation properties in case they changed
-        await db.Entry(appointment).Reference(a => a.Pet).LoadAsync(ct);
-        await db.Entry(appointment).Reference(a => a.Veterinarian).LoadAsync(ct);
+        var vetExists = await context.Veterinarians.AnyAsync(v => v.Id == request.VeterinarianId, cancellationToken);
+        if (!vetExists)
+        {
+            return (null, "Veterinarian not found.", false);
+        }
 
-        logger.LogInformation("Updated appointment {AppointmentId}", appointment.Id);
-        return MapToDto(appointment);
+        if (request.AppointmentDate != appointment.AppointmentDate ||
+            request.VeterinarianId != appointment.VeterinarianId ||
+            request.DurationMinutes != appointment.DurationMinutes)
+        {
+            var conflictError = await CheckSchedulingConflictAsync(request.VeterinarianId, request.AppointmentDate, request.DurationMinutes, id, cancellationToken);
+            if (conflictError is not null)
+            {
+                return (null, conflictError, false);
+            }
+        }
+
+        appointment.PetId = request.PetId;
+        appointment.VeterinarianId = request.VeterinarianId;
+        appointment.AppointmentDate = request.AppointmentDate;
+        appointment.DurationMinutes = request.DurationMinutes;
+        appointment.Reason = request.Reason;
+        appointment.Notes = request.Notes;
+
+        await context.SaveChangesAsync(cancellationToken);
+        await context.Entry(appointment).Reference(a => a.Pet).LoadAsync(cancellationToken);
+        await context.Entry(appointment).Reference(a => a.Veterinarian).LoadAsync(cancellationToken);
+
+        logger.LogInformation("Appointment updated: {AppointmentId}", appointment.Id);
+
+        return (MapToResponse(appointment), null, false);
     }
 
-    public async Task<AppointmentDto?> UpdateStatusAsync(int id, UpdateAppointmentStatusDto dto, CancellationToken ct = default)
+    public async Task<(bool Success, string? Error, bool NotFound)> UpdateStatusAsync(int id, UpdateAppointmentStatusRequest request, CancellationToken cancellationToken)
     {
-        var appointment = await db.Appointments
-            .Include(a => a.Pet)
-            .Include(a => a.Veterinarian)
-            .FirstOrDefaultAsync(a => a.Id == id, ct);
-
+        var appointment = await context.Appointments.FindAsync([id], cancellationToken);
         if (appointment is null)
         {
-            return null;
+            return (false, null, true);
         }
 
-        appointment.Status = dto.NewStatus;
-        if (dto.NewStatus == AppointmentStatus.Cancelled)
+        if (!s_validTransitions.TryGetValue(appointment.Status, out var validTargets) ||
+            !validTargets.Contains(request.Status))
         {
-            appointment.CancellationReason = dto.CancellationReason;
+            return (false, $"Cannot transition from '{appointment.Status}' to '{request.Status}'.", false);
         }
 
-        appointment.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+        if (request.Status == AppointmentStatus.Cancelled)
+        {
+            if (string.IsNullOrWhiteSpace(request.CancellationReason))
+            {
+                return (false, "CancellationReason is required when cancelling an appointment.", false);
+            }
 
-        logger.LogInformation("Updated appointment {AppointmentId} status to {Status}", appointment.Id, dto.NewStatus);
-        return MapToDto(appointment);
+            if (appointment.AppointmentDate < DateTime.UtcNow)
+            {
+                return (false, "Cannot cancel a past appointment.", false);
+            }
+
+            appointment.CancellationReason = request.CancellationReason;
+        }
+
+        appointment.Status = request.Status;
+        await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Appointment {AppointmentId} status changed to {Status}", appointment.Id, appointment.Status);
+
+        return (true, null, false);
     }
 
-    public async Task<IReadOnlyList<AppointmentDto>> GetTodayAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<AppointmentResponse>> GetTodayAsync(CancellationToken cancellationToken)
     {
-        var todayStart = DateTime.UtcNow.Date;
-        var todayEnd = todayStart.AddDays(1);
+        var today = DateTime.UtcNow.Date;
+        var tomorrow = today.AddDays(1);
 
-        return await db.Appointments
+        return await context.Appointments
             .Include(a => a.Pet)
             .Include(a => a.Veterinarian)
-            .Where(a => a.AppointmentDate >= todayStart && a.AppointmentDate < todayEnd)
+            .Where(a => a.AppointmentDate >= today && a.AppointmentDate < tomorrow)
             .OrderBy(a => a.AppointmentDate)
-            .Select(a => new AppointmentDto(
+            .Select(a => new AppointmentResponse(
                 a.Id, a.PetId, a.Pet.Name,
-                a.VeterinarianId, a.Veterinarian.FirstName + " " + a.Veterinarian.LastName,
+                a.VeterinarianId, $"{a.Veterinarian.FirstName} {a.Veterinarian.LastName}",
                 a.AppointmentDate, a.DurationMinutes, a.Status,
                 a.Reason, a.Notes, a.CancellationReason,
                 a.CreatedAt, a.UpdatedAt))
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<bool> HasConflictAsync(int vetId, DateTime appointmentDate, int durationMinutes, int? excludeAppointmentId = null, CancellationToken ct = default)
+    private async Task<string?> CheckSchedulingConflictAsync(int vetId, DateTime appointmentDate, int durationMinutes, int? excludeAppointmentId, CancellationToken cancellationToken)
     {
-        var appointmentEnd = appointmentDate.AddMinutes(durationMinutes);
+        var proposedStart = appointmentDate;
+        var proposedEnd = appointmentDate.AddMinutes(durationMinutes);
 
-        var query = db.Appointments
+        var query = context.Appointments
             .Where(a => a.VeterinarianId == vetId &&
                         a.Status != AppointmentStatus.Cancelled &&
                         a.Status != AppointmentStatus.NoShow);
@@ -211,50 +275,14 @@ public sealed class AppointmentService(VetClinicDbContext db, ILogger<Appointmen
             query = query.Where(a => a.Id != excludeAppointmentId.Value);
         }
 
-        return await query.AnyAsync(a =>
-            appointmentDate < a.AppointmentDate.AddMinutes(a.DurationMinutes) &&
-            appointmentEnd > a.AppointmentDate, ct);
+        var hasConflict = await query.AnyAsync(a =>
+            proposedStart < a.AppointmentDate.AddMinutes(a.DurationMinutes) &&
+            proposedEnd > a.AppointmentDate, cancellationToken);
+
+        return hasConflict ? "Scheduling conflict: the veterinarian has an overlapping appointment." : null;
     }
 
-    public async Task<string?> ValidateStatusTransitionAsync(int id, AppointmentStatus newStatus, CancellationToken ct = default)
-    {
-        var appointment = await db.Appointments.FindAsync([id], ct);
-        if (appointment is null)
-        {
-            return "Appointment not found.";
-        }
-
-        var currentStatus = appointment.Status;
-
-        // Terminal states
-        if (currentStatus is AppointmentStatus.Completed or AppointmentStatus.Cancelled or AppointmentStatus.NoShow)
-        {
-            return $"Cannot transition from {currentStatus}. It is a terminal status.";
-        }
-
-        var validTransitions = currentStatus switch
-        {
-            AppointmentStatus.Scheduled => new[] { AppointmentStatus.CheckedIn, AppointmentStatus.Cancelled, AppointmentStatus.NoShow },
-            AppointmentStatus.CheckedIn => new[] { AppointmentStatus.InProgress, AppointmentStatus.Cancelled },
-            AppointmentStatus.InProgress => new[] { AppointmentStatus.Completed },
-            _ => Array.Empty<AppointmentStatus>()
-        };
-
-        if (!validTransitions.Contains(newStatus))
-        {
-            return $"Cannot transition from {currentStatus} to {newStatus}. Valid transitions: {string.Join(", ", validTransitions)}.";
-        }
-
-        // Cannot cancel past appointments
-        if (newStatus == AppointmentStatus.Cancelled && appointment.AppointmentDate < DateTime.UtcNow)
-        {
-            return "Cannot cancel a past appointment.";
-        }
-
-        return null;
-    }
-
-    private static AppointmentDto MapToDto(Appointment a) =>
+    private static AppointmentResponse MapToResponse(Appointment a) =>
         new(a.Id, a.PetId, a.Pet.Name,
             a.VeterinarianId, $"{a.Veterinarian.FirstName} {a.Veterinarian.LastName}",
             a.AppointmentDate, a.DurationMinutes, a.Status,

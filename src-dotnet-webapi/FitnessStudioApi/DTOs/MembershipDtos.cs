@@ -3,20 +3,7 @@ using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.DTOs;
 
-public sealed record MembershipResponse(
-    int Id,
-    int MemberId,
-    string MemberName,
-    int MembershipPlanId,
-    string PlanName,
-    DateOnly StartDate,
-    DateOnly EndDate,
-    string Status,
-    string PaymentStatus,
-    DateOnly? FreezeStartDate,
-    DateOnly? FreezeEndDate,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+// --- Requests ---
 
 public sealed record CreateMembershipRequest
 {
@@ -29,20 +16,28 @@ public sealed record CreateMembershipRequest
     [Required]
     public required DateOnly StartDate { get; init; }
 
-    [Required]
-    public required PaymentStatus PaymentStatus { get; init; }
+    public PaymentStatus PaymentStatus { get; init; } = PaymentStatus.Paid;
 }
 
 public sealed record FreezeMembershipRequest
 {
-    [Required]
-    public required DateOnly FreezeStartDate { get; init; }
-
-    [Required]
-    public required DateOnly FreezeEndDate { get; init; }
+    [Range(7, 30)]
+    public required int DurationDays { get; init; }
 }
 
-public sealed record CancelMembershipRequest
-{
-    public string? Reason { get; init; }
-}
+// --- Response ---
+
+public sealed record MembershipResponse(
+    int Id,
+    int MemberId,
+    string MemberName,
+    int MembershipPlanId,
+    string PlanName,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    MembershipStatus Status,
+    PaymentStatus PaymentStatus,
+    DateOnly? FreezeStartDate,
+    DateOnly? FreezeEndDate,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);

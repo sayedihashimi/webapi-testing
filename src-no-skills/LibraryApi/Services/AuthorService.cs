@@ -1,8 +1,7 @@
 using LibraryApi.Data;
-using LibraryApi.DTOs.Author;
-using LibraryApi.DTOs.Common;
+using LibraryApi.DTOs;
+using LibraryApi.Middleware;
 using LibraryApi.Models;
-using LibraryApi.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApi.Services;
@@ -18,10 +17,9 @@ public class AuthorService : IAuthorService
         _logger = logger;
     }
 
-    public async Task<PagedResult<AuthorListDto>> GetAllAsync(string? search, PaginationParams pagination)
+    public async Task<PagedResult<AuthorDto>> GetAuthorsAsync(string? search, int page, int pageSize)
     {
         var query = _db.Authors.AsQueryable();
-
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.ToLower();
@@ -29,37 +27,43 @@ public class AuthorService : IAuthorService
         }
 
         var totalCount = await query.CountAsync();
-
         var items = await query
             .OrderBy(a => a.LastName).ThenBy(a => a.FirstName)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
-            .Select(a => new AuthorListDto(
-                a.Id, a.FirstName, a.LastName, a.Country,
-                a.BookAuthors.Count))
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(a => MapToDto(a))
             .ToListAsync();
 
-        return new PagedResult<AuthorListDto>
-        {
-            Items = items, TotalCount = totalCount,
-            Page = pagination.Page, PageSize = pagination.PageSize
-        };
+        return new PagedResult<AuthorDto> { Items = items, TotalCount = totalCount, Page = page, PageSize = pageSize };
     }
 
-    public async Task<AuthorDetailDto> GetByIdAsync(int id)
+    public async Task<AuthorDetailDto> GetAuthorByIdAsync(int id)
     {
         var author = await _db.Authors
             .Include(a => a.BookAuthors).ThenInclude(ba => ba.Book)
             .FirstOrDefaultAsync(a => a.Id == id)
-            ?? throw new KeyNotFoundException($"Author with ID {id} not found.");
+            ?? throw new NotFoundException($"Author with ID {id} not found.");
 
-        return new AuthorDetailDto(
-            author.Id, author.FirstName, author.LastName,
-            author.Biography, author.BirthDate, author.Country, author.CreatedAt,
-            author.BookAuthors.Select(ba => new AuthorBookDto(ba.Book.Id, ba.Book.Title, ba.Book.ISBN)).ToList());
+        return new AuthorDetailDto
+        {
+            Id = author.Id,
+            FirstName = author.FirstName,
+            LastName = author.LastName,
+            Biography = author.Biography,
+            BirthDate = author.BirthDate,
+            Country = author.Country,
+            CreatedAt = author.CreatedAt,
+            Books = author.BookAuthors.Select(ba => new BookSummaryDto
+            {
+                Id = ba.Book.Id,
+                Title = ba.Book.Title,
+                ISBN = ba.Book.ISBN,
+                TotalCopies = ba.Book.TotalCopies,
+                AvailableCopies = ba.Book.AvailableCopies
+            }).ToList()
+        };
     }
 
-    public async Task<AuthorDetailDto> CreateAsync(CreateAuthorDto dto)
+    public async Task<AuthorDto> CreateAuthorAsync(AuthorCreateDto dto)
     {
         var author = new Author
         {
@@ -67,45 +71,50 @@ public class AuthorService : IAuthorService
             LastName = dto.LastName,
             Biography = dto.Biography,
             BirthDate = dto.BirthDate,
-            Country = dto.Country
+            Country = dto.Country,
+            CreatedAt = DateTime.UtcNow
         };
-
         _db.Authors.Add(author);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created author {AuthorId}: {FirstName} {LastName}", author.Id, author.FirstName, author.LastName);
-
-        return await GetByIdAsync(author.Id);
+        _logger.LogInformation("Author created: {AuthorId} - {FirstName} {LastName}", author.Id, author.FirstName, author.LastName);
+        return MapToDto(author);
     }
 
-    public async Task<AuthorDetailDto> UpdateAsync(int id, UpdateAuthorDto dto)
+    public async Task<AuthorDto> UpdateAuthorAsync(int id, AuthorUpdateDto dto)
     {
         var author = await _db.Authors.FindAsync(id)
-            ?? throw new KeyNotFoundException($"Author with ID {id} not found.");
+            ?? throw new NotFoundException($"Author with ID {id} not found.");
 
         author.FirstName = dto.FirstName;
         author.LastName = dto.LastName;
         author.Biography = dto.Biography;
         author.BirthDate = dto.BirthDate;
         author.Country = dto.Country;
-
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated author {AuthorId}", id);
-
-        return await GetByIdAsync(id);
+        return MapToDto(author);
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAuthorAsync(int id)
     {
-        var author = await _db.Authors
-            .Include(a => a.BookAuthors)
-            .FirstOrDefaultAsync(a => a.Id == id)
-            ?? throw new KeyNotFoundException($"Author with ID {id} not found.");
+        var author = await _db.Authors.Include(a => a.BookAuthors).FirstOrDefaultAsync(a => a.Id == id)
+            ?? throw new NotFoundException($"Author with ID {id} not found.");
 
-        if (author.BookAuthors.Count != 0)
-            throw new InvalidOperationException($"Cannot delete author with ID {id} because they have {author.BookAuthors.Count} associated book(s).");
+        if (author.BookAuthors.Any())
+            throw new ConflictException($"Cannot delete author with ID {id} because they have associated books.");
 
         _db.Authors.Remove(author);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Deleted author {AuthorId}", id);
+        _logger.LogInformation("Author deleted: {AuthorId}", id);
     }
+
+    private static AuthorDto MapToDto(Author a) => new()
+    {
+        Id = a.Id,
+        FirstName = a.FirstName,
+        LastName = a.LastName,
+        Biography = a.Biography,
+        BirthDate = a.BirthDate,
+        Country = a.Country,
+        CreatedAt = a.CreatedAt
+    };
 }

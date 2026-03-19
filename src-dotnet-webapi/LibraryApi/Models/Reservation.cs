@@ -7,9 +7,9 @@ public sealed class Reservation
     public Book Book { get; set; } = null!;
     public int PatronId { get; set; }
     public Patron Patron { get; set; } = null!;
-    public DateTime ReservationDate { get; set; } = DateTime.UtcNow;
+    public DateTime ReservationDate { get; set; }
     public DateTime? ExpirationDate { get; set; }
-    public ReservationStatus Status { get; set; } = ReservationStatus.Pending;
+    public ReservationStatus Status { get; set; }
     public int QueuePosition { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
 }

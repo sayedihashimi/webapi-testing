@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using LibraryApi.Models.Enums;
 
 namespace LibraryApi.Models;
 
@@ -22,7 +21,7 @@ public class Patron
     [MaxLength(500)]
     public string? Address { get; set; }
 
-    public DateOnly MembershipDate { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+    public DateOnly MembershipDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
     public MembershipType MembershipType { get; set; } = MembershipType.Standard;
 
@@ -31,8 +30,7 @@ public class Patron
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation
-    public ICollection<Loan> Loans { get; set; } = [];
-    public ICollection<Reservation> Reservations { get; set; } = [];
-    public ICollection<Fine> Fines { get; set; } = [];
+    public ICollection<Loan> Loans { get; set; } = new List<Loan>();
+    public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+    public ICollection<Fine> Fines { get; set; } = new List<Fine>();
 }

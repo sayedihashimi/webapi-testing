@@ -1,8 +1,29 @@
+using System.ComponentModel.DataAnnotations;
 using VetClinicApi.Models;
 
 namespace VetClinicApi.DTOs;
 
-public sealed record AppointmentDto(
+public sealed record CreateAppointmentRequest(
+    [Required] int PetId,
+    [Required] int VeterinarianId,
+    [Required] DateTime AppointmentDate,
+    [Range(15, 120)] int DurationMinutes = 30,
+    [Required, MaxLength(500)] string Reason = "",
+    [MaxLength(2000)] string? Notes = null);
+
+public sealed record UpdateAppointmentRequest(
+    [Required] int PetId,
+    [Required] int VeterinarianId,
+    [Required] DateTime AppointmentDate,
+    [Range(15, 120)] int DurationMinutes = 30,
+    [Required, MaxLength(500)] string Reason = "",
+    [MaxLength(2000)] string? Notes = null);
+
+public sealed record UpdateAppointmentStatusRequest(
+    [Required] AppointmentStatus Status,
+    string? CancellationReason = null);
+
+public sealed record AppointmentResponse(
     int Id,
     int PetId,
     string PetName,
@@ -17,12 +38,15 @@ public sealed record AppointmentDto(
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
-public sealed record AppointmentDetailDto(
+public sealed record AppointmentDetailResponse(
     int Id,
     int PetId,
-    PetSummaryDto Pet,
+    string PetName,
+    string PetSpecies,
+    int OwnerId,
+    string OwnerName,
     int VeterinarianId,
-    VeterinarianDto Veterinarian,
+    string VeterinarianName,
     DateTime AppointmentDate,
     int DurationMinutes,
     AppointmentStatus Status,
@@ -31,24 +55,4 @@ public sealed record AppointmentDetailDto(
     string? CancellationReason,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    MedicalRecordDto? MedicalRecord);
-
-public sealed record CreateAppointmentDto(
-    int PetId,
-    int VeterinarianId,
-    DateTime AppointmentDate,
-    int DurationMinutes = 30,
-    string Reason = "",
-    string? Notes = null);
-
-public sealed record UpdateAppointmentDto(
-    int PetId,
-    int VeterinarianId,
-    DateTime AppointmentDate,
-    int DurationMinutes,
-    string Reason,
-    string? Notes);
-
-public sealed record UpdateAppointmentStatusDto(
-    AppointmentStatus NewStatus,
-    string? CancellationReason = null);
+    MedicalRecordResponse? MedicalRecord);

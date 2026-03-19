@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using VetClinicApi.Models.Enums;
 
 namespace VetClinicApi.Models;
 
@@ -15,7 +14,6 @@ public class Appointment
 
     public DateTime AppointmentDate { get; set; }
 
-    [Range(15, 120)]
     public int DurationMinutes { get; set; } = 30;
 
     public AppointmentStatus Status { get; set; } = AppointmentStatus.Scheduled;

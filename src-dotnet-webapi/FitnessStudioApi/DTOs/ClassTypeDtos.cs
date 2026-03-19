@@ -3,18 +3,7 @@ using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.DTOs;
 
-public sealed record ClassTypeResponse(
-    int Id,
-    string Name,
-    string? Description,
-    int DefaultDurationMinutes,
-    int DefaultCapacity,
-    bool IsPremium,
-    int? CaloriesPerSession,
-    string DifficultyLevel,
-    bool IsActive,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+// --- Requests ---
 
 public sealed record CreateClassTypeRequest
 {
@@ -35,7 +24,6 @@ public sealed record CreateClassTypeRequest
     [Range(0, 2000)]
     public int? CaloriesPerSession { get; init; }
 
-    [Required]
     public required DifficultyLevel DifficultyLevel { get; init; }
 }
 
@@ -58,8 +46,22 @@ public sealed record UpdateClassTypeRequest
     [Range(0, 2000)]
     public int? CaloriesPerSession { get; init; }
 
-    [Required]
     public required DifficultyLevel DifficultyLevel { get; init; }
 
     public required bool IsActive { get; init; }
 }
+
+// --- Response ---
+
+public sealed record ClassTypeResponse(
+    int Id,
+    string Name,
+    string? Description,
+    int DefaultDurationMinutes,
+    int DefaultCapacity,
+    bool IsPremium,
+    int? CaloriesPerSession,
+    DifficultyLevel DifficultyLevel,
+    bool IsActive,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);

@@ -5,31 +5,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessStudioApi.Services;
 
-public sealed class MembershipPlanService(FitnessDbContext db, ILogger<MembershipPlanService> logger) : IMembershipPlanService
+public sealed class MembershipPlanService(AppDbContext db, ILogger<MembershipPlanService> logger) : IMembershipPlanService
 {
-    public async Task<List<MembershipPlanResponse>> GetAllActivePlansAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<MembershipPlanResponse>> GetAllActiveAsync(CancellationToken ct)
     {
-        var plans = await db.MembershipPlans
+        return await db.MembershipPlans
             .Where(p => p.IsActive)
-            .OrderBy(p => p.Price)
+            .Select(p => MapToResponse(p))
             .ToListAsync(ct);
-
-        return plans.Select(MapToResponse).ToList();
     }
 
-    public async Task<MembershipPlanResponse?> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<MembershipPlanResponse?> GetByIdAsync(int id, CancellationToken ct)
     {
         var plan = await db.MembershipPlans.FindAsync([id], ct);
         return plan is null ? null : MapToResponse(plan);
     }
 
-    public async Task<MembershipPlanResponse> CreateAsync(CreateMembershipPlanRequest request, CancellationToken ct = default)
+    public async Task<MembershipPlanResponse> CreateAsync(CreateMembershipPlanRequest request, CancellationToken ct)
     {
-        if (await db.MembershipPlans.AnyAsync(p => p.Name == request.Name, ct))
-        {
-            throw new InvalidOperationException($"A membership plan with name '{request.Name}' already exists.");
-        }
-
         var plan = new MembershipPlan
         {
             Name = request.Name,
@@ -42,23 +35,16 @@ public sealed class MembershipPlanService(FitnessDbContext db, ILogger<Membershi
 
         db.MembershipPlans.Add(plan);
         await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Created membership plan {PlanName} with ID {PlanId}", plan.Name, plan.Id);
-
+        logger.LogInformation("Created membership plan {PlanName} with Id {PlanId}", plan.Name, plan.Id);
         return MapToResponse(plan);
     }
 
-    public async Task<MembershipPlanResponse?> UpdateAsync(int id, UpdateMembershipPlanRequest request, CancellationToken ct = default)
+    public async Task<MembershipPlanResponse?> UpdateAsync(int id, UpdateMembershipPlanRequest request, CancellationToken ct)
     {
         var plan = await db.MembershipPlans.FindAsync([id], ct);
         if (plan is null)
         {
             return null;
-        }
-
-        if (await db.MembershipPlans.AnyAsync(p => p.Name == request.Name && p.Id != id, ct))
-        {
-            throw new InvalidOperationException($"A membership plan with name '{request.Name}' already exists.");
         }
 
         plan.Name = request.Name;
@@ -67,17 +53,13 @@ public sealed class MembershipPlanService(FitnessDbContext db, ILogger<Membershi
         plan.Price = request.Price;
         plan.MaxClassBookingsPerWeek = request.MaxClassBookingsPerWeek;
         plan.AllowsPremiumClasses = request.AllowsPremiumClasses;
-        plan.IsActive = request.IsActive;
         plan.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Updated membership plan {PlanId}", id);
-
         return MapToResponse(plan);
     }
 
-    public async Task<bool> DeactivateAsync(int id, CancellationToken ct = default)
+    public async Task<bool> DeactivateAsync(int id, CancellationToken ct)
     {
         var plan = await db.MembershipPlans.FindAsync([id], ct);
         if (plan is null)
@@ -88,21 +70,11 @@ public sealed class MembershipPlanService(FitnessDbContext db, ILogger<Membershi
         plan.IsActive = false;
         plan.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
-
         logger.LogInformation("Deactivated membership plan {PlanId}", id);
-
         return true;
     }
 
-    private static MembershipPlanResponse MapToResponse(MembershipPlan plan) => new(
-        plan.Id,
-        plan.Name,
-        plan.Description,
-        plan.DurationMonths,
-        plan.Price,
-        plan.MaxClassBookingsPerWeek,
-        plan.AllowsPremiumClasses,
-        plan.IsActive,
-        plan.CreatedAt,
-        plan.UpdatedAt);
+    private static MembershipPlanResponse MapToResponse(MembershipPlan p) =>
+        new(p.Id, p.Name, p.Description, p.DurationMonths, p.Price,
+            p.MaxClassBookingsPerWeek, p.AllowsPremiumClasses, p.IsActive);
 }

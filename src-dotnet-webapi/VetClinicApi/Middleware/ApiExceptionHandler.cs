@@ -20,15 +20,9 @@ internal sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger)
         };
 
         if (statusCode == 0)
-        {
-            logger.LogError(exception, "Unhandled exception");
-            statusCode = StatusCodes.Status500InternalServerError;
-            title = "Internal Server Error";
-        }
-        else
-        {
-            logger.LogWarning(exception, "Handled API exception: {Title}", title);
-        }
+            return false;
+
+        logger.LogWarning(exception, "Handled API exception: {Title}", title);
 
         httpContext.Response.StatusCode = statusCode;
         await httpContext.Response.WriteAsJsonAsync(new ProblemDetails

@@ -9,8 +9,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Database
 builder.Services.AddDbContext<VetClinicDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Data Source=vetclinic.db"));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// OpenAPI
+builder.Services.AddOpenApi();
+
+// JSON serialization — enums as strings
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Error handling
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // Services
 builder.Services.AddScoped<IOwnerService, OwnerService>();
@@ -21,33 +31,23 @@ builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
 builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
 builder.Services.AddScoped<IVaccinationService, VaccinationService>();
 
-// JSON enum serialization as strings
-builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
-// OpenAPI
-builder.Services.AddOpenApi();
-
-// Error handling
-builder.Services.AddExceptionHandler<ApiExceptionHandler>();
-builder.Services.AddProblemDetails();
-
 var app = builder.Build();
 
 // Middleware
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
+// OpenAPI
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-// Ensure database created and seeded
+// Apply migrations on startup
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<VetClinicDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 // Map endpoints

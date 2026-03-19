@@ -1,7 +1,5 @@
-using System.Text.Json.Serialization;
 using LibraryApi.Data;
 using LibraryApi.Endpoints;
-using LibraryApi.Middleware;
 using LibraryApi.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,47 +18,55 @@ builder.Services.AddScoped<ILoanService, LoanService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IFineService, FineService>();
 
-// Exception handling
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
-
 // OpenAPI
 builder.Services.AddOpenApi();
 
-// JSON configuration
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-});
+// Global exception handler
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// Global exception handler
-app.UseExceptionHandler();
+// Global error handling
+app.UseExceptionHandler(exceptionApp =>
+{
+    exceptionApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/problem+json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            type = "https://tools.ietf.org/html/rfc7807",
+            title = "An unexpected error occurred",
+            status = 500,
+            detail = "An internal server error has occurred. Please try again later."
+        });
+    });
+});
 
-// OpenAPI/Swagger
+app.UseStatusCodePages();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "Library API v1"));
 }
 
-app.UseHttpsRedirection();
+// Map all endpoints
+var api = app.MapGroup("/api");
+api.MapAuthorEndpoints();
+api.MapCategoryEndpoints();
+api.MapBookEndpoints();
+api.MapPatronEndpoints();
+api.MapLoanEndpoints();
+api.MapReservationEndpoints();
+api.MapFineEndpoints();
 
-// Map endpoints
-app.MapAuthorEndpoints();
-app.MapCategoryEndpoints();
-app.MapBookEndpoints();
-app.MapPatronEndpoints();
-app.MapLoanEndpoints();
-app.MapReservationEndpoints();
-app.MapFineEndpoints();
-
-// Initialize database
+// Ensure database is created and seeded
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
-    await db.Database.EnsureCreatedAsync();
-    await SeedData.InitializeAsync(db);
+    var context = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
+    await context.Database.EnsureCreatedAsync();
+    await DataSeeder.SeedAsync(context);
 }
 
-app.Run();
+await app.RunAsync();

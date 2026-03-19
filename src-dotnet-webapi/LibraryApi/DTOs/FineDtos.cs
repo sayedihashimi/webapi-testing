@@ -2,12 +2,12 @@ using LibraryApi.Models;
 
 namespace LibraryApi.DTOs;
 
+// Responses
 public sealed record FineResponse(
     int Id,
     int PatronId,
     string PatronName,
     int LoanId,
-    string BookTitle,
     decimal Amount,
     string Reason,
     DateTime IssuedDate,

@@ -25,11 +25,10 @@ public sealed class Appointment
     [MaxLength(2000)]
     public string? Notes { get; set; }
 
-    [MaxLength(500)]
     public string? CancellationReason { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public MedicalRecord? MedicalRecord { get; set; }
 }

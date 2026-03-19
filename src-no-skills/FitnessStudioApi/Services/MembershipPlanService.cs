@@ -1,8 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using FitnessStudioApi.Data;
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Models;
-using FitnessStudioApi.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using FitnessStudioApi.Middleware;
 
 namespace FitnessStudioApi.Services;
 
@@ -17,7 +17,7 @@ public class MembershipPlanService : IMembershipPlanService
         _logger = logger;
     }
 
-    public async Task<List<MembershipPlanResponseDto>> GetAllActiveAsync()
+    public async Task<List<MembershipPlanDto>> GetAllAsync()
     {
         return await _db.MembershipPlans
             .Where(p => p.IsActive)
@@ -25,16 +25,17 @@ public class MembershipPlanService : IMembershipPlanService
             .ToListAsync();
     }
 
-    public async Task<MembershipPlanResponseDto?> GetByIdAsync(int id)
+    public async Task<MembershipPlanDto> GetByIdAsync(int id)
     {
-        var plan = await _db.MembershipPlans.FindAsync(id);
-        return plan is null ? null : MapToDto(plan);
+        var plan = await _db.MembershipPlans.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Membership plan with ID {id} not found.");
+        return MapToDto(plan);
     }
 
-    public async Task<MembershipPlanResponseDto> CreateAsync(MembershipPlanCreateDto dto)
+    public async Task<MembershipPlanDto> CreateAsync(CreateMembershipPlanDto dto)
     {
         if (await _db.MembershipPlans.AnyAsync(p => p.Name == dto.Name))
-            throw new BusinessRuleException($"A plan with name '{dto.Name}' already exists.");
+            throw new BusinessRuleException($"A membership plan with name '{dto.Name}' already exists.", 409);
 
         var plan = new MembershipPlan
         {
@@ -48,17 +49,17 @@ public class MembershipPlanService : IMembershipPlanService
 
         _db.MembershipPlans.Add(plan);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created membership plan {PlanName} with ID {PlanId}", plan.Name, plan.Id);
+        _logger.LogInformation("Created membership plan: {PlanName}", plan.Name);
         return MapToDto(plan);
     }
 
-    public async Task<MembershipPlanResponseDto?> UpdateAsync(int id, MembershipPlanUpdateDto dto)
+    public async Task<MembershipPlanDto> UpdateAsync(int id, UpdateMembershipPlanDto dto)
     {
-        var plan = await _db.MembershipPlans.FindAsync(id);
-        if (plan is null) return null;
+        var plan = await _db.MembershipPlans.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Membership plan with ID {id} not found.");
 
         if (await _db.MembershipPlans.AnyAsync(p => p.Name == dto.Name && p.Id != id))
-            throw new BusinessRuleException($"A plan with name '{dto.Name}' already exists.");
+            throw new BusinessRuleException($"A membership plan with name '{dto.Name}' already exists.", 409);
 
         plan.Name = dto.Name;
         plan.Description = dto.Description;
@@ -70,23 +71,21 @@ public class MembershipPlanService : IMembershipPlanService
         plan.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated membership plan {PlanId}", id);
         return MapToDto(plan);
     }
 
-    public async Task<bool> DeactivateAsync(int id)
+    public async Task DeleteAsync(int id)
     {
-        var plan = await _db.MembershipPlans.FindAsync(id);
-        if (plan is null) return false;
+        var plan = await _db.MembershipPlans.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Membership plan with ID {id} not found.");
 
         plan.IsActive = false;
         plan.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Deactivated membership plan {PlanId}", id);
-        return true;
+        _logger.LogInformation("Deactivated membership plan: {PlanName}", plan.Name);
     }
 
-    private static MembershipPlanResponseDto MapToDto(MembershipPlan p) => new()
+    private static MembershipPlanDto MapToDto(MembershipPlan p) => new()
     {
         Id = p.Id,
         Name = p.Name,

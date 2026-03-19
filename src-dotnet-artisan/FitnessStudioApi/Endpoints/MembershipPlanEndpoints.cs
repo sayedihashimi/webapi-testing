@@ -1,32 +1,41 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FitnessStudioApi.Endpoints;
 
 public static class MembershipPlanEndpoints
 {
-    public static RouteGroupBuilder MapMembershipPlanEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapMembershipPlanEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/membership-plans")
-            .WithTags("Membership Plans");
+        var plans = group.MapGroup("/membership-plans").WithTags("Membership Plans");
 
-        group.MapGet("/", GetAllAsync);
-        group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync);
-        group.MapPut("/{id:int}", UpdateAsync);
-        group.MapDelete("/{id:int}", DeactivateAsync);
+        plans.MapGet("/", GetAllAsync)
+            .WithSummary("List all active membership plans");
+
+        plans.MapGet("/{id:int}", GetByIdAsync)
+            .WithSummary("Get membership plan details");
+
+        plans.MapPost("/", CreateAsync)
+            .WithSummary("Create a new membership plan");
+
+        plans.MapPut("/{id:int}", UpdateAsync)
+            .WithSummary("Update a membership plan");
+
+        plans.MapDelete("/{id:int}", DeleteAsync)
+            .WithSummary("Deactivate a membership plan");
 
         return group;
     }
 
-    private static async Task<IResult> GetAllAsync(
+    private static async Task<Ok<IReadOnlyList<MembershipPlanResponse>>> GetAllAsync(
         IMembershipPlanService service, CancellationToken ct)
     {
-        var plans = await service.GetAllActivePlansAsync(ct);
+        var plans = await service.GetAllActiveAsync(ct);
         return TypedResults.Ok(plans);
     }
 
-    private static async Task<IResult> GetByIdAsync(
+    private static async Task<Results<Ok<MembershipPlanResponse>, NotFound>> GetByIdAsync(
         int id, IMembershipPlanService service, CancellationToken ct)
     {
         var plan = await service.GetByIdAsync(id, ct);
@@ -35,42 +44,26 @@ public static class MembershipPlanEndpoints
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CreateAsync(
+    private static async Task<Created<MembershipPlanResponse>> CreateAsync(
         CreateMembershipPlanRequest request, IMembershipPlanService service, CancellationToken ct)
     {
-        try
-        {
-            var plan = await service.CreateAsync(request, ct);
-            return TypedResults.Created($"/api/membership-plans/{plan.Id}", plan);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.Conflict(new { error = ex.Message });
-        }
+        var plan = await service.CreateAsync(request, ct);
+        return TypedResults.Created($"/api/membership-plans/{plan.Id}", plan);
     }
 
-    private static async Task<IResult> UpdateAsync(
+    private static async Task<Results<Ok<MembershipPlanResponse>, NotFound>> UpdateAsync(
         int id, UpdateMembershipPlanRequest request, IMembershipPlanService service, CancellationToken ct)
     {
-        try
-        {
-            var plan = await service.UpdateAsync(id, request, ct);
-            return plan is not null
-                ? TypedResults.Ok(plan)
-                : TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.Conflict(new { error = ex.Message });
-        }
+        var plan = await service.UpdateAsync(id, request, ct);
+        return plan is not null
+            ? TypedResults.Ok(plan)
+            : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> DeactivateAsync(
+    private static async Task<Results<NoContent, NotFound>> DeleteAsync(
         int id, IMembershipPlanService service, CancellationToken ct)
     {
         var result = await service.DeactivateAsync(id, ct);
-        return result
-            ? TypedResults.NoContent()
-            : TypedResults.NotFound();
+        return result ? TypedResults.NoContent() : TypedResults.NotFound();
     }
 }

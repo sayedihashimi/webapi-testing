@@ -1,16 +1,24 @@
+using Microsoft.EntityFrameworkCore;
 using FitnessStudioApi.Data;
 using FitnessStudioApi.Middleware;
 using FitnessStudioApi.Services;
-using FitnessStudioApi.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database
+// Add services
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// EF Core + SQLite
 builder.Services.AddDbContext<FitnessDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Services
+// Exception handler
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
+// DI for services
 builder.Services.AddScoped<IMembershipPlanService, MembershipPlanService>();
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IMembershipService, MembershipService>();
@@ -19,41 +27,25 @@ builder.Services.AddScoped<IClassTypeService, ClassTypeService>();
 builder.Services.AddScoped<IClassScheduleService, ClassScheduleService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
-// Controllers
-builder.Services.AddControllers();
-
-// Swagger / OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "Zenith Fitness Studio API",
-        Version = "v1",
-        Description = "API for managing members, memberships, instructors, class schedules, and bookings at Zenith Fitness Studio."
-    });
-});
-
 var app = builder.Build();
 
-// Seed database
+// Apply migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FitnessDbContext>();
     db.Database.EnsureCreated();
-    await DataSeeder.SeedAsync(db);
+    DataSeeder.Seed(db);
 }
 
-// Middleware
-app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+// Middleware pipeline
+app.UseExceptionHandler();
 
 app.UseSwagger();
-app.UseSwaggerUI(options =>
+app.UseSwaggerUI(c =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Zenith Fitness Studio API v1");
-    options.RoutePrefix = string.Empty;
+    c.RoutePrefix = string.Empty;
 });
 
-app.UseHttpsRedirection();
 app.MapControllers();
+
 app.Run();

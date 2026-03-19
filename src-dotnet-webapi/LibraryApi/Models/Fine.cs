@@ -9,8 +9,8 @@ public sealed class Fine
     public Loan Loan { get; set; } = null!;
     public decimal Amount { get; set; }
     public required string Reason { get; set; }
-    public DateTime IssuedDate { get; set; } = DateTime.UtcNow;
+    public DateTime IssuedDate { get; set; }
     public DateTime? PaidDate { get; set; }
-    public FineStatus Status { get; set; } = FineStatus.Unpaid;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public FineStatus Status { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

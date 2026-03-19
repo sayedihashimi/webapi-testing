@@ -13,5 +13,5 @@ public sealed class MembershipPlan
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    public ICollection<Membership> Memberships { get; set; } = [];
+    public ICollection<Membership> Memberships { get; set; } = new List<Membership>();
 }

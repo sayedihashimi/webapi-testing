@@ -1,8 +1,6 @@
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using VetClinicApi.Data;
 using VetClinicApi.Endpoints;
-using VetClinicApi.Middleware;
 using VetClinicApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,46 +18,42 @@ builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
 builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
 builder.Services.AddScoped<IVaccinationService, VaccinationService>();
 
-// JSON serialization
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-});
-
 // OpenAPI
 builder.Services.AddOpenApi();
 
-// Exception handling
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+// Global error handling
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// Global exception handler returning RFC 7807 ProblemDetails
 app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    // Swagger UI redirect
+    app.MapGet("/", () => Results.Redirect("/openapi/v1.json")).ExcludeFromDescription();
 }
 
-app.UseHttpsRedirection();
+// Map all API endpoints
+var api = app.MapGroup("/api");
+api.MapOwnerEndpoints();
+api.MapPetEndpoints();
+api.MapVeterinarianEndpoints();
+api.MapAppointmentEndpoints();
+api.MapMedicalRecordEndpoints();
+api.MapPrescriptionEndpoints();
+api.MapVaccinationEndpoints();
 
-// Map endpoints
-app.MapOwnerEndpoints();
-app.MapPetEndpoints();
-app.MapVeterinarianEndpoints();
-app.MapAppointmentEndpoints();
-app.MapMedicalRecordEndpoints();
-app.MapPrescriptionEndpoints();
-app.MapVaccinationEndpoints();
-
-// Initialize database and seed data
+// Database initialization and seeding
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<VetClinicDbContext>();
-    context.Database.EnsureCreated();
-    SeedData.Initialize(context);
+    await context.Database.EnsureCreatedAsync();
+    await DataSeeder.SeedAsync(context);
 }
 
 app.Run();
+

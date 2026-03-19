@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using FitnessStudioApi.Models.Enums;
 
 namespace FitnessStudioApi.Models;
 
@@ -16,7 +15,7 @@ public class ClassSchedule
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
 
-    [Range(1, 50)]
+    [Range(1, 100)]
     public int Capacity { get; set; }
 
     public int CurrentEnrollment { get; set; }

@@ -33,9 +33,8 @@ public class Book
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation
-    public ICollection<BookAuthor> BookAuthors { get; set; } = [];
-    public ICollection<BookCategory> BookCategories { get; set; } = [];
-    public ICollection<Loan> Loans { get; set; } = [];
-    public ICollection<Reservation> Reservations { get; set; } = [];
+    public ICollection<BookAuthor> BookAuthors { get; set; } = new List<BookAuthor>();
+    public ICollection<BookCategory> BookCategories { get; set; } = new List<BookCategory>();
+    public ICollection<Loan> Loans { get; set; } = new List<Loan>();
+    public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 }

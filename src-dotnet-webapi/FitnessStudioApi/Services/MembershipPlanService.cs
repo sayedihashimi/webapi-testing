@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessStudioApi.Services;
 
-public sealed class MembershipPlanService(StudioDbContext db, ILogger<MembershipPlanService> logger) : IMembershipPlanService
+public sealed class MembershipPlanService(FitnessDbContext db, ILogger<MembershipPlanService> logger) : IMembershipPlanService
 {
     public async Task<IReadOnlyList<MembershipPlanResponse>> GetAllActiveAsync(CancellationToken ct)
     {
@@ -19,13 +19,17 @@ public sealed class MembershipPlanService(StudioDbContext db, ILogger<Membership
 
     public async Task<MembershipPlanResponse?> GetByIdAsync(int id, CancellationToken ct)
     {
-        var plan = await db.MembershipPlans.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
+        var plan = await db.MembershipPlans
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id, ct);
+
         return plan is null ? null : MapToResponse(plan);
     }
 
     public async Task<MembershipPlanResponse> CreateAsync(CreateMembershipPlanRequest request, CancellationToken ct)
     {
-        if (await db.MembershipPlans.AnyAsync(p => p.Name == request.Name, ct))
+        var existing = await db.MembershipPlans.AnyAsync(p => p.Name == request.Name, ct);
+        if (existing)
             throw new InvalidOperationException($"A membership plan with name '{request.Name}' already exists.");
 
         var plan = new MembershipPlan
@@ -36,12 +40,14 @@ public sealed class MembershipPlanService(StudioDbContext db, ILogger<Membership
             Price = request.Price,
             MaxClassBookingsPerWeek = request.MaxClassBookingsPerWeek,
             AllowsPremiumClasses = request.AllowsPremiumClasses,
+            IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
         db.MembershipPlans.Add(plan);
         await db.SaveChangesAsync(ct);
+
         logger.LogInformation("Created membership plan {PlanId}: {PlanName}", plan.Id, plan.Name);
         return MapToResponse(plan);
     }
@@ -49,9 +55,10 @@ public sealed class MembershipPlanService(StudioDbContext db, ILogger<Membership
     public async Task<MembershipPlanResponse> UpdateAsync(int id, UpdateMembershipPlanRequest request, CancellationToken ct)
     {
         var plan = await db.MembershipPlans.FindAsync([id], ct)
-            ?? throw new KeyNotFoundException($"Membership plan {id} not found.");
+            ?? throw new KeyNotFoundException($"Membership plan with ID {id} not found.");
 
-        if (await db.MembershipPlans.AnyAsync(p => p.Name == request.Name && p.Id != id, ct))
+        var duplicate = await db.MembershipPlans.AnyAsync(p => p.Name == request.Name && p.Id != id, ct);
+        if (duplicate)
             throw new InvalidOperationException($"A membership plan with name '{request.Name}' already exists.");
 
         plan.Name = request.Name;
@@ -64,6 +71,7 @@ public sealed class MembershipPlanService(StudioDbContext db, ILogger<Membership
         plan.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
+
         logger.LogInformation("Updated membership plan {PlanId}", plan.Id);
         return MapToResponse(plan);
     }
@@ -71,11 +79,18 @@ public sealed class MembershipPlanService(StudioDbContext db, ILogger<Membership
     public async Task DeleteAsync(int id, CancellationToken ct)
     {
         var plan = await db.MembershipPlans.FindAsync([id], ct)
-            ?? throw new KeyNotFoundException($"Membership plan {id} not found.");
+            ?? throw new KeyNotFoundException($"Membership plan with ID {id} not found.");
+
+        var hasActiveMemberships = await db.Memberships
+            .AnyAsync(m => m.MembershipPlanId == id && m.Status == MembershipStatus.Active, ct);
+
+        if (hasActiveMemberships)
+            throw new InvalidOperationException("Cannot deactivate plan with active memberships.");
 
         plan.IsActive = false;
         plan.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
+
         logger.LogInformation("Deactivated membership plan {PlanId}", plan.Id);
     }
 

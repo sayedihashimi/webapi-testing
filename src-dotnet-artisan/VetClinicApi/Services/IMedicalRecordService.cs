@@ -4,8 +4,7 @@ namespace VetClinicApi.Services;
 
 public interface IMedicalRecordService
 {
-    Task<MedicalRecordDetailDto?> GetByIdAsync(int id, CancellationToken ct = default);
-    Task<MedicalRecordDto> CreateAsync(CreateMedicalRecordDto dto, CancellationToken ct = default);
-    Task<MedicalRecordDto?> UpdateAsync(int id, UpdateMedicalRecordDto dto, CancellationToken ct = default);
-    Task<string?> ValidateAppointmentForRecordAsync(int appointmentId, CancellationToken ct = default);
+    Task<MedicalRecordDetailResponse?> GetByIdAsync(int id, CancellationToken cancellationToken);
+    Task<(MedicalRecordResponse? Result, string? Error)> CreateAsync(CreateMedicalRecordRequest request, CancellationToken cancellationToken);
+    Task<(MedicalRecordResponse? Result, string? Error, bool NotFound)> UpdateAsync(int id, UpdateMedicalRecordRequest request, CancellationToken cancellationToken);
 }

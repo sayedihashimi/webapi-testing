@@ -14,5 +14,5 @@ public sealed class Instructor
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    public ICollection<ClassSchedule> ClassSchedules { get; set; } = [];
+    public ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
 }

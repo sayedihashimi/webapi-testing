@@ -1,47 +1,54 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FitnessStudioApi.Endpoints;
 
 public static class ClassScheduleEndpoints
 {
-    public static RouteGroupBuilder MapClassScheduleEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapClassScheduleEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/classes")
-            .WithTags("Class Schedules");
+        var classes = group.MapGroup("/classes").WithTags("Class Schedules");
 
-        group.MapGet("/", GetAllAsync);
-        group.MapGet("/available", GetAvailableAsync);
-        group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync);
-        group.MapPut("/{id:int}", UpdateAsync);
-        group.MapPatch("/{id:int}/cancel", CancelAsync);
-        group.MapGet("/{id:int}/roster", GetRosterAsync);
-        group.MapGet("/{id:int}/waitlist", GetWaitlistAsync);
+        classes.MapGet("/", GetAllAsync)
+            .WithSummary("List scheduled classes with filters and pagination");
+
+        classes.MapGet("/available", GetAvailableAsync)
+            .WithSummary("Get classes with available spots in the next 7 days");
+
+        classes.MapGet("/{id:int}", GetByIdAsync)
+            .WithSummary("Get class schedule details");
+
+        classes.MapPost("/", CreateAsync)
+            .WithSummary("Schedule a new class");
+
+        classes.MapPut("/{id:int}", UpdateAsync)
+            .WithSummary("Update class schedule details");
+
+        classes.MapPatch("/{id:int}/cancel", CancelAsync)
+            .WithSummary("Cancel a class and all its bookings");
+
+        classes.MapGet("/{id:int}/roster", GetRosterAsync)
+            .WithSummary("Get confirmed members for a class");
+
+        classes.MapGet("/{id:int}/waitlist", GetWaitlistAsync)
+            .WithSummary("Get the waitlist for a class");
 
         return group;
     }
 
-    private static async Task<IResult> GetAllAsync(
-        DateOnly? date, int? classTypeId, int? instructorId, bool? hasAvailability,
-        int page, int pageSize,
-        IClassScheduleService service, CancellationToken ct)
+    private static async Task<Ok<PaginatedResponse<ClassScheduleResponse>>> GetAllAsync(
+        IClassScheduleService service,
+        DateOnly? fromDate, DateOnly? toDate,
+        int? classTypeId, int? instructorId, bool? available,
+        int page = 1, int pageSize = 10,
+        CancellationToken ct = default)
     {
-        if (page < 1) { page = 1; }
-        if (pageSize < 1 || pageSize > 100) { pageSize = 20; }
-
-        var result = await service.GetAllAsync(date, classTypeId, instructorId, hasAvailability, page, pageSize, ct);
+        var result = await service.GetAllAsync(fromDate, toDate, classTypeId, instructorId, available, page, pageSize, ct);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<IResult> GetAvailableAsync(
-        IClassScheduleService service, CancellationToken ct)
-    {
-        var classes = await service.GetAvailableClassesAsync(ct);
-        return TypedResults.Ok(classes);
-    }
-
-    private static async Task<IResult> GetByIdAsync(
+    private static async Task<Results<Ok<ClassScheduleResponse>, NotFound>> GetByIdAsync(
         int id, IClassScheduleService service, CancellationToken ct)
     {
         var schedule = await service.GetByIdAsync(id, ct);
@@ -50,65 +57,61 @@ public static class ClassScheduleEndpoints
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CreateAsync(
+    private static async Task<Results<Created<ClassScheduleResponse>, BadRequest<string>>> CreateAsync(
         CreateClassScheduleRequest request, IClassScheduleService service, CancellationToken ct)
     {
-        try
-        {
-            var schedule = await service.CreateAsync(request, ct);
-            return TypedResults.Created($"/api/classes/{schedule.Id}", schedule);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (result, error) = await service.CreateAsync(request, ct);
+        return result is not null
+            ? TypedResults.Created($"/api/classes/{result.Id}", result)
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> UpdateAsync(
+    private static async Task<Results<Ok<ClassScheduleResponse>, BadRequest<string>, NotFound>> UpdateAsync(
         int id, UpdateClassScheduleRequest request, IClassScheduleService service, CancellationToken ct)
     {
-        try
+        var (result, error) = await service.UpdateAsync(id, request, ct);
+        if (result is not null)
         {
-            var result = await service.UpdateAsync(id, request, ct);
-            return result is not null
-                ? TypedResults.Ok(result)
-                : TypedResults.NotFound();
+            return TypedResults.Ok(result);
         }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+
+        return error == "Class schedule not found"
+            ? TypedResults.NotFound()
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> CancelAsync(
-        int id, CancelClassRequest request, IClassScheduleService service, CancellationToken ct)
+    private static async Task<Results<NoContent, BadRequest<string>, NotFound>> CancelAsync(
+        int id, IClassScheduleService service, CancellationToken ct)
     {
-        try
+        var (success, error) = await service.CancelAsync(id, ct);
+        if (success)
         {
-            var schedule = await service.CancelClassAsync(id, request.Reason, ct);
-            return TypedResults.Ok(schedule);
+            return TypedResults.NoContent();
         }
-        catch (KeyNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+
+        return error == "Class schedule not found"
+            ? TypedResults.NotFound()
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> GetRosterAsync(
+    private static async Task<Ok<IReadOnlyList<ClassRosterEntry>>> GetRosterAsync(
         int id, IClassScheduleService service, CancellationToken ct)
     {
         var roster = await service.GetRosterAsync(id, ct);
         return TypedResults.Ok(roster);
     }
 
-    private static async Task<IResult> GetWaitlistAsync(
+    private static async Task<Ok<IReadOnlyList<WaitlistEntry>>> GetWaitlistAsync(
         int id, IClassScheduleService service, CancellationToken ct)
     {
         var waitlist = await service.GetWaitlistAsync(id, ct);
         return TypedResults.Ok(waitlist);
+    }
+
+    private static async Task<Ok<IReadOnlyList<ClassScheduleResponse>>> GetAvailableAsync(
+        IClassScheduleService service, CancellationToken ct)
+    {
+        var classes = await service.GetAvailableAsync(ct);
+        return TypedResults.Ok(classes);
     }
 }

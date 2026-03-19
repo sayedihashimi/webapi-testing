@@ -1,5 +1,3 @@
-using FitnessStudioApi.Models.Enums;
-
 namespace FitnessStudioApi.Models;
 
 public class Booking

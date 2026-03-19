@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-// --- Prescription DTOs ---
-
 public sealed record CreatePrescriptionRequest
 {
     [Required]
@@ -15,7 +13,7 @@ public sealed record CreatePrescriptionRequest
     [Required, MaxLength(100)]
     public required string Dosage { get; init; }
 
-    [Range(1, 365)]
+    [Range(1, 3650)]
     public required int DurationDays { get; init; }
 
     [Required]

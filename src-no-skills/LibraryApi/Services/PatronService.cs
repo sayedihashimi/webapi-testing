@@ -1,12 +1,7 @@
 using LibraryApi.Data;
-using LibraryApi.DTOs.Common;
-using LibraryApi.DTOs.Fine;
-using LibraryApi.DTOs.Loan;
-using LibraryApi.DTOs.Patron;
-using LibraryApi.DTOs.Reservation;
+using LibraryApi.DTOs;
+using LibraryApi.Middleware;
 using LibraryApi.Models;
-using LibraryApi.Models.Enums;
-using LibraryApi.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApi.Services;
@@ -22,65 +17,56 @@ public class PatronService : IPatronService
         _logger = logger;
     }
 
-    public async Task<PagedResult<PatronListDto>> GetAllAsync(
-        string? search, MembershipType? membershipType, bool? isActive, PaginationParams pagination)
+    public async Task<PagedResult<PatronDto>> GetPatronsAsync(string? search, string? membershipType, int page, int pageSize)
     {
         var query = _db.Patrons.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.ToLower();
-            query = query.Where(p =>
-                p.FirstName.ToLower().Contains(s) ||
-                p.LastName.ToLower().Contains(s) ||
-                p.Email.ToLower().Contains(s));
+            query = query.Where(p => p.FirstName.ToLower().Contains(s) || p.LastName.ToLower().Contains(s) || p.Email.ToLower().Contains(s));
         }
 
-        if (membershipType.HasValue)
-            query = query.Where(p => p.MembershipType == membershipType.Value);
-
-        if (isActive.HasValue)
-            query = query.Where(p => p.IsActive == isActive.Value);
+        if (!string.IsNullOrWhiteSpace(membershipType) && Enum.TryParse<MembershipType>(membershipType, true, out var mt))
+            query = query.Where(p => p.MembershipType == mt);
 
         var totalCount = await query.CountAsync();
-
         var items = await query
             .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
-            .Select(p => new PatronListDto(
-                p.Id, p.FirstName, p.LastName, p.Email,
-                p.MembershipType, p.IsActive, p.MembershipDate))
+            .Skip((page - 1) * pageSize).Take(pageSize)
             .ToListAsync();
 
-        return new PagedResult<PatronListDto>
+        return new PagedResult<PatronDto>
         {
-            Items = items, TotalCount = totalCount,
-            Page = pagination.Page, PageSize = pagination.PageSize
+            Items = items.Select(MapToDto).ToList(),
+            TotalCount = totalCount, Page = page, PageSize = pageSize
         };
     }
 
-    public async Task<PatronDetailDto> GetByIdAsync(int id)
+    public async Task<PatronDetailDto> GetPatronByIdAsync(int id)
     {
-        var patron = await _db.Patrons
-            .FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new KeyNotFoundException($"Patron with ID {id} not found.");
+        var patron = await _db.Patrons.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException($"Patron with ID {id} not found.");
 
         var activeLoans = await _db.Loans.CountAsync(l => l.PatronId == id && l.Status == LoanStatus.Active);
-        var unpaidFines = await _db.Fines.Where(f => f.PatronId == id && f.Status == FineStatus.Unpaid).ToListAsync();
+        var totalUnpaidFines = await _db.Fines.Where(f => f.PatronId == id && f.Status == FineStatus.Unpaid).SumAsync(f => (decimal?)f.Amount) ?? 0m;
 
-        return new PatronDetailDto(
-            patron.Id, patron.FirstName, patron.LastName, patron.Email,
-            patron.Phone, patron.Address, patron.MembershipDate,
-            patron.MembershipType, patron.IsActive,
-            patron.CreatedAt, patron.UpdatedAt,
-            activeLoans, unpaidFines.Count, unpaidFines.Sum(f => f.Amount));
+        var dto = MapToDto(patron);
+        return new PatronDetailDto
+        {
+            Id = dto.Id, FirstName = dto.FirstName, LastName = dto.LastName, Email = dto.Email,
+            Phone = dto.Phone, Address = dto.Address, MembershipDate = dto.MembershipDate,
+            MembershipType = dto.MembershipType, IsActive = dto.IsActive,
+            CreatedAt = dto.CreatedAt, UpdatedAt = dto.UpdatedAt,
+            ActiveLoansCount = activeLoans,
+            TotalUnpaidFines = totalUnpaidFines
+        };
     }
 
-    public async Task<PatronDetailDto> CreateAsync(CreatePatronDto dto)
+    public async Task<PatronDto> CreatePatronAsync(PatronCreateDto dto)
     {
         if (await _db.Patrons.AnyAsync(p => p.Email == dto.Email))
-            throw new ArgumentException($"A patron with email '{dto.Email}' already exists.");
+            throw new ConflictException($"A patron with email '{dto.Email}' already exists.");
 
         var patron = new Patron
         {
@@ -89,23 +75,25 @@ public class PatronService : IPatronService
             Email = dto.Email,
             Phone = dto.Phone,
             Address = dto.Address,
-            MembershipType = dto.MembershipType
+            MembershipDate = DateOnly.FromDateTime(DateTime.Today),
+            MembershipType = dto.MembershipType,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
-
         _db.Patrons.Add(patron);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created patron {PatronId}: {FirstName} {LastName}", patron.Id, patron.FirstName, patron.LastName);
-
-        return await GetByIdAsync(patron.Id);
+        _logger.LogInformation("Patron created: {PatronId} - {FirstName} {LastName}", patron.Id, patron.FirstName, patron.LastName);
+        return MapToDto(patron);
     }
 
-    public async Task<PatronDetailDto> UpdateAsync(int id, UpdatePatronDto dto)
+    public async Task<PatronDto> UpdatePatronAsync(int id, PatronUpdateDto dto)
     {
         var patron = await _db.Patrons.FindAsync(id)
-            ?? throw new KeyNotFoundException($"Patron with ID {id} not found.");
+            ?? throw new NotFoundException($"Patron with ID {id} not found.");
 
         if (await _db.Patrons.AnyAsync(p => p.Email == dto.Email && p.Id != id))
-            throw new ArgumentException($"A patron with email '{dto.Email}' already exists.");
+            throw new ConflictException($"A patron with email '{dto.Email}' already exists.");
 
         patron.FirstName = dto.FirstName;
         patron.LastName = dto.LastName;
@@ -113,105 +101,98 @@ public class PatronService : IPatronService
         patron.Phone = dto.Phone;
         patron.Address = dto.Address;
         patron.MembershipType = dto.MembershipType;
-        patron.IsActive = dto.IsActive;
         patron.UpdatedAt = DateTime.UtcNow;
-
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated patron {PatronId}", id);
-
-        return await GetByIdAsync(id);
+        return MapToDto(patron);
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeactivatePatronAsync(int id)
     {
         var patron = await _db.Patrons.FindAsync(id)
-            ?? throw new KeyNotFoundException($"Patron with ID {id} not found.");
+            ?? throw new NotFoundException($"Patron with ID {id} not found.");
 
-        var activeLoans = await _db.Loans.CountAsync(l => l.PatronId == id && l.Status == LoanStatus.Active);
-        if (activeLoans > 0)
-            throw new InvalidOperationException($"Cannot deactivate patron with ID {id} because they have {activeLoans} active loan(s).");
+        var hasActiveLoans = await _db.Loans.AnyAsync(l => l.PatronId == id && l.Status == LoanStatus.Active);
+        if (hasActiveLoans)
+            throw new ConflictException($"Cannot deactivate patron with ID {id} because they have active loans.");
 
         patron.IsActive = false;
         patron.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Deactivated patron {PatronId}", id);
+        _logger.LogInformation("Patron deactivated: {PatronId}", id);
     }
 
-    public async Task<PagedResult<LoanListDto>> GetPatronLoansAsync(int patronId, LoanStatus? status, PaginationParams pagination)
+    public async Task<PagedResult<LoanDto>> GetPatronLoansAsync(int patronId, string? status, int page, int pageSize)
     {
         if (!await _db.Patrons.AnyAsync(p => p.Id == patronId))
-            throw new KeyNotFoundException($"Patron with ID {patronId} not found.");
+            throw new NotFoundException($"Patron with ID {patronId} not found.");
 
-        var query = _db.Loans
-            .Include(l => l.Book)
-            .Include(l => l.Patron)
-            .Where(l => l.PatronId == patronId);
+        var query = _db.Loans.Include(l => l.Book).Include(l => l.Patron).Where(l => l.PatronId == patronId);
 
-        if (status.HasValue)
-            query = query.Where(l => l.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<LoanStatus>(status, true, out var ls))
+            query = query.Where(l => l.Status == ls);
 
         var totalCount = await query.CountAsync();
+        var items = await query.OrderByDescending(l => l.LoanDate).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-        var items = await query
-            .OrderByDescending(l => l.LoanDate)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
-            .Select(l => new LoanListDto(
-                l.Id, l.Book.Title, $"{l.Patron.FirstName} {l.Patron.LastName}",
-                l.LoanDate, l.DueDate, l.ReturnDate, l.Status, l.RenewalCount))
-            .ToListAsync();
-
-        return new PagedResult<LoanListDto>
+        return new PagedResult<LoanDto>
         {
-            Items = items, TotalCount = totalCount,
-            Page = pagination.Page, PageSize = pagination.PageSize
+            Items = items.Select(LoanService.MapToDto).ToList(),
+            TotalCount = totalCount, Page = page, PageSize = pageSize
         };
     }
 
-    public async Task<List<ReservationListDto>> GetPatronReservationsAsync(int patronId)
+    public async Task<PagedResult<ReservationDto>> GetPatronReservationsAsync(int patronId, int page, int pageSize)
     {
         if (!await _db.Patrons.AnyAsync(p => p.Id == patronId))
-            throw new KeyNotFoundException($"Patron with ID {patronId} not found.");
+            throw new NotFoundException($"Patron with ID {patronId} not found.");
 
-        return await _db.Reservations
-            .Include(r => r.Book)
-            .Include(r => r.Patron)
-            .Where(r => r.PatronId == patronId && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Ready))
-            .OrderBy(r => r.ReservationDate)
-            .Select(r => new ReservationListDto(
-                r.Id, r.Book.Title, $"{r.Patron.FirstName} {r.Patron.LastName}",
-                r.ReservationDate, r.ExpirationDate, r.Status, r.QueuePosition))
-            .ToListAsync();
+        var query = _db.Reservations.Include(r => r.Book).Include(r => r.Patron)
+            .Where(r => r.PatronId == patronId)
+            .OrderByDescending(r => r.ReservationDate);
+
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return new PagedResult<ReservationDto>
+        {
+            Items = items.Select(ReservationService.MapToDto).ToList(),
+            TotalCount = totalCount, Page = page, PageSize = pageSize
+        };
     }
 
-    public async Task<PagedResult<FineListDto>> GetPatronFinesAsync(int patronId, FineStatus? status, PaginationParams pagination)
+    public async Task<PagedResult<FineDto>> GetPatronFinesAsync(int patronId, string? status, int page, int pageSize)
     {
         if (!await _db.Patrons.AnyAsync(p => p.Id == patronId))
-            throw new KeyNotFoundException($"Patron with ID {patronId} not found.");
+            throw new NotFoundException($"Patron with ID {patronId} not found.");
 
-        var query = _db.Fines
-            .Include(f => f.Patron)
-            .Include(f => f.Loan).ThenInclude(l => l.Book)
+        var query = _db.Fines.Include(f => f.Loan).ThenInclude(l => l.Book).Include(f => f.Patron)
             .Where(f => f.PatronId == patronId);
 
-        if (status.HasValue)
-            query = query.Where(f => f.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<FineStatus>(status, true, out var fs))
+            query = query.Where(f => f.Status == fs);
 
         var totalCount = await query.CountAsync();
+        var items = await query.OrderByDescending(f => f.IssuedDate).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-        var items = await query
-            .OrderByDescending(f => f.IssuedDate)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
-            .Select(f => new FineListDto(
-                f.Id, $"{f.Patron.FirstName} {f.Patron.LastName}", f.Loan.Book.Title,
-                f.Amount, f.Reason, f.IssuedDate, f.PaidDate, f.Status))
-            .ToListAsync();
-
-        return new PagedResult<FineListDto>
+        return new PagedResult<FineDto>
         {
-            Items = items, TotalCount = totalCount,
-            Page = pagination.Page, PageSize = pagination.PageSize
+            Items = items.Select(FineService.MapToDto).ToList(),
+            TotalCount = totalCount, Page = page, PageSize = pageSize
         };
     }
+
+    private static PatronDto MapToDto(Patron p) => new()
+    {
+        Id = p.Id,
+        FirstName = p.FirstName,
+        LastName = p.LastName,
+        Email = p.Email,
+        Phone = p.Phone,
+        Address = p.Address,
+        MembershipDate = p.MembershipDate,
+        MembershipType = p.MembershipType.ToString(),
+        IsActive = p.IsActive,
+        CreatedAt = p.CreatedAt,
+        UpdatedAt = p.UpdatedAt
+    };
 }

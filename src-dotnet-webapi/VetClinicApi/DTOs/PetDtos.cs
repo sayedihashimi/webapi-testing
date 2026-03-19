@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-// --- Pet DTOs ---
-
 public sealed record CreatePetRequest
 {
     [Required, MaxLength(100)]
@@ -61,14 +59,22 @@ public sealed record PetResponse(
     string? MicrochipNumber,
     bool IsActive,
     int OwnerId,
-    string OwnerFirstName,
-    string OwnerLastName,
+    string OwnerName,
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
-public sealed record PetSummaryResponse(
+public sealed record PetDetailResponse(
     int Id,
     string Name,
     string Species,
     string? Breed,
-    bool IsActive);
+    DateOnly? DateOfBirth,
+    decimal? Weight,
+    string? Color,
+    string? MicrochipNumber,
+    bool IsActive,
+    int OwnerId,
+    string OwnerName,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    OwnerResponse Owner);

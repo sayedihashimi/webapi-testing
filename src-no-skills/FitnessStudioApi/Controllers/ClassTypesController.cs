@@ -1,6 +1,6 @@
-using FitnessStudioApi.DTOs;
-using FitnessStudioApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using FitnessStudioApi.DTOs;
+using FitnessStudioApi.Services;
 
 namespace FitnessStudioApi.Controllers;
 
@@ -11,48 +11,35 @@ public class ClassTypesController : ControllerBase
 {
     private readonly IClassTypeService _service;
 
-    public ClassTypesController(IClassTypeService service)
-    {
-        _service = service;
-    }
+    public ClassTypesController(IClassTypeService service) => _service = service;
 
-    /// <summary>List class types with optional filtering</summary>
+    /// <summary>List class types with optional filters</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(List<ClassTypeResponseDto>), 200)]
+    [ProducesResponseType(typeof(List<ClassTypeDto>), 200)]
     public async Task<IActionResult> GetAll([FromQuery] string? difficulty, [FromQuery] bool? isPremium)
-    {
-        var result = await _service.GetAllAsync(difficulty, isPremium);
-        return Ok(result);
-    }
+        => Ok(await _service.GetAllAsync(difficulty, isPremium));
 
     /// <summary>Get class type details</summary>
-    [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(ClassTypeResponseDto), 200)]
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ClassTypeDto), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var classType = await _service.GetByIdAsync(id);
-        return classType is null ? NotFound() : Ok(classType);
-    }
+    public async Task<IActionResult> GetById(int id) => Ok(await _service.GetByIdAsync(id));
 
     /// <summary>Create a new class type</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(ClassTypeResponseDto), 201)]
+    [ProducesResponseType(typeof(ClassTypeDto), 201)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> Create([FromBody] ClassTypeCreateDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateClassTypeDto dto)
     {
-        var classType = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = classType.Id }, classType);
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     /// <summary>Update a class type</summary>
-    [HttpPut("{id:int}")]
-    [ProducesResponseType(typeof(ClassTypeResponseDto), 200)]
-    [ProducesResponseType(404)]
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ClassTypeDto), 200)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> Update(int id, [FromBody] ClassTypeUpdateDto dto)
-    {
-        var classType = await _service.UpdateAsync(id, dto);
-        return classType is null ? NotFound() : Ok(classType);
-    }
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateClassTypeDto dto)
+        => Ok(await _service.UpdateAsync(id, dto));
 }

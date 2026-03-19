@@ -5,99 +5,104 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public sealed class MedicalRecordService(VetClinicDbContext db, ILogger<MedicalRecordService> logger) : IMedicalRecordService
+public sealed class MedicalRecordService(VetClinicDbContext context, ILogger<MedicalRecordService> logger) : IMedicalRecordService
 {
-    public async Task<MedicalRecordDetailDto?> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<MedicalRecordDetailResponse?> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
-        var record = await db.MedicalRecords
+        var record = await context.MedicalRecords
+            .Include(m => m.Pet)
+            .Include(m => m.Veterinarian)
             .Include(m => m.Prescriptions)
-            .FirstOrDefaultAsync(m => m.Id == id, ct);
+            .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
 
         if (record is null)
         {
             return null;
         }
 
-        var prescriptionDtos = record.Prescriptions
-            .Select(p => new PrescriptionDto(
-                p.Id, p.MedicalRecordId, p.MedicationName, p.Dosage,
-                p.DurationDays, p.StartDate, p.EndDate, p.IsActive,
-                p.Instructions, p.CreatedAt))
-            .ToList();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var prescriptions = record.Prescriptions.Select(p => new PrescriptionResponse(
+            p.Id, p.MedicalRecordId, p.MedicationName, p.Dosage,
+            p.DurationDays, p.StartDate, p.EndDate, p.Instructions,
+            p.EndDate >= today, p.CreatedAt)).ToList();
 
-        return new MedicalRecordDetailDto(
-            record.Id, record.AppointmentId, record.PetId, record.VeterinarianId,
+        return new MedicalRecordDetailResponse(
+            record.Id, record.AppointmentId, record.PetId, record.Pet.Name,
+            record.VeterinarianId, $"{record.Veterinarian.FirstName} {record.Veterinarian.LastName}",
             record.Diagnosis, record.Treatment, record.Notes, record.FollowUpDate,
-            record.CreatedAt, prescriptionDtos);
+            record.CreatedAt, prescriptions);
     }
 
-    public async Task<MedicalRecordDto> CreateAsync(CreateMedicalRecordDto dto, CancellationToken ct = default)
+    public async Task<(MedicalRecordResponse? Result, string? Error)> CreateAsync(CreateMedicalRecordRequest request, CancellationToken cancellationToken)
     {
-        var appointment = await db.Appointments.FindAsync([dto.AppointmentId], ct);
-
-        var record = new MedicalRecord
-        {
-            AppointmentId = dto.AppointmentId,
-            PetId = appointment!.PetId,
-            VeterinarianId = appointment.VeterinarianId,
-            Diagnosis = dto.Diagnosis,
-            Treatment = dto.Treatment,
-            Notes = dto.Notes,
-            FollowUpDate = dto.FollowUpDate
-        };
-
-        db.MedicalRecords.Add(record);
-        await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Created medical record {RecordId} for appointment {AppointmentId}",
-            record.Id, record.AppointmentId);
-
-        return new MedicalRecordDto(
-            record.Id, record.AppointmentId, record.PetId, record.VeterinarianId,
-            record.Diagnosis, record.Treatment, record.Notes, record.FollowUpDate, record.CreatedAt);
-    }
-
-    public async Task<MedicalRecordDto?> UpdateAsync(int id, UpdateMedicalRecordDto dto, CancellationToken ct = default)
-    {
-        var record = await db.MedicalRecords.FindAsync([id], ct);
-        if (record is null)
-        {
-            return null;
-        }
-
-        record.Diagnosis = dto.Diagnosis;
-        record.Treatment = dto.Treatment;
-        record.Notes = dto.Notes;
-        record.FollowUpDate = dto.FollowUpDate;
-
-        await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Updated medical record {RecordId}", record.Id);
-
-        return new MedicalRecordDto(
-            record.Id, record.AppointmentId, record.PetId, record.VeterinarianId,
-            record.Diagnosis, record.Treatment, record.Notes, record.FollowUpDate, record.CreatedAt);
-    }
-
-    public async Task<string?> ValidateAppointmentForRecordAsync(int appointmentId, CancellationToken ct = default)
-    {
-        var appointment = await db.Appointments.FindAsync([appointmentId], ct);
+        var appointment = await context.Appointments.FindAsync([request.AppointmentId], cancellationToken);
         if (appointment is null)
         {
-            return "Appointment not found.";
+            return (null, "Appointment not found.");
         }
 
         if (appointment.Status is not (AppointmentStatus.Completed or AppointmentStatus.InProgress))
         {
-            return $"Medical records can only be created for Completed or InProgress appointments. Current status: {appointment.Status}.";
+            return (null, $"Medical records can only be created for appointments with status 'Completed' or 'InProgress'. Current status: '{appointment.Status}'.");
         }
 
-        var existingRecord = await db.MedicalRecords.AnyAsync(m => m.AppointmentId == appointmentId, ct);
+        var existingRecord = await context.MedicalRecords
+            .AnyAsync(m => m.AppointmentId == request.AppointmentId, cancellationToken);
         if (existingRecord)
         {
-            return "A medical record already exists for this appointment.";
+            return (null, "A medical record already exists for this appointment.");
         }
 
-        return null;
+        var record = new MedicalRecord
+        {
+            AppointmentId = request.AppointmentId,
+            PetId = request.PetId,
+            VeterinarianId = request.VeterinarianId,
+            Diagnosis = request.Diagnosis,
+            Treatment = request.Treatment,
+            Notes = request.Notes,
+            FollowUpDate = request.FollowUpDate
+        };
+
+        context.MedicalRecords.Add(record);
+        await context.SaveChangesAsync(cancellationToken);
+
+        await context.Entry(record).Reference(r => r.Pet).LoadAsync(cancellationToken);
+        await context.Entry(record).Reference(r => r.Veterinarian).LoadAsync(cancellationToken);
+
+        logger.LogInformation("Medical record created: {RecordId} for Appointment {AppointmentId}", record.Id, record.AppointmentId);
+
+        return (new MedicalRecordResponse(
+            record.Id, record.AppointmentId, record.PetId, record.Pet.Name,
+            record.VeterinarianId, $"{record.Veterinarian.FirstName} {record.Veterinarian.LastName}",
+            record.Diagnosis, record.Treatment, record.Notes, record.FollowUpDate,
+            record.CreatedAt), null);
+    }
+
+    public async Task<(MedicalRecordResponse? Result, string? Error, bool NotFound)> UpdateAsync(int id, UpdateMedicalRecordRequest request, CancellationToken cancellationToken)
+    {
+        var record = await context.MedicalRecords
+            .Include(m => m.Pet)
+            .Include(m => m.Veterinarian)
+            .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+
+        if (record is null)
+        {
+            return (null, null, true);
+        }
+
+        record.Diagnosis = request.Diagnosis;
+        record.Treatment = request.Treatment;
+        record.Notes = request.Notes;
+        record.FollowUpDate = request.FollowUpDate;
+
+        await context.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Medical record updated: {RecordId}", record.Id);
+
+        return (new MedicalRecordResponse(
+            record.Id, record.AppointmentId, record.PetId, record.Pet.Name,
+            record.VeterinarianId, $"{record.Veterinarian.FirstName} {record.Veterinarian.LastName}",
+            record.Diagnosis, record.Treatment, record.Notes, record.FollowUpDate,
+            record.CreatedAt), null, false);
     }
 }

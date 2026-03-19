@@ -23,39 +23,60 @@ public class GlobalExceptionHandlerMiddleware
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An unhandled exception occurred");
             await HandleExceptionAsync(context, ex);
         }
     }
 
-    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        var (statusCode, title) = exception switch
-        {
-            KeyNotFoundException => (StatusCodes.Status404NotFound, "Resource not found"),
-            InvalidOperationException => (StatusCodes.Status409Conflict, "Invalid operation"),
-            ArgumentException => (StatusCodes.Status400BadRequest, "Bad request"),
-            _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred")
-        };
-
-        if (statusCode == StatusCodes.Status500InternalServerError)
-        {
-            _logger.LogError(exception, "Unhandled exception occurred");
-        }
-        else
-        {
-            _logger.LogWarning(exception, "Handled exception: {Message}", exception.Message);
-        }
-
-        var problemDetails = new ProblemDetails
-        {
-            Status = statusCode,
-            Title = title,
-            Detail = exception.Message,
-            Instance = context.Request.Path
-        };
-
-        context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problemDetails);
+
+        var problemDetails = exception switch
+        {
+            BusinessRuleException bre => new ProblemDetails
+            {
+                Status = bre.StatusCode,
+                Title = bre.Title,
+                Detail = bre.Message,
+                Type = "https://tools.ietf.org/html/rfc7807"
+            },
+            KeyNotFoundException => new ProblemDetails
+            {
+                Status = (int)HttpStatusCode.NotFound,
+                Title = "Resource Not Found",
+                Detail = exception.Message,
+                Type = "https://tools.ietf.org/html/rfc7807"
+            },
+            _ => new ProblemDetails
+            {
+                Status = (int)HttpStatusCode.InternalServerError,
+                Title = "Internal Server Error",
+                Detail = "An unexpected error occurred.",
+                Type = "https://tools.ietf.org/html/rfc7807"
+            }
+        };
+
+        context.Response.StatusCode = problemDetails.Status ?? 500;
+
+        var json = JsonSerializer.Serialize(problemDetails, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+        await context.Response.WriteAsync(json);
+    }
+}
+
+public class BusinessRuleException : Exception
+{
+    public int StatusCode { get; }
+    public string Title { get; }
+
+    public BusinessRuleException(string message, int statusCode = 400, string title = "Business Rule Violation")
+        : base(message)
+    {
+        StatusCode = statusCode;
+        Title = title;
     }
 }

@@ -16,7 +16,6 @@ public sealed class Vaccination
 
     public DateOnly ExpirationDate { get; set; }
 
-    [MaxLength(50)]
     public string? BatchNumber { get; set; }
 
     public int AdministeredByVetId { get; set; }
@@ -25,7 +24,7 @@ public sealed class Vaccination
     [MaxLength(500)]
     public string? Notes { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
 
     public bool IsExpired => ExpirationDate < DateOnly.FromDateTime(DateTime.UtcNow);
     public bool IsDueSoon => !IsExpired && ExpirationDate <= DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30);

@@ -1,39 +1,43 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FitnessStudioApi.Endpoints;
 
 public static class BookingEndpoints
 {
-    public static RouteGroupBuilder MapBookingEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapBookingEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/bookings")
-            .WithTags("Bookings");
+        var bookings = group.MapGroup("/bookings").WithTags("Bookings");
 
-        group.MapPost("/", CreateAsync);
-        group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/{id:int}/cancel", CancelAsync);
-        group.MapPost("/{id:int}/check-in", CheckInAsync);
-        group.MapPost("/{id:int}/no-show", NoShowAsync);
+        bookings.MapPost("/", CreateAsync)
+            .WithSummary("Book a class (enforces all booking rules)");
+
+        bookings.MapGet("/{id:int}", GetByIdAsync)
+            .WithSummary("Get booking details");
+
+        bookings.MapPost("/{id:int}/cancel", CancelAsync)
+            .WithSummary("Cancel a booking (enforces cancellation policy)");
+
+        bookings.MapPost("/{id:int}/check-in", CheckInAsync)
+            .WithSummary("Check in for a class");
+
+        bookings.MapPost("/{id:int}/no-show", NoShowAsync)
+            .WithSummary("Mark booking as no-show");
 
         return group;
     }
 
-    private static async Task<IResult> CreateAsync(
+    private static async Task<Results<Created<BookingResponse>, BadRequest<string>>> CreateAsync(
         CreateBookingRequest request, IBookingService service, CancellationToken ct)
     {
-        try
-        {
-            var booking = await service.CreateAsync(request, ct);
-            return TypedResults.Created($"/api/bookings/{booking.Id}", booking);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (result, error) = await service.CreateAsync(request, ct);
+        return result is not null
+            ? TypedResults.Created($"/api/bookings/{result.Id}", result)
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> GetByIdAsync(
+    private static async Task<Results<Ok<BookingResponse>, NotFound>> GetByIdAsync(
         int id, IBookingService service, CancellationToken ct)
     {
         var booking = await service.GetByIdAsync(id, ct);
@@ -42,57 +46,30 @@ public static class BookingEndpoints
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CancelAsync(
-        int id, CancelBookingRequest request, IBookingService service, CancellationToken ct)
+    private static async Task<Results<NoContent, BadRequest<string>>> CancelAsync(
+        int id, CancelBookingRequest? request, IBookingService service, CancellationToken ct)
     {
-        try
-        {
-            var booking = await service.CancelAsync(id, request.Reason, ct);
-            return TypedResults.Ok(booking);
-        }
-        catch (KeyNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (success, error) = await service.CancelAsync(id, request, ct);
+        return success
+            ? TypedResults.NoContent()
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> CheckInAsync(
+    private static async Task<Results<NoContent, BadRequest<string>>> CheckInAsync(
         int id, IBookingService service, CancellationToken ct)
     {
-        try
-        {
-            var booking = await service.CheckInAsync(id, ct);
-            return TypedResults.Ok(booking);
-        }
-        catch (KeyNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (success, error) = await service.CheckInAsync(id, ct);
+        return success
+            ? TypedResults.NoContent()
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> NoShowAsync(
+    private static async Task<Results<NoContent, BadRequest<string>>> NoShowAsync(
         int id, IBookingService service, CancellationToken ct)
     {
-        try
-        {
-            var booking = await service.MarkNoShowAsync(id, ct);
-            return TypedResults.Ok(booking);
-        }
-        catch (KeyNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (success, error) = await service.MarkNoShowAsync(id, ct);
+        return success
+            ? TypedResults.NoContent()
+            : TypedResults.BadRequest(error);
     }
 }

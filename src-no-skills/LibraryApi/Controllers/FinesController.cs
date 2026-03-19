@@ -1,7 +1,5 @@
-using LibraryApi.DTOs.Common;
-using LibraryApi.DTOs.Fine;
-using LibraryApi.Models.Enums;
-using LibraryApi.Services.Interfaces;
+using LibraryApi.DTOs;
+using LibraryApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApi.Controllers;
@@ -15,32 +13,32 @@ public class FinesController : ControllerBase
 
     public FinesController(IFineService service) => _service = service;
 
-    /// <summary>List fines with filter, pagination.</summary>
+    /// <summary>List fines with filter by status and pagination</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<FineListDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] FineStatus? status, [FromQuery] PaginationParams pagination)
-        => Ok(await _service.GetAllAsync(status, pagination));
+    [ProducesResponseType(typeof(PagedResult<FineDto>), 200)]
+    public async Task<IActionResult> GetFines([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        => Ok(await _service.GetFinesAsync(status, page, pageSize));
 
-    /// <summary>Get fine details.</summary>
+    /// <summary>Get fine details</summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(FineDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id)
-        => Ok(await _service.GetByIdAsync(id));
+    [ProducesResponseType(typeof(FineDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetFine(int id)
+        => Ok(await _service.GetFineByIdAsync(id));
 
-    /// <summary>Pay a fine.</summary>
+    /// <summary>Pay a fine</summary>
     [HttpPost("{id}/pay")]
-    [ProducesResponseType(typeof(FineDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Pay(int id)
-        => Ok(await _service.PayAsync(id));
+    [ProducesResponseType(typeof(FineDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> PayFine(int id)
+        => Ok(await _service.PayFineAsync(id));
 
-    /// <summary>Waive a fine.</summary>
+    /// <summary>Waive a fine</summary>
     [HttpPost("{id}/waive")]
-    [ProducesResponseType(typeof(FineDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Waive(int id)
-        => Ok(await _service.WaiveAsync(id));
+    [ProducesResponseType(typeof(FineDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> WaiveFine(int id)
+        => Ok(await _service.WaiveFineAsync(id));
 }

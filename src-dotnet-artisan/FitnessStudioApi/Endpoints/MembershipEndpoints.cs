@@ -1,40 +1,46 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FitnessStudioApi.Endpoints;
 
 public static class MembershipEndpoints
 {
-    public static RouteGroupBuilder MapMembershipEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapMembershipEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/memberships")
-            .WithTags("Memberships");
+        var memberships = group.MapGroup("/memberships").WithTags("Memberships");
 
-        group.MapPost("/", CreateAsync);
-        group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/{id:int}/cancel", CancelAsync);
-        group.MapPost("/{id:int}/freeze", FreezeAsync);
-        group.MapPost("/{id:int}/unfreeze", UnfreezeAsync);
-        group.MapPost("/{id:int}/renew", RenewAsync);
+        memberships.MapPost("/", CreateAsync)
+            .WithSummary("Purchase/create a membership for a member");
+
+        memberships.MapGet("/{id:int}", GetByIdAsync)
+            .WithSummary("Get membership details");
+
+        memberships.MapPost("/{id:int}/cancel", CancelAsync)
+            .WithSummary("Cancel a membership");
+
+        memberships.MapPost("/{id:int}/freeze", FreezeAsync)
+            .WithSummary("Freeze a membership");
+
+        memberships.MapPost("/{id:int}/unfreeze", UnfreezeAsync)
+            .WithSummary("Unfreeze a membership");
+
+        memberships.MapPost("/{id:int}/renew", RenewAsync)
+            .WithSummary("Renew an expired membership");
 
         return group;
     }
 
-    private static async Task<IResult> CreateAsync(
+    private static async Task<Results<Created<MembershipResponse>, BadRequest<string>>> CreateAsync(
         CreateMembershipRequest request, IMembershipService service, CancellationToken ct)
     {
-        try
-        {
-            var membership = await service.CreateAsync(request, ct);
-            return TypedResults.Created($"/api/memberships/{membership.Id}", membership);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (result, error) = await service.CreateAsync(request, ct);
+        return result is not null
+            ? TypedResults.Created($"/api/memberships/{result.Id}", result)
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> GetByIdAsync(
+    private static async Task<Results<Ok<MembershipResponse>, NotFound>> GetByIdAsync(
         int id, IMembershipService service, CancellationToken ct)
     {
         var membership = await service.GetByIdAsync(id, ct);
@@ -43,75 +49,39 @@ public static class MembershipEndpoints
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CancelAsync(
+    private static async Task<Results<NoContent, BadRequest<string>>> CancelAsync(
         int id, IMembershipService service, CancellationToken ct)
     {
-        try
-        {
-            var membership = await service.CancelAsync(id, ct);
-            return TypedResults.Ok(membership);
-        }
-        catch (KeyNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (success, error) = await service.CancelAsync(id, ct);
+        return success
+            ? TypedResults.NoContent()
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> FreezeAsync(
+    private static async Task<Results<NoContent, BadRequest<string>>> FreezeAsync(
         int id, FreezeMembershipRequest request, IMembershipService service, CancellationToken ct)
     {
-        try
-        {
-            var membership = await service.FreezeAsync(id, request, ct);
-            return TypedResults.Ok(membership);
-        }
-        catch (KeyNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (success, error) = await service.FreezeAsync(id, request, ct);
+        return success
+            ? TypedResults.NoContent()
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> UnfreezeAsync(
+    private static async Task<Results<NoContent, BadRequest<string>>> UnfreezeAsync(
         int id, IMembershipService service, CancellationToken ct)
     {
-        try
-        {
-            var membership = await service.UnfreezeAsync(id, ct);
-            return TypedResults.Ok(membership);
-        }
-        catch (KeyNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (success, error) = await service.UnfreezeAsync(id, ct);
+        return success
+            ? TypedResults.NoContent()
+            : TypedResults.BadRequest(error);
     }
 
-    private static async Task<IResult> RenewAsync(
+    private static async Task<Results<Created<MembershipResponse>, BadRequest<string>>> RenewAsync(
         int id, IMembershipService service, CancellationToken ct)
     {
-        try
-        {
-            var membership = await service.RenewAsync(id, ct);
-            return TypedResults.Ok(membership);
-        }
-        catch (KeyNotFoundException)
-        {
-            return TypedResults.NotFound();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return TypedResults.BadRequest(new { error = ex.Message });
-        }
+        var (result, error) = await service.RenewAsync(id, ct);
+        return result is not null
+            ? TypedResults.Created($"/api/memberships/{result.Id}", result)
+            : TypedResults.BadRequest(error);
     }
 }

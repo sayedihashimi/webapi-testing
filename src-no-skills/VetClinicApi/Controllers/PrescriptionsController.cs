@@ -1,32 +1,35 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs.Prescription;
-using VetClinicApi.Services.Interfaces;
+using VetClinicApi.DTOs;
+using VetClinicApi.Services;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Produces("application/json")]
 public class PrescriptionsController : ControllerBase
 {
-    private readonly IPrescriptionService _prescriptionService;
+    private readonly IPrescriptionService _service;
 
-    public PrescriptionsController(IPrescriptionService prescriptionService) => _prescriptionService = prescriptionService;
+    public PrescriptionsController(IPrescriptionService service)
+    {
+        _service = service;
+    }
 
-    /// <summary>Get prescription details</summary>
-    [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(PrescriptionDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(PrescriptionResponseDto), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetById(int id)
-        => Ok(await _prescriptionService.GetByIdAsync(id));
+    {
+        var result = await _service.GetByIdAsync(id);
+        return Ok(result);
+    }
 
-    /// <summary>Create a prescription for a medical record</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(PrescriptionDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(PrescriptionResponseDto), 201)]
+    [ProducesResponseType(400)]
     public async Task<IActionResult> Create([FromBody] CreatePrescriptionDto dto)
     {
-        var result = await _prescriptionService.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 }

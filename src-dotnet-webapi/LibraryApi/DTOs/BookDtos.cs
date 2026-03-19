@@ -2,39 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LibraryApi.DTOs;
 
-public sealed record BookResponse(
-    int Id,
-    string Title,
-    string ISBN,
-    string? Publisher,
-    int? PublicationYear,
-    string? Description,
-    int? PageCount,
-    string Language,
-    int TotalCopies,
-    int AvailableCopies,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
-
-public sealed record BookDetailResponse(
-    int Id,
-    string Title,
-    string ISBN,
-    string? Publisher,
-    int? PublicationYear,
-    string? Description,
-    int? PageCount,
-    string Language,
-    int TotalCopies,
-    int AvailableCopies,
-    DateTime CreatedAt,
-    DateTime UpdatedAt,
-    IReadOnlyList<BookAuthorResponse> Authors,
-    IReadOnlyList<BookCategoryResponse> Categories);
-
-public sealed record BookAuthorResponse(int Id, string FirstName, string LastName);
-public sealed record BookCategoryResponse(int Id, string Name);
-
+// Requests
 public sealed record CreateBookRequest
 {
     [Required, MaxLength(300)]
@@ -92,3 +60,41 @@ public sealed record UpdateBookRequest
     public required IReadOnlyList<int> AuthorIds { get; init; }
     public required IReadOnlyList<int> CategoryIds { get; init; }
 }
+
+// Responses
+public sealed record BookResponse(
+    int Id,
+    string Title,
+    string ISBN,
+    string? Publisher,
+    int? PublicationYear,
+    string? Description,
+    int? PageCount,
+    string Language,
+    int TotalCopies,
+    int AvailableCopies,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    IReadOnlyList<string> Authors,
+    IReadOnlyList<string> Categories);
+
+public sealed record BookDetailResponse(
+    int Id,
+    string Title,
+    string ISBN,
+    string? Publisher,
+    int? PublicationYear,
+    string? Description,
+    int? PageCount,
+    string Language,
+    int TotalCopies,
+    int AvailableCopies,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    IReadOnlyList<BookAuthorResponse> Authors,
+    IReadOnlyList<CategoryResponse> Categories);
+
+public sealed record BookAuthorResponse(
+    int Id,
+    string FirstName,
+    string LastName);

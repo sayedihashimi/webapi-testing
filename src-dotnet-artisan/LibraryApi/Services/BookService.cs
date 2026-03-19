@@ -5,127 +5,121 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApi.Services;
 
-public sealed class BookService(LibraryDbContext db, ILogger<BookService> logger) : IBookService
+public sealed class BookService(LibraryDbContext context, ILogger<BookService> logger) : IBookService
 {
-    public async Task<PagedResult<BookSummaryDto>> GetBooksAsync(
-        string? search, string? category, bool? available,
-        string? sortBy, string? sortDirection,
-        int page, int pageSize, CancellationToken ct = default)
+    public async Task<PaginatedResponse<BookResponse>> GetBooksAsync(
+        string? search, string? category, bool? available, string? sortBy,
+        int page, int pageSize, CancellationToken ct)
     {
-        var query = db.Books
+        var query = context.Books
             .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
             .Include(b => b.BookCategories).ThenInclude(bc => bc.Category)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim().ToLower();
+            var term = search.ToLower();
             query = query.Where(b =>
                 b.Title.ToLower().Contains(term) ||
-                b.ISBN.Contains(term) ||
-                b.BookAuthors.Any(ba =>
-                    ba.Author.FirstName.ToLower().Contains(term) ||
-                    ba.Author.LastName.ToLower().Contains(term)));
+                b.ISBN.ToLower().Contains(term) ||
+                b.BookAuthors.Any(ba => ba.Author.FirstName.ToLower().Contains(term) || ba.Author.LastName.ToLower().Contains(term)));
         }
 
         if (!string.IsNullOrWhiteSpace(category))
         {
-            var cat = category.Trim().ToLower();
-            query = query.Where(b => b.BookCategories.Any(bc => bc.Category.Name.ToLower() == cat));
+            query = query.Where(b => b.BookCategories.Any(bc => bc.Category.Name.ToLower() == category.ToLower()));
         }
 
-        if (available == true)
+        if (available.HasValue)
         {
-            query = query.Where(b => b.AvailableCopies > 0);
-        }
-        else if (available == false)
-        {
-            query = query.Where(b => b.AvailableCopies == 0);
+            query = available.Value
+                ? query.Where(b => b.AvailableCopies > 0)
+                : query.Where(b => b.AvailableCopies == 0);
         }
 
-        query = (sortBy?.ToLower(), sortDirection?.ToLower()) switch
+        query = sortBy?.ToLower() switch
         {
-            ("title", "desc") => query.OrderByDescending(b => b.Title),
-            ("title", _) => query.OrderBy(b => b.Title),
-            ("year", "desc") => query.OrderByDescending(b => b.PublicationYear),
-            ("year", _) => query.OrderBy(b => b.PublicationYear),
-            ("available", "desc") => query.OrderByDescending(b => b.AvailableCopies),
-            ("available", _) => query.OrderBy(b => b.AvailableCopies),
+            "title" => query.OrderBy(b => b.Title),
+            "year" => query.OrderByDescending(b => b.PublicationYear),
+            "recent" => query.OrderByDescending(b => b.CreatedAt),
             _ => query.OrderBy(b => b.Title)
         };
 
         var totalCount = await query.CountAsync(ct);
         var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(b => new BookSummaryDto(
-                b.Id, b.Title, b.ISBN, b.Publisher,
-                b.PublicationYear, b.Language, b.TotalCopies, b.AvailableCopies
-            ))
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(b => new BookResponse(
+                b.Id, b.Title, b.ISBN, b.Publisher, b.PublicationYear, b.Language,
+                b.TotalCopies, b.AvailableCopies,
+                b.BookAuthors.Select(ba => ba.Author.FirstName + " " + ba.Author.LastName).ToList(),
+                b.BookCategories.Select(bc => bc.Category.Name).ToList()))
             .ToListAsync(ct);
 
-        return new PagedResult<BookSummaryDto>(items, totalCount, page, pageSize);
+        return new PaginatedResponse<BookResponse>(items, totalCount, page, pageSize, (int)Math.Ceiling((double)totalCount / pageSize));
     }
 
-    public async Task<BookDetailDto?> GetBookByIdAsync(int id, CancellationToken ct = default)
+    public async Task<BookDetailResponse?> GetBookByIdAsync(int id, CancellationToken ct)
     {
-        return await db.Books
+        var book = await context.Books
             .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
             .Include(b => b.BookCategories).ThenInclude(bc => bc.Category)
-            .Where(b => b.Id == id)
-            .Select(b => new BookDetailDto(
-                b.Id, b.Title, b.ISBN, b.Publisher, b.PublicationYear,
-                b.Description, b.PageCount, b.Language,
-                b.TotalCopies, b.AvailableCopies,
-                b.CreatedAt, b.UpdatedAt,
-                b.BookAuthors.Select(ba => new AuthorSummaryDto(
-                    ba.Author.Id, ba.Author.FirstName, ba.Author.LastName, ba.Author.Country
-                )).ToList(),
-                b.BookCategories.Select(bc => new CategoryDto(
-                    bc.Category.Id, bc.Category.Name, bc.Category.Description
-                )).ToList()
-            ))
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(b => b.Id == id, ct);
+
+        if (book is null)
+        {
+            return null;
+        }
+
+        return MapToDetail(book);
     }
 
-    public async Task<BookDetailDto> CreateBookAsync(CreateBookDto dto, CancellationToken ct = default)
+    public async Task<BookDetailResponse> CreateBookAsync(CreateBookRequest request, CancellationToken ct)
     {
         var book = new Book
         {
-            Title = dto.Title,
-            ISBN = dto.ISBN,
-            Publisher = dto.Publisher,
-            PublicationYear = dto.PublicationYear,
-            Description = dto.Description,
-            PageCount = dto.PageCount,
-            Language = dto.Language ?? "English",
-            TotalCopies = dto.TotalCopies,
-            AvailableCopies = dto.TotalCopies
+            Title = request.Title,
+            ISBN = request.ISBN,
+            Publisher = request.Publisher,
+            PublicationYear = request.PublicationYear,
+            Description = request.Description,
+            PageCount = request.PageCount,
+            Language = request.Language,
+            TotalCopies = request.TotalCopies,
+            AvailableCopies = request.TotalCopies,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
-        db.Books.Add(book);
-        await db.SaveChangesAsync(ct);
+        context.Books.Add(book);
+        await context.SaveChangesAsync(ct);
 
-        foreach (var authorId in dto.AuthorIds)
+        // Add authors
+        foreach (var authorId in request.AuthorIds)
         {
-            db.BookAuthors.Add(new BookAuthor { BookId = book.Id, AuthorId = authorId });
+            context.BookAuthors.Add(new BookAuthor { BookId = book.Id, AuthorId = authorId });
         }
 
-        foreach (var categoryId in dto.CategoryIds)
+        // Add categories
+        foreach (var categoryId in request.CategoryIds)
         {
-            db.BookCategories.Add(new BookCategory { BookId = book.Id, CategoryId = categoryId });
+            context.BookCategories.Add(new BookCategory { BookId = book.Id, CategoryId = categoryId });
         }
 
-        await db.SaveChangesAsync(ct);
+        await context.SaveChangesAsync(ct);
+
+        // Reload with includes
+        var created = await context.Books
+            .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
+            .Include(b => b.BookCategories).ThenInclude(bc => bc.Category)
+            .FirstAsync(b => b.Id == book.Id, ct);
 
         logger.LogInformation("Created book {BookId}: {Title}", book.Id, book.Title);
-
-        return (await GetBookByIdAsync(book.Id, ct))!;
+        return MapToDetail(created);
     }
 
-    public async Task<BookDetailDto?> UpdateBookAsync(int id, UpdateBookDto dto, CancellationToken ct = default)
+    public async Task<BookDetailResponse?> UpdateBookAsync(int id, UpdateBookRequest request, CancellationToken ct)
     {
-        var book = await db.Books
+        var book = await context.Books
             .Include(b => b.BookAuthors)
             .Include(b => b.BookCategories)
             .FirstOrDefaultAsync(b => b.Id == id, ct);
@@ -135,89 +129,104 @@ public sealed class BookService(LibraryDbContext db, ILogger<BookService> logger
             return null;
         }
 
-        var activeLoans = await db.Loans.CountAsync(l => l.BookId == id && l.Status == LoanStatus.Active, ct);
-        var copiesDiff = dto.TotalCopies - book.TotalCopies;
+        var activeLoans = await context.Loans.CountAsync(l => l.BookId == id && l.Status == LoanStatus.Active, ct);
+        var newAvailable = request.TotalCopies - activeLoans;
 
-        book.Title = dto.Title;
-        book.ISBN = dto.ISBN;
-        book.Publisher = dto.Publisher;
-        book.PublicationYear = dto.PublicationYear;
-        book.Description = dto.Description;
-        book.PageCount = dto.PageCount;
-        book.Language = dto.Language ?? "English";
-        book.TotalCopies = dto.TotalCopies;
-        book.AvailableCopies = Math.Max(0, book.AvailableCopies + copiesDiff);
+        book.Title = request.Title;
+        book.ISBN = request.ISBN;
+        book.Publisher = request.Publisher;
+        book.PublicationYear = request.PublicationYear;
+        book.Description = request.Description;
+        book.PageCount = request.PageCount;
+        book.Language = request.Language;
+        book.TotalCopies = request.TotalCopies;
+        book.AvailableCopies = Math.Max(0, newAvailable);
         book.UpdatedAt = DateTime.UtcNow;
 
-        db.BookAuthors.RemoveRange(book.BookAuthors);
-        db.BookCategories.RemoveRange(book.BookCategories);
-
-        foreach (var authorId in dto.AuthorIds)
+        // Replace authors
+        context.BookAuthors.RemoveRange(book.BookAuthors);
+        foreach (var authorId in request.AuthorIds)
         {
-            db.BookAuthors.Add(new BookAuthor { BookId = book.Id, AuthorId = authorId });
+            context.BookAuthors.Add(new BookAuthor { BookId = id, AuthorId = authorId });
         }
 
-        foreach (var categoryId in dto.CategoryIds)
+        // Replace categories
+        context.BookCategories.RemoveRange(book.BookCategories);
+        foreach (var categoryId in request.CategoryIds)
         {
-            db.BookCategories.Add(new BookCategory { BookId = book.Id, CategoryId = categoryId });
+            context.BookCategories.Add(new BookCategory { BookId = id, CategoryId = categoryId });
         }
 
-        await db.SaveChangesAsync(ct);
+        await context.SaveChangesAsync(ct);
 
-        logger.LogInformation("Updated book {BookId}", id);
+        var updated = await context.Books
+            .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
+            .Include(b => b.BookCategories).ThenInclude(bc => bc.Category)
+            .FirstAsync(b => b.Id == id, ct);
 
-        return await GetBookByIdAsync(id, ct);
+        return MapToDetail(updated);
     }
 
-    public async Task<(bool Found, bool HasActiveLoans)> DeleteBookAsync(int id, CancellationToken ct = default)
+    public async Task<(bool Found, bool HasActiveLoans)> DeleteBookAsync(int id, CancellationToken ct)
     {
-        var book = await db.Books.FindAsync([id], ct);
+        var book = await context.Books.FindAsync([id], ct);
         if (book is null)
         {
             return (false, false);
         }
 
-        var hasActiveLoans = await db.Loans.AnyAsync(l => l.BookId == id && l.Status == LoanStatus.Active, ct);
+        var hasActiveLoans = await context.Loans.AnyAsync(l => l.BookId == id && l.Status == LoanStatus.Active, ct);
         if (hasActiveLoans)
         {
             return (true, true);
         }
 
-        db.Books.Remove(book);
-        await db.SaveChangesAsync(ct);
-
+        context.Books.Remove(book);
+        await context.SaveChangesAsync(ct);
         logger.LogInformation("Deleted book {BookId}", id);
-
         return (true, false);
     }
 
-    public async Task<List<LoanDto>> GetBookLoansAsync(int bookId, CancellationToken ct = default)
+    public async Task<PaginatedResponse<LoanResponse>> GetBookLoansAsync(int bookId, int page, int pageSize, CancellationToken ct)
     {
-        return await db.Loans
-            .Include(l => l.Book)
-            .Include(l => l.Patron)
+        var query = context.Loans
+            .Include(l => l.Book).Include(l => l.Patron)
             .Where(l => l.BookId == bookId)
-            .OrderByDescending(l => l.LoanDate)
-            .Select(l => new LoanDto(
-                l.Id, l.BookId, l.Book.Title, l.PatronId,
-                $"{l.Patron.FirstName} {l.Patron.LastName}",
-                l.LoanDate, l.DueDate, l.ReturnDate, l.Status, l.RenewalCount, l.CreatedAt
-            ))
+            .OrderByDescending(l => l.LoanDate);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(l => new LoanResponse(l.Id, l.BookId, l.Book.Title, l.PatronId,
+                l.Patron.FirstName + " " + l.Patron.LastName,
+                l.LoanDate, l.DueDate, l.ReturnDate, l.Status, l.RenewalCount))
             .ToListAsync(ct);
+
+        return new PaginatedResponse<LoanResponse>(items, totalCount, page, pageSize, (int)Math.Ceiling((double)totalCount / pageSize));
     }
 
-    public async Task<List<ReservationDto>> GetBookReservationsAsync(int bookId, CancellationToken ct = default)
+    public async Task<PaginatedResponse<ReservationResponse>> GetBookReservationsAsync(int bookId, int page, int pageSize, CancellationToken ct)
     {
-        return await db.Reservations
-            .Include(r => r.Book)
-            .Include(r => r.Patron)
+        var query = context.Reservations
+            .Include(r => r.Book).Include(r => r.Patron)
             .Where(r => r.BookId == bookId && (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Ready))
-            .OrderBy(r => r.QueuePosition)
-            .Select(r => new ReservationDto(
-                r.Id, r.BookId, r.Book.Title, r.PatronId,
-                $"{r.Patron.FirstName} {r.Patron.LastName}",
-                r.ReservationDate, r.ExpirationDate, r.Status, r.QueuePosition, r.CreatedAt
-            ))
+            .OrderBy(r => r.QueuePosition);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(r => new ReservationResponse(r.Id, r.BookId, r.Book.Title, r.PatronId,
+                r.Patron.FirstName + " " + r.Patron.LastName,
+                r.ReservationDate, r.ExpirationDate, r.Status, r.QueuePosition))
             .ToListAsync(ct);
+
+        return new PaginatedResponse<ReservationResponse>(items, totalCount, page, pageSize, (int)Math.Ceiling((double)totalCount / pageSize));
     }
+
+    private static BookDetailResponse MapToDetail(Book book) =>
+        new(book.Id, book.Title, book.ISBN, book.Publisher, book.PublicationYear,
+            book.Description, book.PageCount, book.Language, book.TotalCopies, book.AvailableCopies,
+            book.CreatedAt, book.UpdatedAt,
+            book.BookAuthors.Select(ba => new AuthorResponse(ba.Author.Id, ba.Author.FirstName, ba.Author.LastName, ba.Author.Biography, ba.Author.BirthDate, ba.Author.Country, ba.Author.CreatedAt)).ToList(),
+            book.BookCategories.Select(bc => new CategoryResponse(bc.Category.Id, bc.Category.Name, bc.Category.Description)).ToList());
 }

@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using LibraryApi.Models.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LibraryApi.Models;
 
@@ -13,14 +13,13 @@ public class Fine
     public int LoanId { get; set; }
     public Loan Loan { get; set; } = null!;
 
-    [Range(0.01, double.MaxValue)]
+    [Column(TypeName = "decimal(10,2)")]
     public decimal Amount { get; set; }
 
     [Required, MaxLength(500)]
     public string Reason { get; set; } = string.Empty;
 
     public DateTime IssuedDate { get; set; } = DateTime.UtcNow;
-
     public DateTime? PaidDate { get; set; }
 
     public FineStatus Status { get; set; } = FineStatus.Unpaid;

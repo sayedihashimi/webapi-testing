@@ -6,11 +6,7 @@ public sealed class Booking
 
     public int ClassScheduleId { get; set; }
 
-    public ClassSchedule ClassSchedule { get; set; } = null!;
-
     public int MemberId { get; set; }
-
-    public Member Member { get; set; } = null!;
 
     public DateTime BookingDate { get; set; } = DateTime.UtcNow;
 
@@ -27,4 +23,8 @@ public sealed class Booking
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public ClassSchedule ClassSchedule { get; set; } = null!;
+
+    public Member Member { get; set; } = null!;
 }

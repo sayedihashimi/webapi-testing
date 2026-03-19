@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using VetClinicApi.DTOs;
 using VetClinicApi.Services;
 
@@ -5,60 +6,38 @@ namespace VetClinicApi.Endpoints;
 
 public static class VaccinationEndpoints
 {
-    public static RouteGroupBuilder MapVaccinationEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapVaccinationEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/vaccinations")
-            .WithTags("Vaccinations");
+        var vaccinations = group.MapGroup("/vaccinations").WithTags("Vaccinations");
 
-        group.MapPost("/", CreateAsync);
-        group.MapGet("/{id:int}", GetByIdAsync);
+        vaccinations.MapGet("/{id:int}", GetVaccinationById).WithSummary("Get vaccination details");
+        vaccinations.MapPost("/", CreateVaccination).WithSummary("Record a new vaccination");
 
         return group;
     }
 
-    private static async Task<IResult> GetByIdAsync(
+    private static async Task<Results<Ok<VaccinationResponse>, NotFound>> GetVaccinationById(
         int id,
         IVaccinationService service,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        var vaccination = await service.GetByIdAsync(id, ct);
-        return vaccination is not null
-            ? TypedResults.Ok(vaccination)
+        var result = await service.GetByIdAsync(id, cancellationToken);
+        return result is not null
+            ? TypedResults.Ok(result)
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CreateAsync(
-        CreateVaccinationDto dto,
+    private static async Task<Results<Created<VaccinationResponse>, BadRequest<string>>> CreateVaccination(
+        CreateVaccinationRequest request,
         IVaccinationService service,
-        IPetService petService,
-        IVeterinarianService vetService,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        if (!await petService.ExistsAsync(dto.PetId, ct))
+        var (result, error) = await service.CreateAsync(request, cancellationToken);
+        if (result is null)
         {
-            return TypedResults.Problem(
-                detail: "Pet not found.",
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation Error");
+            return TypedResults.BadRequest(error!);
         }
 
-        if (!await vetService.ExistsAsync(dto.AdministeredByVetId, ct))
-        {
-            return TypedResults.Problem(
-                detail: "Veterinarian not found.",
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation Error");
-        }
-
-        if (dto.ExpirationDate <= dto.DateAdministered)
-        {
-            return TypedResults.Problem(
-                detail: "Expiration date must be after the date administered.",
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation Error");
-        }
-
-        var vaccination = await service.CreateAsync(dto, ct);
-        return TypedResults.Created($"/api/vaccinations/{vaccination.Id}", vaccination);
+        return TypedResults.Created($"/api/vaccinations/{result.Id}", result);
     }
 }

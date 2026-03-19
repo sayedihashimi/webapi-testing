@@ -1,31 +1,29 @@
+using Microsoft.EntityFrameworkCore;
 using FitnessStudioApi.Data;
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Models;
-using FitnessStudioApi.Models.Enums;
-using FitnessStudioApi.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using FitnessStudioApi.Middleware;
 
 namespace FitnessStudioApi.Services;
 
 public class ClassTypeService : IClassTypeService
 {
     private readonly FitnessDbContext _db;
-    private readonly ILogger<ClassTypeService> _logger;
 
-    public ClassTypeService(FitnessDbContext db, ILogger<ClassTypeService> logger)
+    public ClassTypeService(FitnessDbContext db)
     {
         _db = db;
-        _logger = logger;
     }
 
-    public async Task<List<ClassTypeResponseDto>> GetAllAsync(string? difficulty, bool? isPremium)
+    public async Task<List<ClassTypeDto>> GetAllAsync(string? difficulty, bool? isPremium)
     {
         var query = _db.ClassTypes.Where(ct => ct.IsActive);
 
-        if (!string.IsNullOrWhiteSpace(difficulty) && Enum.TryParse<DifficultyLevel>(difficulty, true, out var dl))
-            query = query.Where(ct => ct.DifficultyLevel == dl);
         if (isPremium.HasValue)
             query = query.Where(ct => ct.IsPremium == isPremium.Value);
+
+        if (!string.IsNullOrWhiteSpace(difficulty) && Enum.TryParse<DifficultyLevel>(difficulty, true, out var dl))
+            query = query.Where(ct => ct.DifficultyLevel == dl);
 
         return await query
             .OrderBy(ct => ct.Name)
@@ -33,19 +31,20 @@ public class ClassTypeService : IClassTypeService
             .ToListAsync();
     }
 
-    public async Task<ClassTypeResponseDto?> GetByIdAsync(int id)
+    public async Task<ClassTypeDto> GetByIdAsync(int id)
     {
-        var ct = await _db.ClassTypes.FindAsync(id);
-        return ct is null ? null : MapToDto(ct);
+        var ct = await _db.ClassTypes.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Class type with ID {id} not found.");
+        return MapToDto(ct);
     }
 
-    public async Task<ClassTypeResponseDto> CreateAsync(ClassTypeCreateDto dto)
+    public async Task<ClassTypeDto> CreateAsync(CreateClassTypeDto dto)
     {
         if (await _db.ClassTypes.AnyAsync(ct => ct.Name == dto.Name))
-            throw new BusinessRuleException($"A class type with name '{dto.Name}' already exists.");
+            throw new BusinessRuleException($"A class type with name '{dto.Name}' already exists.", 409);
 
-        if (!Enum.TryParse<DifficultyLevel>(dto.DifficultyLevel, true, out var difficultyLevel))
-            throw new BusinessRuleException($"Invalid difficulty level '{dto.DifficultyLevel}'. Valid values: Beginner, Intermediate, Advanced, AllLevels");
+        if (!Enum.TryParse<DifficultyLevel>(dto.DifficultyLevel, true, out var dl))
+            throw new BusinessRuleException($"Invalid difficulty level: {dto.DifficultyLevel}. Valid values: Beginner, Intermediate, Advanced, AllLevels");
 
         var classType = new ClassType
         {
@@ -55,25 +54,24 @@ public class ClassTypeService : IClassTypeService
             DefaultCapacity = dto.DefaultCapacity,
             IsPremium = dto.IsPremium,
             CaloriesPerSession = dto.CaloriesPerSession,
-            DifficultyLevel = difficultyLevel
+            DifficultyLevel = dl
         };
 
         _db.ClassTypes.Add(classType);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Created class type {ClassTypeName} with ID {ClassTypeId}", classType.Name, classType.Id);
         return MapToDto(classType);
     }
 
-    public async Task<ClassTypeResponseDto?> UpdateAsync(int id, ClassTypeUpdateDto dto)
+    public async Task<ClassTypeDto> UpdateAsync(int id, UpdateClassTypeDto dto)
     {
-        var classType = await _db.ClassTypes.FindAsync(id);
-        if (classType is null) return null;
+        var classType = await _db.ClassTypes.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Class type with ID {id} not found.");
 
         if (await _db.ClassTypes.AnyAsync(ct => ct.Name == dto.Name && ct.Id != id))
-            throw new BusinessRuleException($"A class type with name '{dto.Name}' already exists.");
+            throw new BusinessRuleException($"A class type with name '{dto.Name}' already exists.", 409);
 
-        if (!Enum.TryParse<DifficultyLevel>(dto.DifficultyLevel, true, out var difficultyLevel))
-            throw new BusinessRuleException($"Invalid difficulty level '{dto.DifficultyLevel}'.");
+        if (!Enum.TryParse<DifficultyLevel>(dto.DifficultyLevel, true, out var dl))
+            throw new BusinessRuleException($"Invalid difficulty level: {dto.DifficultyLevel}");
 
         classType.Name = dto.Name;
         classType.Description = dto.Description;
@@ -81,16 +79,15 @@ public class ClassTypeService : IClassTypeService
         classType.DefaultCapacity = dto.DefaultCapacity;
         classType.IsPremium = dto.IsPremium;
         classType.CaloriesPerSession = dto.CaloriesPerSession;
-        classType.DifficultyLevel = difficultyLevel;
+        classType.DifficultyLevel = dl;
         classType.IsActive = dto.IsActive;
         classType.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated class type {ClassTypeId}", id);
         return MapToDto(classType);
     }
 
-    private static ClassTypeResponseDto MapToDto(ClassType ct) => new()
+    private static ClassTypeDto MapToDto(ClassType ct) => new()
     {
         Id = ct.Id,
         Name = ct.Name,
@@ -100,8 +97,6 @@ public class ClassTypeService : IClassTypeService
         IsPremium = ct.IsPremium,
         CaloriesPerSession = ct.CaloriesPerSession,
         DifficultyLevel = ct.DifficultyLevel.ToString(),
-        IsActive = ct.IsActive,
-        CreatedAt = ct.CreatedAt,
-        UpdatedAt = ct.UpdatedAt
+        IsActive = ct.IsActive
     };
 }

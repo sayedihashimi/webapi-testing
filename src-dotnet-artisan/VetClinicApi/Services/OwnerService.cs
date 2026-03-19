@@ -5,11 +5,11 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public sealed class OwnerService(VetClinicDbContext db, ILogger<OwnerService> logger) : IOwnerService
+public sealed class OwnerService(VetClinicDbContext context, ILogger<OwnerService> logger) : IOwnerService
 {
-    public async Task<PagedResult<OwnerDto>> GetAllAsync(string? search, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<OwnerResponse>> GetAllAsync(string? search, int page, int pageSize, CancellationToken cancellationToken)
     {
-        var query = db.Owners.AsQueryable();
+        var query = context.Owners.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -20,120 +20,131 @@ public sealed class OwnerService(VetClinicDbContext db, ILogger<OwnerService> lo
                 o.Email.ToLower().Contains(term));
         }
 
-        var totalCount = await query.CountAsync(ct);
+        var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(o => o.LastName).ThenBy(o => o.FirstName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(o => MapToDto(o))
-            .ToListAsync(ct);
+            .Select(o => MapToResponse(o))
+            .ToListAsync(cancellationToken);
 
-        return new PagedResult<OwnerDto>(items, totalCount, page, pageSize);
+        return new PagedResult<OwnerResponse>(items, totalCount, page, pageSize);
     }
 
-    public async Task<OwnerDetailDto?> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<OwnerDetailResponse?> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
-        var owner = await db.Owners
-            .Include(o => o.Pets.Where(p => p.IsActive))
-            .FirstOrDefaultAsync(o => o.Id == id, ct);
+        var owner = await context.Owners
+            .Include(o => o.Pets)
+            .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
         if (owner is null)
         {
             return null;
         }
 
-        return new OwnerDetailDto(
+        return new OwnerDetailResponse(
             owner.Id, owner.FirstName, owner.LastName, owner.Email, owner.Phone,
             owner.Address, owner.City, owner.State, owner.ZipCode,
             owner.CreatedAt, owner.UpdatedAt,
-            owner.Pets.Select(p => new PetSummaryDto(p.Id, p.Name, p.Species, p.Breed, p.IsActive)).ToList());
+            owner.Pets.Select(p => new PetSummaryResponse(p.Id, p.Name, p.Species, p.Breed, p.IsActive)).ToList());
     }
 
-    public async Task<OwnerDto> CreateAsync(CreateOwnerDto dto, CancellationToken ct = default)
+    public async Task<OwnerResponse> CreateAsync(CreateOwnerRequest request, CancellationToken cancellationToken)
     {
         var owner = new Owner
         {
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
-            Email = dto.Email,
-            Phone = dto.Phone,
-            Address = dto.Address,
-            City = dto.City,
-            State = dto.State,
-            ZipCode = dto.ZipCode
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            Phone = request.Phone,
+            Address = request.Address,
+            City = request.City,
+            State = request.State,
+            ZipCode = request.ZipCode
         };
 
-        db.Owners.Add(owner);
-        await db.SaveChangesAsync(ct);
+        context.Owners.Add(owner);
+        await context.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Owner created: {OwnerId} {FirstName} {LastName}", owner.Id, owner.FirstName, owner.LastName);
 
-        logger.LogInformation("Created owner {OwnerId}: {FirstName} {LastName}", owner.Id, owner.FirstName, owner.LastName);
-        return MapToDto(owner);
+        return MapToResponse(owner);
     }
 
-    public async Task<OwnerDto?> UpdateAsync(int id, UpdateOwnerDto dto, CancellationToken ct = default)
+    public async Task<OwnerResponse?> UpdateAsync(int id, UpdateOwnerRequest request, CancellationToken cancellationToken)
     {
-        var owner = await db.Owners.FindAsync([id], ct);
+        var owner = await context.Owners.FindAsync([id], cancellationToken);
         if (owner is null)
         {
             return null;
         }
 
-        owner.FirstName = dto.FirstName;
-        owner.LastName = dto.LastName;
-        owner.Email = dto.Email;
-        owner.Phone = dto.Phone;
-        owner.Address = dto.Address;
-        owner.City = dto.City;
-        owner.State = dto.State;
-        owner.ZipCode = dto.ZipCode;
-        owner.UpdatedAt = DateTime.UtcNow;
+        owner.FirstName = request.FirstName;
+        owner.LastName = request.LastName;
+        owner.Email = request.Email;
+        owner.Phone = request.Phone;
+        owner.Address = request.Address;
+        owner.City = request.City;
+        owner.State = request.State;
+        owner.ZipCode = request.ZipCode;
 
-        await db.SaveChangesAsync(ct);
+        await context.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Owner updated: {OwnerId}", owner.Id);
 
-        logger.LogInformation("Updated owner {OwnerId}", owner.Id);
-        return MapToDto(owner);
+        return MapToResponse(owner);
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
+    public async Task<(bool Found, bool HasActivePets)> DeleteAsync(int id, CancellationToken cancellationToken)
     {
-        var owner = await db.Owners.FindAsync([id], ct);
+        var owner = await context.Owners
+            .Include(o => o.Pets)
+            .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+
         if (owner is null)
         {
-            return false;
+            return (false, false);
         }
 
-        db.Owners.Remove(owner);
-        await db.SaveChangesAsync(ct);
+        if (owner.Pets.Any(p => p.IsActive))
+        {
+            return (true, true);
+        }
 
-        logger.LogInformation("Deleted owner {OwnerId}", id);
-        return true;
+        context.Owners.Remove(owner);
+        await context.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Owner deleted: {OwnerId}", id);
+
+        return (true, false);
     }
 
-    public async Task<bool> HasActivePetsAsync(int id, CancellationToken ct = default) =>
-        await db.Pets.AnyAsync(p => p.OwnerId == id && p.IsActive, ct);
+    public async Task<IReadOnlyList<PetResponse>> GetPetsAsync(int ownerId, CancellationToken cancellationToken)
+    {
+        return await context.Pets
+            .Where(p => p.OwnerId == ownerId)
+            .Select(p => new PetResponse(
+                p.Id, p.Name, p.Species, p.Breed, p.DateOfBirth,
+                p.Weight, p.Color, p.MicrochipNumber, p.IsActive,
+                p.OwnerId, p.CreatedAt, p.UpdatedAt))
+            .ToListAsync(cancellationToken);
+    }
 
-    public async Task<IReadOnlyList<PetSummaryDto>> GetPetsAsync(int ownerId, CancellationToken ct = default) =>
-        await db.Pets
-            .Where(p => p.OwnerId == ownerId && p.IsActive)
-            .Select(p => new PetSummaryDto(p.Id, p.Name, p.Species, p.Breed, p.IsActive))
-            .ToListAsync(ct);
-
-    public async Task<IReadOnlyList<AppointmentDto>> GetAppointmentsAsync(int ownerId, CancellationToken ct = default) =>
-        await db.Appointments
+    public async Task<IReadOnlyList<AppointmentResponse>> GetAppointmentsAsync(int ownerId, CancellationToken cancellationToken)
+    {
+        return await context.Appointments
             .Include(a => a.Pet)
             .Include(a => a.Veterinarian)
             .Where(a => a.Pet.OwnerId == ownerId)
             .OrderByDescending(a => a.AppointmentDate)
-            .Select(a => new AppointmentDto(
+            .Select(a => new AppointmentResponse(
                 a.Id, a.PetId, a.Pet.Name,
                 a.VeterinarianId, $"{a.Veterinarian.FirstName} {a.Veterinarian.LastName}",
                 a.AppointmentDate, a.DurationMinutes, a.Status,
                 a.Reason, a.Notes, a.CancellationReason,
                 a.CreatedAt, a.UpdatedAt))
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
+    }
 
-    private static OwnerDto MapToDto(Owner o) =>
-        new(o.Id, o.FirstName, o.LastName, o.Email, o.Phone,
-            o.Address, o.City, o.State, o.ZipCode,
-            o.CreatedAt, o.UpdatedAt);
+    private static OwnerResponse MapToResponse(Owner owner) =>
+        new(owner.Id, owner.FirstName, owner.LastName, owner.Email, owner.Phone,
+            owner.Address, owner.City, owner.State, owner.ZipCode,
+            owner.CreatedAt, owner.UpdatedAt);
 }

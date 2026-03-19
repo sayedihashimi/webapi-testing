@@ -1,9 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using FitnessStudioApi.Data;
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Models;
-using FitnessStudioApi.Models.Enums;
-using FitnessStudioApi.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using FitnessStudioApi.Middleware;
 
 namespace FitnessStudioApi.Services;
 
@@ -18,7 +17,7 @@ public class ClassScheduleService : IClassScheduleService
         _logger = logger;
     }
 
-    public async Task<PagedResult<ClassScheduleResponseDto>> GetAllAsync(
+    public async Task<PagedResult<ClassScheduleDto>> GetAllAsync(
         DateTime? fromDate, DateTime? toDate, int? classTypeId, int? instructorId,
         bool? hasAvailability, PaginationParams pagination)
     {
@@ -29,23 +28,28 @@ public class ClassScheduleService : IClassScheduleService
 
         if (fromDate.HasValue)
             query = query.Where(cs => cs.StartTime >= fromDate.Value);
+
         if (toDate.HasValue)
             query = query.Where(cs => cs.StartTime <= toDate.Value);
+
         if (classTypeId.HasValue)
             query = query.Where(cs => cs.ClassTypeId == classTypeId.Value);
+
         if (instructorId.HasValue)
             query = query.Where(cs => cs.InstructorId == instructorId.Value);
+
         if (hasAvailability == true)
             query = query.Where(cs => cs.CurrentEnrollment < cs.Capacity && cs.Status == ClassScheduleStatus.Scheduled);
 
         var totalCount = await query.CountAsync();
+
         var items = await query
             .OrderBy(cs => cs.StartTime)
             .Skip((pagination.Page - 1) * pagination.PageSize)
             .Take(pagination.PageSize)
             .ToListAsync();
 
-        return new PagedResult<ClassScheduleResponseDto>
+        return new PagedResult<ClassScheduleDto>
         {
             Items = items.Select(MapToDto).ToList(),
             TotalCount = totalCount,
@@ -54,25 +58,27 @@ public class ClassScheduleService : IClassScheduleService
         };
     }
 
-    public async Task<ClassScheduleResponseDto?> GetByIdAsync(int id)
+    public async Task<ClassScheduleDto> GetByIdAsync(int id)
     {
         var cs = await _db.ClassSchedules
             .Include(c => c.ClassType)
             .Include(c => c.Instructor)
-            .FirstOrDefaultAsync(c => c.Id == id);
-        return cs is null ? null : MapToDto(cs);
+            .FirstOrDefaultAsync(c => c.Id == id)
+            ?? throw new KeyNotFoundException($"Class schedule with ID {id} not found.");
+
+        return MapToDto(cs);
     }
 
-    public async Task<ClassScheduleResponseDto> CreateAsync(ClassScheduleCreateDto dto)
+    public async Task<ClassScheduleDto> CreateAsync(CreateClassScheduleDto dto)
     {
         var classType = await _db.ClassTypes.FindAsync(dto.ClassTypeId)
-            ?? throw new BusinessRuleException("Class type not found.", 404);
+            ?? throw new KeyNotFoundException($"Class type with ID {dto.ClassTypeId} not found.");
 
         var instructor = await _db.Instructors.FindAsync(dto.InstructorId)
-            ?? throw new BusinessRuleException("Instructor not found.", 404);
+            ?? throw new KeyNotFoundException($"Instructor with ID {dto.InstructorId} not found.");
 
         if (!instructor.IsActive)
-            throw new BusinessRuleException("Cannot assign an inactive instructor.");
+            throw new BusinessRuleException("Cannot assign an inactive instructor to a class.");
 
         if (dto.EndTime <= dto.StartTime)
             throw new BusinessRuleException("End time must be after start time.");
@@ -85,7 +91,7 @@ public class ClassScheduleService : IClassScheduleService
             cs.EndTime > dto.StartTime);
 
         if (hasConflict)
-            throw new BusinessRuleException("Instructor has a scheduling conflict at the specified time.");
+            throw new BusinessRuleException("Instructor has a schedule conflict at the specified time.", 409);
 
         var schedule = new ClassSchedule
         {
@@ -93,42 +99,36 @@ public class ClassScheduleService : IClassScheduleService
             InstructorId = dto.InstructorId,
             StartTime = dto.StartTime,
             EndTime = dto.EndTime,
-            Capacity = dto.Capacity ?? classType.DefaultCapacity,
+            Capacity = dto.Capacity > 0 ? dto.Capacity : classType.DefaultCapacity,
             Room = dto.Room
         };
 
         _db.ClassSchedules.Add(schedule);
         await _db.SaveChangesAsync();
-
-        _logger.LogInformation("Scheduled class {ClassTypeName} with instructor {InstructorName} at {StartTime}",
+        _logger.LogInformation("Scheduled class {ClassType} with instructor {Instructor} at {StartTime}",
             classType.Name, $"{instructor.FirstName} {instructor.LastName}", schedule.StartTime);
 
-        // Reload with includes
-        var result = await _db.ClassSchedules
-            .Include(c => c.ClassType)
-            .Include(c => c.Instructor)
-            .FirstAsync(c => c.Id == schedule.Id);
-        return MapToDto(result);
+        return await GetByIdAsync(schedule.Id);
     }
 
-    public async Task<ClassScheduleResponseDto?> UpdateAsync(int id, ClassScheduleUpdateDto dto)
+    public async Task<ClassScheduleDto> UpdateAsync(int id, UpdateClassScheduleDto dto)
     {
         var schedule = await _db.ClassSchedules
-            .Include(c => c.ClassType)
-            .Include(c => c.Instructor)
-            .FirstOrDefaultAsync(c => c.Id == id);
-        if (schedule is null) return null;
+            .Include(cs => cs.ClassType)
+            .Include(cs => cs.Instructor)
+            .FirstOrDefaultAsync(cs => cs.Id == id)
+            ?? throw new KeyNotFoundException($"Class schedule with ID {id} not found.");
 
         if (schedule.Status == ClassScheduleStatus.Cancelled)
             throw new BusinessRuleException("Cannot update a cancelled class.");
 
         var instructor = await _db.Instructors.FindAsync(dto.InstructorId)
-            ?? throw new BusinessRuleException("Instructor not found.", 404);
+            ?? throw new KeyNotFoundException($"Instructor with ID {dto.InstructorId} not found.");
 
         if (dto.EndTime <= dto.StartTime)
             throw new BusinessRuleException("End time must be after start time.");
 
-        // Check instructor conflicts (excluding this schedule)
+        // Check instructor schedule conflicts (excluding current class)
         var hasConflict = await _db.ClassSchedules.AnyAsync(cs =>
             cs.Id != id &&
             cs.InstructorId == dto.InstructorId &&
@@ -137,45 +137,34 @@ public class ClassScheduleService : IClassScheduleService
             cs.EndTime > dto.StartTime);
 
         if (hasConflict)
-            throw new BusinessRuleException("Instructor has a scheduling conflict at the specified time.");
+            throw new BusinessRuleException("Instructor has a schedule conflict at the specified time.", 409);
 
         schedule.ClassTypeId = dto.ClassTypeId;
         schedule.InstructorId = dto.InstructorId;
         schedule.StartTime = dto.StartTime;
         schedule.EndTime = dto.EndTime;
-        if (dto.Capacity.HasValue)
-            schedule.Capacity = dto.Capacity.Value;
+        schedule.Capacity = dto.Capacity;
         schedule.Room = dto.Room;
         schedule.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Updated class schedule {ScheduleId}", id);
-
-        // Reload
-        schedule = await _db.ClassSchedules
-            .Include(c => c.ClassType)
-            .Include(c => c.Instructor)
-            .FirstAsync(c => c.Id == id);
-        return MapToDto(schedule);
+        return await GetByIdAsync(id);
     }
 
-    public async Task<ClassScheduleResponseDto> CancelAsync(int id, CancelClassDto dto)
+    public async Task<ClassScheduleDto> CancelAsync(int id, CancelClassDto dto)
     {
         var schedule = await _db.ClassSchedules
-            .Include(c => c.ClassType)
-            .Include(c => c.Instructor)
-            .Include(c => c.Bookings)
-            .FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new BusinessRuleException("Class schedule not found.", 404);
+            .Include(cs => cs.ClassType)
+            .Include(cs => cs.Instructor)
+            .Include(cs => cs.Bookings)
+            .FirstOrDefaultAsync(cs => cs.Id == id)
+            ?? throw new KeyNotFoundException($"Class schedule with ID {id} not found.");
 
         if (schedule.Status == ClassScheduleStatus.Cancelled)
             throw new BusinessRuleException("Class is already cancelled.");
 
-        if (schedule.Status == ClassScheduleStatus.Completed)
-            throw new BusinessRuleException("Cannot cancel a completed class.");
-
         schedule.Status = ClassScheduleStatus.Cancelled;
-        schedule.CancellationReason = dto.Reason;
+        schedule.CancellationReason = dto.CancellationReason;
         schedule.UpdatedAt = DateTime.UtcNow;
 
         // Cancel all active bookings
@@ -185,7 +174,6 @@ public class ClassScheduleService : IClassScheduleService
             booking.Status = BookingStatus.Cancelled;
             booking.CancellationDate = DateTime.UtcNow;
             booking.CancellationReason = "Class cancelled by studio";
-            booking.WaitlistPosition = null;
             booking.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -193,76 +181,68 @@ public class ClassScheduleService : IClassScheduleService
         schedule.WaitlistCount = 0;
 
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Cancelled class schedule {ScheduleId}. All bookings cancelled.", id);
+        _logger.LogInformation("Cancelled class {ClassId} with reason: {Reason}", id, dto.CancellationReason);
         return MapToDto(schedule);
     }
 
-    public async Task<List<RosterEntryDto>> GetRosterAsync(int id)
+    public async Task<List<BookingDto>> GetRosterAsync(int id)
     {
-        var schedule = await _db.ClassSchedules.FindAsync(id)
-            ?? throw new BusinessRuleException("Class schedule not found.", 404);
+        if (!await _db.ClassSchedules.AnyAsync(cs => cs.Id == id))
+            throw new KeyNotFoundException($"Class schedule with ID {id} not found.");
 
-        return await _db.Bookings
+        var bookings = await _db.Bookings
+            .Include(b => b.ClassSchedule).ThenInclude(cs => cs.ClassType)
+            .Include(b => b.ClassSchedule).ThenInclude(cs => cs.Instructor)
             .Include(b => b.Member)
             .Where(b => b.ClassScheduleId == id &&
-                (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Attended))
+                       (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Attended))
             .OrderBy(b => b.BookingDate)
-            .Select(b => new RosterEntryDto
-            {
-                BookingId = b.Id,
-                MemberId = b.MemberId,
-                MemberName = b.Member.FirstName + " " + b.Member.LastName,
-                Status = b.Status.ToString(),
-                BookingDate = b.BookingDate,
-                CheckInTime = b.CheckInTime
-            })
             .ToListAsync();
+
+        return bookings.Select(MemberService.MapBookingToDto).ToList();
     }
 
-    public async Task<List<WaitlistEntryDto>> GetWaitlistAsync(int id)
+    public async Task<List<BookingDto>> GetWaitlistAsync(int id)
     {
-        var schedule = await _db.ClassSchedules.FindAsync(id)
-            ?? throw new BusinessRuleException("Class schedule not found.", 404);
+        if (!await _db.ClassSchedules.AnyAsync(cs => cs.Id == id))
+            throw new KeyNotFoundException($"Class schedule with ID {id} not found.");
 
-        return await _db.Bookings
+        var bookings = await _db.Bookings
+            .Include(b => b.ClassSchedule).ThenInclude(cs => cs.ClassType)
+            .Include(b => b.ClassSchedule).ThenInclude(cs => cs.Instructor)
             .Include(b => b.Member)
             .Where(b => b.ClassScheduleId == id && b.Status == BookingStatus.Waitlisted)
             .OrderBy(b => b.WaitlistPosition)
-            .Select(b => new WaitlistEntryDto
-            {
-                BookingId = b.Id,
-                MemberId = b.MemberId,
-                MemberName = b.Member.FirstName + " " + b.Member.LastName,
-                WaitlistPosition = b.WaitlistPosition ?? 0,
-                BookingDate = b.BookingDate
-            })
             .ToListAsync();
+
+        return bookings.Select(MemberService.MapBookingToDto).ToList();
     }
 
-    public async Task<List<ClassScheduleResponseDto>> GetAvailableAsync()
+    public async Task<List<ClassScheduleDto>> GetAvailableAsync()
     {
         var now = DateTime.UtcNow;
-        var weekOut = now.AddDays(7);
+        var weekFromNow = now.AddDays(7);
 
-        return await _db.ClassSchedules
+        var classes = await _db.ClassSchedules
             .Include(cs => cs.ClassType)
             .Include(cs => cs.Instructor)
             .Where(cs => cs.Status == ClassScheduleStatus.Scheduled &&
                          cs.StartTime > now &&
-                         cs.StartTime <= weekOut &&
+                         cs.StartTime <= weekFromNow &&
                          cs.CurrentEnrollment < cs.Capacity)
             .OrderBy(cs => cs.StartTime)
-            .Select(cs => MapToDto(cs))
             .ToListAsync();
+
+        return classes.Select(MapToDto).ToList();
     }
 
-    internal static ClassScheduleResponseDto MapToDto(ClassSchedule cs) => new()
+    internal static ClassScheduleDto MapToDto(ClassSchedule cs) => new()
     {
         Id = cs.Id,
         ClassTypeId = cs.ClassTypeId,
-        ClassTypeName = cs.ClassType?.Name ?? string.Empty,
+        ClassTypeName = cs.ClassType.Name,
         InstructorId = cs.InstructorId,
-        InstructorName = cs.Instructor != null ? $"{cs.Instructor.FirstName} {cs.Instructor.LastName}" : string.Empty,
+        InstructorName = $"{cs.Instructor.FirstName} {cs.Instructor.LastName}",
         StartTime = cs.StartTime,
         EndTime = cs.EndTime,
         Capacity = cs.Capacity,
@@ -271,8 +251,6 @@ public class ClassScheduleService : IClassScheduleService
         Room = cs.Room,
         Status = cs.Status.ToString(),
         CancellationReason = cs.CancellationReason,
-        IsPremium = cs.ClassType?.IsPremium ?? false,
-        CreatedAt = cs.CreatedAt,
-        UpdatedAt = cs.UpdatedAt
+        IsPremium = cs.ClassType.IsPremium
     };
 }

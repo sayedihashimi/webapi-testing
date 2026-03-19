@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using VetClinicApi.DTOs;
 using VetClinicApi.Services;
 
@@ -5,111 +6,101 @@ namespace VetClinicApi.Endpoints;
 
 public static class OwnerEndpoints
 {
-    public static RouteGroupBuilder MapOwnerEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapOwnerEndpoints(this RouteGroupBuilder group)
     {
-        var group = routes.MapGroup("/api/owners")
-            .WithTags("Owners");
+        var owners = group.MapGroup("/owners").WithTags("Owners");
 
-        group.MapGet("/", GetAllAsync);
-        group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync);
-        group.MapPut("/{id:int}", UpdateAsync);
-        group.MapDelete("/{id:int}", DeleteAsync);
-        group.MapGet("/{id:int}/pets", GetPetsAsync);
-        group.MapGet("/{id:int}/appointments", GetAppointmentsAsync);
+        owners.MapGet("/", GetOwners).WithSummary("List all owners with optional search and pagination");
+        owners.MapGet("/{id:int}", GetOwnerById).WithSummary("Get owner by ID including their pets");
+        owners.MapPost("/", CreateOwner).WithSummary("Create a new owner");
+        owners.MapPut("/{id:int}", UpdateOwner).WithSummary("Update an existing owner");
+        owners.MapDelete("/{id:int}", DeleteOwner).WithSummary("Delete an owner (fails if owner has active pets)");
+        owners.MapGet("/{id:int}/pets", GetOwnerPets).WithSummary("Get all pets for an owner");
+        owners.MapGet("/{id:int}/appointments", GetOwnerAppointments).WithSummary("Get appointment history for all of an owner's pets");
 
         return group;
     }
 
-    private static async Task<IResult> GetAllAsync(
+    private static async Task<Ok<PagedResult<OwnerResponse>>> GetOwners(
         IOwnerService service,
         string? search = null,
         int page = 1,
         int pageSize = 10,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        var result = await service.GetAllAsync(search, page, pageSize, ct);
+        var result = await service.GetAllAsync(search, page, pageSize, cancellationToken);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<IResult> GetByIdAsync(
+    private static async Task<Results<Ok<OwnerDetailResponse>, NotFound>> GetOwnerById(
         int id,
         IOwnerService service,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        var owner = await service.GetByIdAsync(id, ct);
-        return owner is not null
-            ? TypedResults.Ok(owner)
+        var result = await service.GetByIdAsync(id, cancellationToken);
+        return result is not null
+            ? TypedResults.Ok(result)
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> CreateAsync(
-        CreateOwnerDto dto,
+    private static async Task<Created<OwnerResponse>> CreateOwner(
+        CreateOwnerRequest request,
         IOwnerService service,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        var owner = await service.CreateAsync(dto, ct);
-        return TypedResults.Created($"/api/owners/{owner.Id}", owner);
+        var result = await service.CreateAsync(request, cancellationToken);
+        return TypedResults.Created($"/api/owners/{result.Id}", result);
     }
 
-    private static async Task<IResult> UpdateAsync(
+    private static async Task<Results<Ok<OwnerResponse>, NotFound>> UpdateOwner(
         int id,
-        UpdateOwnerDto dto,
+        UpdateOwnerRequest request,
         IOwnerService service,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        var owner = await service.UpdateAsync(id, dto, ct);
-        return owner is not null
-            ? TypedResults.Ok(owner)
+        var result = await service.UpdateAsync(id, request, cancellationToken);
+        return result is not null
+            ? TypedResults.Ok(result)
             : TypedResults.NotFound();
     }
 
-    private static async Task<IResult> DeleteAsync(
+    private static async Task<Results<NoContent, NotFound, Conflict<ProblemHttpResult>>> DeleteOwner(
         int id,
         IOwnerService service,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        if (await service.HasActivePetsAsync(id, ct))
-        {
-            return TypedResults.Problem(
-                detail: "Cannot delete owner with active pets. Deactivate or transfer pets first.",
-                statusCode: StatusCodes.Status409Conflict,
-                title: "Conflict");
-        }
+        var (found, hasActivePets) = await service.DeleteAsync(id, cancellationToken);
 
-        var deleted = await service.DeleteAsync(id, ct);
-        return deleted
-            ? TypedResults.NoContent()
-            : TypedResults.NotFound();
-    }
-
-    private static async Task<IResult> GetPetsAsync(
-        int id,
-        IOwnerService service,
-        CancellationToken ct = default)
-    {
-        var owner = await service.GetByIdAsync(id, ct);
-        if (owner is null)
+        if (!found)
         {
             return TypedResults.NotFound();
         }
 
-        var pets = await service.GetPetsAsync(id, ct);
-        return TypedResults.Ok(pets);
-    }
-
-    private static async Task<IResult> GetAppointmentsAsync(
-        int id,
-        IOwnerService service,
-        CancellationToken ct = default)
-    {
-        var owner = await service.GetByIdAsync(id, ct);
-        if (owner is null)
+        if (hasActivePets)
         {
-            return TypedResults.NotFound();
+            return TypedResults.Conflict(TypedResults.Problem(
+                detail: "Cannot delete owner with active pets.",
+                statusCode: StatusCodes.Status409Conflict));
         }
 
-        var appointments = await service.GetAppointmentsAsync(id, ct);
-        return TypedResults.Ok(appointments);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<Ok<IReadOnlyList<PetResponse>>> GetOwnerPets(
+        int id,
+        IOwnerService service,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await service.GetPetsAsync(id, cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<IReadOnlyList<AppointmentResponse>>> GetOwnerAppointments(
+        int id,
+        IOwnerService service,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await service.GetAppointmentsAsync(id, cancellationToken);
+        return TypedResults.Ok(result);
     }
 }

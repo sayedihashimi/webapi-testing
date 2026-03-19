@@ -8,7 +8,7 @@ public sealed class Author
     public string? Biography { get; set; }
     public DateOnly? BirthDate { get; set; }
     public string? Country { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
 
     public ICollection<BookAuthor> BookAuthors { get; set; } = [];
 }

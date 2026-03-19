@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using FitnessStudioApi.Models.Enums;
 
 namespace FitnessStudioApi.Models;
 
@@ -23,7 +22,7 @@ public class ClassType
 
     public int? CaloriesPerSession { get; set; }
 
-    public DifficultyLevel DifficultyLevel { get; set; } = DifficultyLevel.AllLevels;
+    public DifficultyLevel DifficultyLevel { get; set; }
 
     public bool IsActive { get; set; } = true;
 

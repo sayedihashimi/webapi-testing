@@ -3,6 +3,17 @@ using LibraryApi.Models;
 
 namespace LibraryApi.DTOs;
 
+// Requests
+public sealed record CreateLoanRequest
+{
+    [Required]
+    public required int BookId { get; init; }
+
+    [Required]
+    public required int PatronId { get; init; }
+}
+
+// Responses
 public sealed record LoanResponse(
     int Id,
     int BookId,
@@ -15,15 +26,6 @@ public sealed record LoanResponse(
     LoanStatus Status,
     int RenewalCount,
     DateTime CreatedAt);
-
-public sealed record CreateLoanRequest
-{
-    [Required]
-    public required int BookId { get; init; }
-
-    [Required]
-    public required int PatronId { get; init; }
-}
 
 public sealed record LoanDetailResponse(
     int Id,
@@ -38,4 +40,5 @@ public sealed record LoanDetailResponse(
     DateTime? ReturnDate,
     LoanStatus Status,
     int RenewalCount,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    IReadOnlyList<FineResponse> Fines);

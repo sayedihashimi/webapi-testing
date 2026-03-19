@@ -1,7 +1,5 @@
-using LibraryApi.DTOs.Common;
-using LibraryApi.DTOs.Reservation;
-using LibraryApi.Models.Enums;
-using LibraryApi.Services.Interfaces;
+using LibraryApi.DTOs;
+using LibraryApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApi.Controllers;
@@ -15,46 +13,43 @@ public class ReservationsController : ControllerBase
 
     public ReservationsController(IReservationService service) => _service = service;
 
-    /// <summary>List reservations with filter, pagination.</summary>
+    /// <summary>List reservations with filter by status and pagination</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<ReservationListDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] ReservationStatus? status, [FromQuery] PaginationParams pagination)
-        => Ok(await _service.GetAllAsync(status, pagination));
+    [ProducesResponseType(typeof(PagedResult<ReservationDto>), 200)]
+    public async Task<IActionResult> GetReservations([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        => Ok(await _service.GetReservationsAsync(status, page, pageSize));
 
-    /// <summary>Get reservation details.</summary>
+    /// <summary>Get reservation details</summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(ReservationDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id)
-        => Ok(await _service.GetByIdAsync(id));
+    [ProducesResponseType(typeof(ReservationDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetReservation(int id)
+        => Ok(await _service.GetReservationByIdAsync(id));
 
-    /// <summary>Create a reservation (enforce rules).</summary>
+    /// <summary>Create a reservation enforcing all reservation rules</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(ReservationDetailDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Create([FromBody] CreateReservationDto dto)
+    [ProducesResponseType(typeof(ReservationDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> CreateReservation([FromBody] ReservationCreateDto dto)
     {
-        var result = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        var reservation = await _service.CreateReservationAsync(dto);
+        return CreatedAtAction(nameof(GetReservation), new { id = reservation.Id }, reservation);
     }
 
-    /// <summary>Cancel a reservation.</summary>
+    /// <summary>Cancel a reservation</summary>
     [HttpPost("{id}/cancel")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Cancel(int id)
-    {
-        await _service.CancelAsync(id);
-        return NoContent();
-    }
+    [ProducesResponseType(typeof(ReservationDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> CancelReservation(int id)
+        => Ok(await _service.CancelReservationAsync(id));
 
-    /// <summary>Fulfill a "Ready" reservation.</summary>
+    /// <summary>Fulfill a Ready reservation (creates a loan for the patron)</summary>
     [HttpPost("{id}/fulfill")]
-    [ProducesResponseType(typeof(ReservationDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Fulfill(int id)
-        => Ok(await _service.FulfillAsync(id));
+    [ProducesResponseType(typeof(LoanDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> FulfillReservation(int id)
+        => Ok(await _service.FulfillReservationAsync(id));
 }

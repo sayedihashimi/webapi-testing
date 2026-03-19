@@ -14,5 +14,13 @@ public sealed class ClassType
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    public ICollection<ClassSchedule> ClassSchedules { get; set; } = [];
+    public ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
+}
+
+public enum DifficultyLevel
+{
+    Beginner,
+    Intermediate,
+    Advanced,
+    AllLevels
 }

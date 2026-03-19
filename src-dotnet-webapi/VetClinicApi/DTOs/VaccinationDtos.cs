@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-// --- Vaccination DTOs ---
-
 public sealed record CreateVaccinationRequest
 {
     [Required]

@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-// --- Veterinarian DTOs ---
-
 public sealed record CreateVeterinarianRequest
 {
     [Required, MaxLength(100)]
@@ -46,7 +44,7 @@ public sealed record UpdateVeterinarianRequest
     [Required]
     public required string LicenseNumber { get; init; }
 
-    public bool IsAvailable { get; init; } = true;
+    public required bool IsAvailable { get; init; }
 }
 
 public sealed record VeterinarianResponse(

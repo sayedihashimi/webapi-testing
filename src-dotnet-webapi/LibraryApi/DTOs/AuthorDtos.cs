@@ -2,27 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LibraryApi.DTOs;
 
-public sealed record AuthorResponse(
-    int Id,
-    string FirstName,
-    string LastName,
-    string? Biography,
-    DateOnly? BirthDate,
-    string? Country,
-    DateTime CreatedAt);
-
-public sealed record AuthorDetailResponse(
-    int Id,
-    string FirstName,
-    string LastName,
-    string? Biography,
-    DateOnly? BirthDate,
-    string? Country,
-    DateTime CreatedAt,
-    IReadOnlyList<AuthorBookResponse> Books);
-
-public sealed record AuthorBookResponse(int Id, string Title, string ISBN);
-
+// Requests
 public sealed record CreateAuthorRequest
 {
     [Required, MaxLength(100)]
@@ -56,3 +36,28 @@ public sealed record UpdateAuthorRequest
     [MaxLength(100)]
     public string? Country { get; init; }
 }
+
+// Responses
+public sealed record AuthorResponse(
+    int Id,
+    string FirstName,
+    string LastName,
+    string? Biography,
+    DateOnly? BirthDate,
+    string? Country,
+    DateTime CreatedAt);
+
+public sealed record AuthorDetailResponse(
+    int Id,
+    string FirstName,
+    string LastName,
+    string? Biography,
+    DateOnly? BirthDate,
+    string? Country,
+    DateTime CreatedAt,
+    IReadOnlyList<AuthorBookResponse> Books);
+
+public sealed record AuthorBookResponse(
+    int Id,
+    string Title,
+    string ISBN);

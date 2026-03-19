@@ -2,17 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FitnessStudioApi.DTOs;
 
-public sealed record MembershipPlanResponse(
-    int Id,
-    string Name,
-    string? Description,
-    int DurationMonths,
-    decimal Price,
-    int MaxClassBookingsPerWeek,
-    bool AllowsPremiumClasses,
-    bool IsActive,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+// --- Requests ---
 
 public sealed record CreateMembershipPlanRequest
 {
@@ -55,3 +45,17 @@ public sealed record UpdateMembershipPlanRequest
 
     public required bool IsActive { get; init; }
 }
+
+// --- Response ---
+
+public sealed record MembershipPlanResponse(
+    int Id,
+    string Name,
+    string? Description,
+    int DurationMonths,
+    decimal Price,
+    int MaxClassBookingsPerWeek,
+    bool AllowsPremiumClasses,
+    bool IsActive,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);

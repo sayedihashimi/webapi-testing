@@ -1,40 +1,46 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs.MedicalRecord;
-using VetClinicApi.Services.Interfaces;
+using VetClinicApi.DTOs;
+using VetClinicApi.Services;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/medical-records")]
-[Produces("application/json")]
 public class MedicalRecordsController : ControllerBase
 {
-    private readonly IMedicalRecordService _medicalRecordService;
+    private readonly IMedicalRecordService _service;
 
-    public MedicalRecordsController(IMedicalRecordService medicalRecordService) => _medicalRecordService = medicalRecordService;
+    public MedicalRecordsController(IMedicalRecordService service)
+    {
+        _service = service;
+    }
 
-    /// <summary>Get medical record with prescriptions</summary>
-    [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(MedicalRecordDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(MedicalRecordResponseDto), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetById(int id)
-        => Ok(await _medicalRecordService.GetByIdAsync(id));
+    {
+        var result = await _service.GetByIdAsync(id);
+        return Ok(result);
+    }
 
-    /// <summary>Create a medical record (appointment must be InProgress or Completed)</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(MedicalRecordDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(MedicalRecordResponseDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(409)]
     public async Task<IActionResult> Create([FromBody] CreateMedicalRecordDto dto)
     {
-        var result = await _medicalRecordService.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update a medical record</summary>
-    [HttpPut("{id:int}")]
-    [ProducesResponseType(typeof(MedicalRecordDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(MedicalRecordResponseDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateMedicalRecordDto dto)
-        => Ok(await _medicalRecordService.UpdateAsync(id, dto));
+    {
+        var result = await _service.UpdateAsync(id, dto);
+        return Ok(result);
+    }
 }

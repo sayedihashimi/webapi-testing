@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-// --- Medical Record DTOs ---
-
 public sealed record CreateMedicalRecordRequest
 {
     [Required]
@@ -36,6 +34,19 @@ public sealed record UpdateMedicalRecordRequest
 }
 
 public sealed record MedicalRecordResponse(
+    int Id,
+    int AppointmentId,
+    int PetId,
+    string PetName,
+    int VeterinarianId,
+    string VeterinarianName,
+    string Diagnosis,
+    string Treatment,
+    string? Notes,
+    DateOnly? FollowUpDate,
+    DateTime CreatedAt);
+
+public sealed record MedicalRecordDetailResponse(
     int Id,
     int AppointmentId,
     int PetId,

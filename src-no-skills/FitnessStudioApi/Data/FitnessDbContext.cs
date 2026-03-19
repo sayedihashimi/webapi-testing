@@ -1,6 +1,5 @@
-using FitnessStudioApi.Models;
-using FitnessStudioApi.Models.Enums;
 using Microsoft.EntityFrameworkCore;
+using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.Data;
 
@@ -36,15 +35,12 @@ public class FitnessDbContext : DbContext
             entity.HasOne(e => e.Member)
                 .WithMany(m => m.Memberships)
                 .HasForeignKey(e => e.MemberId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.MembershipPlan)
                 .WithMany(p => p.Memberships)
                 .HasForeignKey(e => e.MembershipPlanId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            entity.Property(e => e.Status).HasConversion<string>();
-            entity.Property(e => e.PaymentStatus).HasConversion<string>();
         });
 
         modelBuilder.Entity<Instructor>(entity =>
@@ -55,7 +51,6 @@ public class FitnessDbContext : DbContext
         modelBuilder.Entity<ClassType>(entity =>
         {
             entity.HasIndex(e => e.Name).IsUnique();
-            entity.Property(e => e.DifficultyLevel).HasConversion<string>();
         });
 
         modelBuilder.Entity<ClassSchedule>(entity =>
@@ -69,8 +64,6 @@ public class FitnessDbContext : DbContext
                 .WithMany(i => i.ClassSchedules)
                 .HasForeignKey(e => e.InstructorId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            entity.Property(e => e.Status).HasConversion<string>();
         });
 
         modelBuilder.Entity<Booking>(entity =>
@@ -78,14 +71,12 @@ public class FitnessDbContext : DbContext
             entity.HasOne(e => e.ClassSchedule)
                 .WithMany(cs => cs.Bookings)
                 .HasForeignKey(e => e.ClassScheduleId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.Member)
                 .WithMany(m => m.Bookings)
                 .HasForeignKey(e => e.MemberId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.Property(e => e.Status).HasConversion<string>();
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

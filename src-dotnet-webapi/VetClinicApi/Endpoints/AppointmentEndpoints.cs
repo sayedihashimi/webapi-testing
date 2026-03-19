@@ -1,28 +1,35 @@
-using Microsoft.AspNetCore.Http.HttpResults;
 using VetClinicApi.DTOs;
+using VetClinicApi.Models;
 using VetClinicApi.Services;
 
 namespace VetClinicApi.Endpoints;
 
 public static class AppointmentEndpoints
 {
-    public static RouteGroupBuilder MapAppointmentEndpoints(this WebApplication app)
+    public static void MapAppointmentEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/appointments").WithTags("Appointments");
 
-        group.MapGet("/", async Task<Results<Ok<PaginatedResponse<AppointmentResponse>>, BadRequest>> (
-            DateTime? dateFrom, DateTime? dateTo, string? status, int? vetId, int? petId,
-            int? page, int? pageSize,
-            IAppointmentService service, CancellationToken ct) =>
+        group.MapGet("/", async Task<Ok<PaginatedResponse<AppointmentResponse>>> (
+            IAppointmentService service,
+            DateTime? dateFrom,
+            DateTime? dateTo,
+            AppointmentStatus? status,
+            int? vetId,
+            int? petId,
+            int page = 1,
+            int pageSize = 20,
+            CancellationToken ct = default) =>
         {
-            var p = Math.Clamp(page ?? 1, 1, int.MaxValue);
-            var ps = Math.Clamp(pageSize ?? 20, 1, 100);
-            var result = await service.GetAllAsync(dateFrom, dateTo, status, vetId, petId, p, ps, ct);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+            page = Math.Max(1, page);
+            var result = await service.GetAllAsync(dateFrom, dateTo, status, vetId, petId, page, pageSize, ct);
             return TypedResults.Ok(result);
         })
         .WithName("GetAppointments")
         .WithSummary("List all appointments")
-        .WithDescription("Returns paginated appointments. Filter by date range, status, vet, or pet.");
+        .WithDescription("Returns a paginated list of appointments. Supports filter by date range, status, vet, and pet.")
+        .Produces<PaginatedResponse<AppointmentResponse>>(StatusCodes.Status200OK);
 
         group.MapGet("/today", async Task<Ok<IReadOnlyList<AppointmentResponse>>> (
             IAppointmentService service, CancellationToken ct) =>
@@ -32,7 +39,8 @@ public static class AppointmentEndpoints
         })
         .WithName("GetTodayAppointments")
         .WithSummary("Get today's appointments")
-        .WithDescription("Returns all appointments scheduled for today.");
+        .WithDescription("Returns all appointments scheduled for today, ordered by time.")
+        .Produces<IReadOnlyList<AppointmentResponse>>(StatusCodes.Status200OK);
 
         group.MapGet("/{id:int}", async Task<Results<Ok<AppointmentDetailResponse>, NotFound>> (
             int id, IAppointmentService service, CancellationToken ct) =>
@@ -41,10 +49,12 @@ public static class AppointmentEndpoints
             return appointment is null ? TypedResults.NotFound() : TypedResults.Ok(appointment);
         })
         .WithName("GetAppointmentById")
-        .WithSummary("Get appointment by ID")
-        .WithDescription("Returns full appointment details including pet, veterinarian, and medical record.");
+        .WithSummary("Get an appointment by ID")
+        .WithDescription("Returns appointment details including pet, veterinarian, and medical record.")
+        .Produces<AppointmentDetailResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
 
-        group.MapPost("/", async Task<Results<Created<AppointmentResponse>, BadRequest>> (
+        group.MapPost("/", async Task<Created<AppointmentResponse>> (
             CreateAppointmentRequest request, IAppointmentService service, CancellationToken ct) =>
         {
             var appointment = await service.CreateAsync(request, ct);
@@ -52,7 +62,10 @@ public static class AppointmentEndpoints
         })
         .WithName("CreateAppointment")
         .WithSummary("Schedule a new appointment")
-        .WithDescription("Schedules a new appointment. Enforces scheduling conflict detection.");
+        .WithDescription("Creates a new appointment. Enforces conflict detection to prevent overlapping appointments for the same veterinarian.")
+        .Produces<AppointmentResponse>(StatusCodes.Status201Created)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status409Conflict);
 
         group.MapPut("/{id:int}", async Task<Results<Ok<AppointmentResponse>, NotFound>> (
             int id, UpdateAppointmentRequest request, IAppointmentService service, CancellationToken ct) =>
@@ -62,7 +75,10 @@ public static class AppointmentEndpoints
         })
         .WithName("UpdateAppointment")
         .WithSummary("Update an appointment")
-        .WithDescription("Updates appointment details. Re-checks conflicts if time or vet changed.");
+        .WithDescription("Updates appointment details. Re-checks conflicts if date/time/vet changes.")
+        .Produces<AppointmentResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound);
 
         group.MapPatch("/{id:int}/status", async Task<Results<Ok<AppointmentResponse>, NotFound>> (
             int id, UpdateAppointmentStatusRequest request, IAppointmentService service, CancellationToken ct) =>
@@ -72,8 +88,9 @@ public static class AppointmentEndpoints
         })
         .WithName("UpdateAppointmentStatus")
         .WithSummary("Update appointment status")
-        .WithDescription("Updates the appointment status following the allowed workflow transitions.");
-
-        return group;
+        .WithDescription("Updates the status of an appointment. Enforces workflow: Scheduled→CheckedIn/Cancelled/NoShow, CheckedIn→InProgress/Cancelled, InProgress→Completed.")
+        .Produces<AppointmentResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound);
     }
 }

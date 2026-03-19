@@ -8,7 +8,7 @@ public sealed class Membership
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
     public MembershipStatus Status { get; set; } = MembershipStatus.Active;
-    public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
+    public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Paid;
     public DateOnly? FreezeStartDate { get; set; }
     public DateOnly? FreezeEndDate { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -16,4 +16,19 @@ public sealed class Membership
 
     public Member Member { get; set; } = null!;
     public MembershipPlan MembershipPlan { get; set; } = null!;
+}
+
+public enum MembershipStatus
+{
+    Active,
+    Expired,
+    Cancelled,
+    Frozen
+}
+
+public enum PaymentStatus
+{
+    Paid,
+    Pending,
+    Refunded
 }

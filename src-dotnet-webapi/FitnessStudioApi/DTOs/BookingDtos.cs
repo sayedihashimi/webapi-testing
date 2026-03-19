@@ -1,21 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.DTOs;
 
-public sealed record BookingResponse(
-    int Id,
-    int ClassScheduleId,
-    string ClassName,
-    int MemberId,
-    string MemberName,
-    DateTime BookingDate,
-    string Status,
-    int? WaitlistPosition,
-    DateTime? CheckInTime,
-    DateTime? CancellationDate,
-    string? CancellationReason,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+// --- Requests ---
 
 public sealed record CreateBookingRequest
 {
@@ -28,5 +16,26 @@ public sealed record CreateBookingRequest
 
 public sealed record CancelBookingRequest
 {
+    [MaxLength(500)]
     public string? Reason { get; init; }
 }
+
+// --- Response ---
+
+public sealed record BookingResponse(
+    int Id,
+    int ClassScheduleId,
+    string ClassName,
+    int MemberId,
+    string MemberName,
+    DateTime BookingDate,
+    BookingStatus Status,
+    int? WaitlistPosition,
+    DateTime? CheckInTime,
+    DateTime? CancellationDate,
+    string? CancellationReason,
+    DateTime ClassStartTime,
+    DateTime ClassEndTime,
+    string Room,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);

@@ -27,6 +27,4 @@ public sealed class MembershipPlan
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-    public ICollection<Membership> Memberships { get; set; } = [];
 }

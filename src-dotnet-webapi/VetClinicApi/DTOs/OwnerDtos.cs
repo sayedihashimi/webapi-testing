@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-// --- Owner DTOs ---
-
 public sealed record CreateOwnerRequest
 {
     [Required, MaxLength(100)]
@@ -76,3 +74,10 @@ public sealed record OwnerDetailResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     IReadOnlyList<PetSummaryResponse> Pets);
+
+public sealed record PetSummaryResponse(
+    int Id,
+    string Name,
+    string Species,
+    string? Breed,
+    bool IsActive);

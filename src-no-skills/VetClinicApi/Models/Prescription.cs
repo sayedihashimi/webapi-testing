@@ -15,17 +15,16 @@ public class Prescription
     [Required, MaxLength(100)]
     public string Dosage { get; set; } = string.Empty;
 
-    [Range(1, int.MaxValue)]
     public int DurationDays { get; set; }
 
     public DateOnly StartDate { get; set; }
 
-    public DateOnly EndDate => StartDate.AddDays(DurationDays);
-
-    public bool IsActive => EndDate >= DateOnly.FromDateTime(DateTime.UtcNow);
+    public DateOnly EndDate { get; set; }
 
     [MaxLength(500)]
     public string? Instructions { get; set; }
+
+    public bool IsActive => EndDate >= DateOnly.FromDateTime(DateTime.UtcNow);
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -1,14 +1,12 @@
-using System.Text.Json.Serialization;
 using FitnessStudioApi.Data;
 using FitnessStudioApi.Endpoints;
-using FitnessStudioApi.Middleware;
 using FitnessStudioApi.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
-builder.Services.AddDbContext<FitnessDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Services
@@ -20,23 +18,29 @@ builder.Services.AddScoped<IClassTypeService, ClassTypeService>();
 builder.Services.AddScoped<IClassScheduleService, ClassScheduleService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
-// JSON serialization
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-});
-
 // OpenAPI
 builder.Services.AddOpenApi();
 
-// Exception handling
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
-
 var app = builder.Build();
 
-// Exception handling middleware
-app.UseExceptionHandler();
+// Global exception handler returning ProblemDetails
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.ContentType = "application/problem+json";
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+        var problemDetails = new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "An unexpected error occurred",
+            Type = "https://tools.ietf.org/html/rfc7807"
+        };
+
+        await context.Response.WriteAsJsonAsync(problemDetails);
+    });
+});
 
 // OpenAPI / Swagger
 if (app.Environment.IsDevelopment())
@@ -45,26 +49,26 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/openapi/v1.json", "Zenith Fitness Studio API");
+        options.RoutePrefix = "swagger";
     });
 }
 
-app.UseHttpsRedirection();
-
-// Map endpoints
-app.MapMembershipPlanEndpoints();
-app.MapMemberEndpoints();
-app.MapMembershipEndpoints();
-app.MapInstructorEndpoints();
-app.MapClassTypeEndpoints();
-app.MapClassScheduleEndpoints();
-app.MapBookingEndpoints();
+// Map all endpoints
+var api = app.MapGroup("/api");
+api.MapMembershipPlanEndpoints();
+api.MapMemberEndpoints();
+api.MapMembershipEndpoints();
+api.MapInstructorEndpoints();
+api.MapClassTypeEndpoints();
+api.MapClassScheduleEndpoints();
+api.MapBookingEndpoints();
 
 // Seed database
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<FitnessDbContext>();
-    db.Database.EnsureCreated();
-    await SeedData.SeedAsync(db);
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.EnsureCreatedAsync();
+    await SeedData.InitializeAsync(db);
 }
 
 app.Run();

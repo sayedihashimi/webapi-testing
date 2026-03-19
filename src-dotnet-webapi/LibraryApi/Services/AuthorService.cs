@@ -14,17 +14,20 @@ public sealed class AuthorService(LibraryDbContext db, ILogger<AuthorService> lo
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.ToLower();
-            query = query.Where(a => a.FirstName.ToLower().Contains(term)
-                                  || a.LastName.ToLower().Contains(term));
+            var term = search.Trim().ToLower();
+            query = query.Where(a =>
+                a.FirstName.ToLower().Contains(term) ||
+                a.LastName.ToLower().Contains(term));
         }
 
         var totalCount = await query.CountAsync(ct);
+
         var items = await query
             .OrderBy(a => a.LastName).ThenBy(a => a.FirstName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => new AuthorResponse(a.Id, a.FirstName, a.LastName, a.Biography, a.BirthDate, a.Country, a.CreatedAt))
+            .Select(a => new AuthorResponse(
+                a.Id, a.FirstName, a.LastName, a.Biography, a.BirthDate, a.Country, a.CreatedAt))
             .ToListAsync(ct);
 
         return PaginatedResponse<AuthorResponse>.Create(items, page, pageSize, totalCount);
@@ -48,20 +51,21 @@ public sealed class AuthorService(LibraryDbContext db, ILogger<AuthorService> lo
             LastName = request.LastName,
             Biography = request.Biography,
             BirthDate = request.BirthDate,
-            Country = request.Country
+            Country = request.Country,
+            CreatedAt = DateTime.UtcNow
         };
 
         db.Authors.Add(author);
         await db.SaveChangesAsync(ct);
-
         logger.LogInformation("Created author {AuthorId}: {FirstName} {LastName}", author.Id, author.FirstName, author.LastName);
+
         return new AuthorResponse(author.Id, author.FirstName, author.LastName, author.Biography, author.BirthDate, author.Country, author.CreatedAt);
     }
 
-    public async Task<AuthorResponse> UpdateAsync(int id, UpdateAuthorRequest request, CancellationToken ct)
+    public async Task<AuthorResponse?> UpdateAsync(int id, UpdateAuthorRequest request, CancellationToken ct)
     {
-        var author = await db.Authors.FindAsync([id], ct)
-            ?? throw new KeyNotFoundException($"Author with ID {id} not found.");
+        var author = await db.Authors.FindAsync([id], ct);
+        if (author is null) return null;
 
         author.FirstName = request.FirstName;
         author.LastName = request.LastName;
@@ -70,8 +74,8 @@ public sealed class AuthorService(LibraryDbContext db, ILogger<AuthorService> lo
         author.Country = request.Country;
 
         await db.SaveChangesAsync(ct);
+        logger.LogInformation("Updated author {AuthorId}", id);
 
-        logger.LogInformation("Updated author {AuthorId}", author.Id);
         return new AuthorResponse(author.Id, author.FirstName, author.LastName, author.Biography, author.BirthDate, author.Country, author.CreatedAt);
     }
 
@@ -79,15 +83,16 @@ public sealed class AuthorService(LibraryDbContext db, ILogger<AuthorService> lo
     {
         var author = await db.Authors
             .Include(a => a.BookAuthors)
-            .FirstOrDefaultAsync(a => a.Id == id, ct)
-            ?? throw new KeyNotFoundException($"Author with ID {id} not found.");
+            .FirstOrDefaultAsync(a => a.Id == id, ct);
+
+        if (author is null)
+            throw new KeyNotFoundException($"Author with ID {id} not found.");
 
         if (author.BookAuthors.Count > 0)
-            throw new InvalidOperationException($"Cannot delete author with ID {id} because they have {author.BookAuthors.Count} associated book(s).");
+            throw new InvalidOperationException($"Cannot delete author with ID {id} because they have associated books.");
 
         db.Authors.Remove(author);
         await db.SaveChangesAsync(ct);
-
         logger.LogInformation("Deleted author {AuthorId}", id);
     }
 }
