@@ -1,36 +1,32 @@
 using System.ComponentModel.DataAnnotations;
-using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.DTOs;
 
-public class CreateBookingRequest
+public sealed record BookingResponse(
+    int Id,
+    int ClassScheduleId,
+    string ClassName,
+    int MemberId,
+    string MemberName,
+    DateTime BookingDate,
+    string Status,
+    int? WaitlistPosition,
+    DateTime? CheckInTime,
+    DateTime? CancellationDate,
+    string? CancellationReason,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public sealed record CreateBookingRequest
 {
-    public int ClassScheduleId { get; set; }
-    public int MemberId { get; set; }
+    [Required]
+    public required int ClassScheduleId { get; init; }
+
+    [Required]
+    public required int MemberId { get; init; }
 }
 
-public class CancelBookingRequest
+public sealed record CancelBookingRequest
 {
-    public string? CancellationReason { get; set; }
-}
-
-public class BookingResponse
-{
-    public int Id { get; set; }
-    public int ClassScheduleId { get; set; }
-    public string ClassName { get; set; } = string.Empty;
-    public int MemberId { get; set; }
-    public string MemberName { get; set; } = string.Empty;
-    public DateTime BookingDate { get; set; }
-    public BookingStatus Status { get; set; }
-    public int? WaitlistPosition { get; set; }
-    public DateTime? CheckInTime { get; set; }
-    public DateTime? CancellationDate { get; set; }
-    public string? CancellationReason { get; set; }
-    public DateTime ClassStartTime { get; set; }
-    public DateTime ClassEndTime { get; set; }
-    public string Room { get; set; } = string.Empty;
-    public string InstructorName { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public string? Reason { get; init; }
 }

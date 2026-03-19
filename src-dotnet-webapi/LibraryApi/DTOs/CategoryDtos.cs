@@ -2,34 +2,28 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LibraryApi.DTOs;
 
-public class CreateCategoryRequest
+public sealed record CategoryResponse(int Id, string Name, string? Description);
+
+public sealed record CategoryDetailResponse(
+    int Id,
+    string Name,
+    string? Description,
+    int BookCount);
+
+public sealed record CreateCategoryRequest
 {
-    [Required]
-    [MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
+    [Required, MaxLength(100)]
+    public required string Name { get; init; }
 
     [MaxLength(500)]
-    public string? Description { get; set; }
+    public string? Description { get; init; }
 }
 
-public class UpdateCategoryRequest
+public sealed record UpdateCategoryRequest
 {
-    [Required]
-    [MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
+    [Required, MaxLength(100)]
+    public required string Name { get; init; }
 
     [MaxLength(500)]
-    public string? Description { get; set; }
-}
-
-public class CategoryResponse
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string? Description { get; set; }
-}
-
-public class CategoryDetailResponse : CategoryResponse
-{
-    public int BookCount { get; set; }
+    public string? Description { get; init; }
 }

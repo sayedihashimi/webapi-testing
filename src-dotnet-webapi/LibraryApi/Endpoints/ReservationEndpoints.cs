@@ -1,71 +1,64 @@
 using LibraryApi.DTOs;
 using LibraryApi.Models;
 using LibraryApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LibraryApi.Endpoints;
 
 public static class ReservationEndpoints
 {
-    public static RouteGroupBuilder MapReservationEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapReservationEndpoints(this WebApplication app)
     {
-        var group = routes.MapGroup("/api/reservations").WithTags("Reservations");
+        var group = app.MapGroup("/api/reservations").WithTags("Reservations");
 
-        group.MapGet("/", async (ReservationStatus? status, int? page, int? pageSize, IReservationService service, CancellationToken ct) =>
+        group.MapGet("/", async Task<Ok<PaginatedResponse<ReservationResponse>>> (
+            ReservationStatus? status, int? page, int? pageSize,
+            IReservationService service, CancellationToken ct) =>
         {
-            var result = await service.GetAllAsync(status, page ?? 1, Math.Clamp(pageSize ?? 10, 1, 100), ct);
-            return Results.Ok(result);
+            var result = await service.GetAllAsync(status, page ?? 1, Math.Min(pageSize ?? 20, 100), ct);
+            return TypedResults.Ok(result);
         })
         .WithName("GetReservations")
         .WithSummary("List reservations")
-        .WithDescription("Returns a paginated list of reservations. Optionally filter by status.")
-        .Produces<PaginatedResponse<ReservationResponse>>();
+        .WithDescription("Returns a paginated list of reservations. Optionally filter by status.");
 
-        group.MapGet("/{id:int}", async (int id, IReservationService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}", async Task<Results<Ok<ReservationResponse>, NotFound>> (
+            int id, IReservationService service, CancellationToken ct) =>
         {
-            var reservation = await service.GetByIdAsync(id, ct);
-            return reservation is null ? Results.NotFound() : Results.Ok(reservation);
+            var result = await service.GetByIdAsync(id, ct);
+            return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
         })
         .WithName("GetReservationById")
-        .WithSummary("Get reservation by ID")
-        .WithDescription("Returns the details of a specific reservation.")
-        .Produces<ReservationResponse>()
-        .Produces(StatusCodes.Status404NotFound);
+        .WithSummary("Get reservation by ID");
 
-        group.MapPost("/", async (CreateReservationRequest request, IReservationService service, CancellationToken ct) =>
+        group.MapPost("/", async Task<Created<ReservationResponse>> (
+            CreateReservationRequest request, IReservationService service, CancellationToken ct) =>
         {
-            var reservation = await service.CreateAsync(request, ct);
-            return Results.Created($"/api/reservations/{reservation.Id}", reservation);
+            var result = await service.CreateAsync(request, ct);
+            return TypedResults.Created($"/api/reservations/{result.Id}", result);
         })
         .WithName("CreateReservation")
         .WithSummary("Create a reservation")
-        .WithDescription("Creates a reservation for a book. Cannot reserve a book already on active loan by the same patron.")
-        .Produces<ReservationResponse>(StatusCodes.Status201Created)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithDescription("Places a book on hold. Cannot reserve a book already on active loan by the same patron.");
 
-        group.MapPost("/{id:int}/cancel", async (int id, IReservationService service, CancellationToken ct) =>
+        group.MapPost("/{id:int}/cancel", async Task<Ok<ReservationResponse>> (
+            int id, IReservationService service, CancellationToken ct) =>
         {
-            var reservation = await service.CancelAsync(id, ct);
-            return Results.Ok(reservation);
+            var result = await service.CancelAsync(id, ct);
+            return TypedResults.Ok(result);
         })
         .WithName("CancelReservation")
-        .WithSummary("Cancel a reservation")
-        .WithDescription("Cancels a pending or ready reservation.")
-        .Produces<ReservationResponse>()
-        .Produces(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithSummary("Cancel a reservation");
 
-        group.MapPost("/{id:int}/fulfill", async (int id, IReservationService service, CancellationToken ct) =>
+        group.MapPost("/{id:int}/fulfill", async Task<Ok<ReservationResponse>> (
+            int id, IReservationService service, CancellationToken ct) =>
         {
-            var loan = await service.FulfillAsync(id, ct);
-            return Results.Created($"/api/loans/{loan.Id}", loan);
+            var result = await service.FulfillAsync(id, ct);
+            return TypedResults.Ok(result);
         })
         .WithName("FulfillReservation")
         .WithSummary("Fulfill a reservation")
-        .WithDescription("Fulfills a Ready reservation by creating a loan for the patron.")
-        .Produces<LoanResponse>(StatusCodes.Status201Created)
-        .Produces(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithDescription("Marks a 'Ready' reservation as fulfilled.");
 
         return group;
     }

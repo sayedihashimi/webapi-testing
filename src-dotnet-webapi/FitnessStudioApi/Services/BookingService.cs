@@ -2,93 +2,104 @@ using FitnessStudioApi.Data;
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace FitnessStudioApi.Services;
 
-public class BookingService(FitnessDbContext db, ILogger<BookingService> logger) : IBookingService
+public sealed class BookingService(StudioDbContext db, ILogger<BookingService> logger) : IBookingService
 {
+    public async Task<BookingResponse?> GetByIdAsync(int id, CancellationToken ct)
+    {
+        var booking = await db.Bookings.AsNoTracking()
+            .Include(b => b.ClassSchedule).ThenInclude(cs => cs.ClassType)
+            .Include(b => b.Member)
+            .FirstOrDefaultAsync(b => b.Id == id, ct);
+
+        return booking is null ? null : MapToResponse(booking);
+    }
+
     public async Task<BookingResponse> CreateAsync(CreateBookingRequest request, CancellationToken ct)
     {
         var member = await db.Members.FindAsync([request.MemberId], ct)
-            ?? throw new KeyNotFoundException($"Member with ID {request.MemberId} not found.");
+            ?? throw new KeyNotFoundException($"Member {request.MemberId} not found.");
 
         if (!member.IsActive)
-            throw new ArgumentException("Member is not active.");
+            throw new InvalidOperationException("Inactive members cannot book classes.");
 
         var schedule = await db.ClassSchedules
             .Include(cs => cs.ClassType)
             .Include(cs => cs.Instructor)
             .FirstOrDefaultAsync(cs => cs.Id == request.ClassScheduleId, ct)
-            ?? throw new KeyNotFoundException($"Class schedule with ID {request.ClassScheduleId} not found.");
+            ?? throw new KeyNotFoundException($"Class schedule {request.ClassScheduleId} not found.");
 
         if (schedule.Status != ClassScheduleStatus.Scheduled)
-            throw new ArgumentException("Class is not available for booking.");
+            throw new InvalidOperationException("Cannot book a class that is not scheduled.");
 
-        // Rule 1: Booking window - up to 7 days in advance, no less than 30 min before
         var now = DateTime.UtcNow;
+
+        // Booking window: max 7 days in advance, min 30 minutes before class
         if (schedule.StartTime > now.AddDays(7))
-            throw new ArgumentException("Cannot book more than 7 days in advance.");
+            throw new InvalidOperationException("Cannot book classes more than 7 days in advance.");
 
         if (schedule.StartTime <= now.AddMinutes(30))
-            throw new ArgumentException("Cannot book less than 30 minutes before class start time.");
+            throw new InvalidOperationException("Cannot book classes less than 30 minutes before start time.");
 
-        // Rule 6: Active membership required
-        var activeMembership = await db.Memberships.AsNoTracking()
-            .Include(ms => ms.MembershipPlan)
-            .FirstOrDefaultAsync(ms =>
-                ms.MemberId == request.MemberId &&
-                ms.Status == MembershipStatus.Active, ct)
-            ?? throw new ArgumentException("Member does not have an active membership.");
+        // Active membership required
+        var activeMembership = await db.Memberships
+            .Include(m => m.MembershipPlan)
+            .FirstOrDefaultAsync(m => m.MemberId == request.MemberId && m.Status == MembershipStatus.Active, ct)
+            ?? throw new InvalidOperationException("Member does not have an active membership. Frozen memberships cannot book.");
 
-        // Rule 4: Premium class access
+        // Premium class access check
         if (schedule.ClassType.IsPremium && !activeMembership.MembershipPlan.AllowsPremiumClasses)
-            throw new ArgumentException("Your membership plan does not allow premium class bookings.");
+            throw new InvalidOperationException("Your membership plan does not allow access to premium classes. Please upgrade to Premium or Elite.");
 
-        // Rule 5: Weekly booking limits
+        // Weekly booking limit
         if (activeMembership.MembershipPlan.MaxClassBookingsPerWeek != -1)
         {
-            var startOfWeek = GetStartOfIsoWeek(now);
-            var endOfWeek = startOfWeek.AddDays(7);
+            var weekStart = GetIsoWeekStart(now);
+            var weekEnd = weekStart.AddDays(7);
 
-            var weeklyBookings = await db.Bookings.AsNoTracking()
-                .CountAsync(b =>
-                    b.MemberId == request.MemberId &&
-                    (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Attended) &&
-                    b.BookingDate >= startOfWeek &&
-                    b.BookingDate < endOfWeek, ct);
+            var weeklyBookingCount = await db.Bookings.CountAsync(
+                b => b.MemberId == request.MemberId
+                    && (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Attended)
+                    && b.ClassSchedule.StartTime >= weekStart
+                    && b.ClassSchedule.StartTime < weekEnd, ct);
 
-            if (weeklyBookings >= activeMembership.MembershipPlan.MaxClassBookingsPerWeek)
-                throw new ArgumentException($"Weekly booking limit of {activeMembership.MembershipPlan.MaxClassBookingsPerWeek} reached.");
+            if (weeklyBookingCount >= activeMembership.MembershipPlan.MaxClassBookingsPerWeek)
+                throw new InvalidOperationException(
+                    $"Weekly booking limit reached ({activeMembership.MembershipPlan.MaxClassBookingsPerWeek} per week for {activeMembership.MembershipPlan.Name} plan).");
         }
 
-        // Rule 7: No double booking (overlapping class times)
-        var hasOverlap = await db.Bookings.AsNoTracking()
-            .Where(b => b.MemberId == request.MemberId &&
-                        (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Attended))
-            .Join(db.ClassSchedules, b => b.ClassScheduleId, cs => cs.Id, (b, cs) => cs)
-            .AnyAsync(cs =>
-                cs.StartTime < schedule.EndTime &&
-                cs.EndTime > schedule.StartTime, ct);
+        // No double booking — check for overlapping confirmed bookings
+        var hasOverlap = await db.Bookings.AnyAsync(
+            b => b.MemberId == request.MemberId
+                && b.Status == BookingStatus.Confirmed
+                && b.ClassSchedule.StartTime < schedule.EndTime
+                && b.ClassSchedule.EndTime > schedule.StartTime, ct);
 
         if (hasOverlap)
-            throw new InvalidOperationException("Member already has a booking for an overlapping class time.");
+            throw new InvalidOperationException("You already have a booking for an overlapping class at this time.");
 
-        // Check if already booked for this specific class
-        var existingBooking = await db.Bookings.AnyAsync(b =>
-            b.MemberId == request.MemberId &&
-            b.ClassScheduleId == request.ClassScheduleId &&
-            (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Waitlisted), ct);
+        // Check existing booking for same class
+        var existingBooking = await db.Bookings.AnyAsync(
+            b => b.ClassScheduleId == request.ClassScheduleId
+                && b.MemberId == request.MemberId
+                && (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Waitlisted), ct);
 
         if (existingBooking)
-            throw new InvalidOperationException("Member already has a booking for this class.");
+            throw new InvalidOperationException("You already have a booking for this class.");
 
-        // Rule 2: Capacity management
         var booking = new Booking
         {
             ClassScheduleId = request.ClassScheduleId,
-            MemberId = request.MemberId
+            MemberId = request.MemberId,
+            BookingDate = now,
+            CreatedAt = now,
+            UpdatedAt = now
         };
 
+        // Capacity check — confirm or waitlist
         if (schedule.CurrentEnrollment < schedule.Capacity)
         {
             booking.Status = BookingStatus.Confirmed;
@@ -97,29 +108,23 @@ public class BookingService(FitnessDbContext db, ILogger<BookingService> logger)
         else
         {
             booking.Status = BookingStatus.Waitlisted;
+            booking.WaitlistPosition = schedule.WaitlistCount + 1;
             schedule.WaitlistCount++;
-            booking.WaitlistPosition = schedule.WaitlistCount;
         }
 
-        schedule.UpdatedAt = DateTime.UtcNow;
+        schedule.UpdatedAt = now;
         db.Bookings.Add(booking);
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("Created booking {BookingId} for member {MemberId} in class {ClassId} with status {Status}",
-            booking.Id, booking.MemberId, booking.ClassScheduleId, booking.Status);
-
-        return await GetByIdAsync(booking.Id, ct) ?? throw new InvalidOperationException("Failed to retrieve created booking.");
-    }
-
-    public async Task<BookingResponse?> GetByIdAsync(int id, CancellationToken ct)
-    {
-        var booking = await db.Bookings.AsNoTracking()
+        var result = await db.Bookings.AsNoTracking()
             .Include(b => b.ClassSchedule).ThenInclude(cs => cs.ClassType)
-            .Include(b => b.ClassSchedule).ThenInclude(cs => cs.Instructor)
             .Include(b => b.Member)
-            .FirstOrDefaultAsync(b => b.Id == id, ct);
+            .FirstAsync(b => b.Id == booking.Id, ct);
 
-        return booking is null ? null : MapToResponse(booking);
+        logger.LogInformation("Created booking {BookingId} for member {MemberId} in class {ScheduleId} — Status: {Status}",
+            booking.Id, request.MemberId, request.ClassScheduleId, booking.Status);
+
+        return MapToResponse(result);
     }
 
     public async Task<BookingResponse> CancelAsync(int id, CancelBookingRequest request, CancellationToken ct)
@@ -129,39 +134,36 @@ public class BookingService(FitnessDbContext db, ILogger<BookingService> logger)
             .Include(b => b.ClassSchedule).ThenInclude(cs => cs.Instructor)
             .Include(b => b.Member)
             .FirstOrDefaultAsync(b => b.Id == id, ct)
-            ?? throw new KeyNotFoundException($"Booking with ID {id} not found.");
+            ?? throw new KeyNotFoundException($"Booking {id} not found.");
 
-        if (booking.Status == BookingStatus.Cancelled)
-            throw new InvalidOperationException("Booking is already cancelled.");
+        if (booking.Status is not (BookingStatus.Confirmed or BookingStatus.Waitlisted))
+            throw new InvalidOperationException($"Cannot cancel a booking with status '{booking.Status}'.");
 
-        if (booking.Status == BookingStatus.Attended)
-            throw new InvalidOperationException("Cannot cancel an attended booking.");
-
-        if (booking.Status == BookingStatus.NoShow)
-            throw new InvalidOperationException("Cannot cancel a no-show booking.");
-
-        // Rule 3: Cannot cancel started/completed class
-        if (booking.ClassSchedule.Status == ClassScheduleStatus.InProgress)
-            throw new InvalidOperationException("Cannot cancel booking for a class that has already started.");
-
-        if (booking.ClassSchedule.Status == ClassScheduleStatus.Completed)
-            throw new InvalidOperationException("Cannot cancel booking for a completed class.");
+        var now = DateTime.UtcNow;
+        if (booking.ClassSchedule.Status is ClassScheduleStatus.InProgress or ClassScheduleStatus.Completed)
+            throw new InvalidOperationException("Cannot cancel booking for a class that has started or completed.");
 
         var wasConfirmed = booking.Status == BookingStatus.Confirmed;
-        var wasWaitlisted = booking.Status == BookingStatus.Waitlisted;
 
         booking.Status = BookingStatus.Cancelled;
-        booking.CancellationDate = DateTime.UtcNow;
-        booking.CancellationReason = request.CancellationReason;
-        booking.UpdatedAt = DateTime.UtcNow;
+        booking.CancellationDate = now;
+        booking.CancellationReason = request.Reason;
+
+        // Late cancellation warning (less than 2 hours before class)
+        if (booking.ClassSchedule.StartTime <= now.AddHours(2))
+            booking.CancellationReason = $"[LATE CANCELLATION] {request.Reason}";
+
+        booking.UpdatedAt = now;
 
         if (wasConfirmed)
         {
             booking.ClassSchedule.CurrentEnrollment--;
+            booking.ClassSchedule.UpdatedAt = now;
 
-            // Promote first waitlisted
+            // Promote first waitlisted member
             var nextWaitlisted = await db.Bookings
-                .Where(b => b.ClassScheduleId == booking.ClassScheduleId && b.Status == BookingStatus.Waitlisted)
+                .Where(b => b.ClassScheduleId == booking.ClassScheduleId
+                    && b.Status == BookingStatus.Waitlisted)
                 .OrderBy(b => b.WaitlistPosition)
                 .FirstOrDefaultAsync(ct);
 
@@ -169,44 +171,52 @@ public class BookingService(FitnessDbContext db, ILogger<BookingService> logger)
             {
                 nextWaitlisted.Status = BookingStatus.Confirmed;
                 nextWaitlisted.WaitlistPosition = null;
-                nextWaitlisted.UpdatedAt = DateTime.UtcNow;
+                nextWaitlisted.UpdatedAt = now;
                 booking.ClassSchedule.CurrentEnrollment++;
                 booking.ClassSchedule.WaitlistCount--;
 
                 // Reorder remaining waitlist positions
                 var remainingWaitlisted = await db.Bookings
-                    .Where(b => b.ClassScheduleId == booking.ClassScheduleId && b.Status == BookingStatus.Waitlisted)
+                    .Where(b => b.ClassScheduleId == booking.ClassScheduleId
+                        && b.Status == BookingStatus.Waitlisted)
                     .OrderBy(b => b.WaitlistPosition)
                     .ToListAsync(ct);
 
-                for (int i = 0; i < remainingWaitlisted.Count; i++)
+                var pos = 1;
+                foreach (var w in remainingWaitlisted)
                 {
-                    remainingWaitlisted[i].WaitlistPosition = i + 1;
+                    w.WaitlistPosition = pos++;
+                    w.UpdatedAt = now;
                 }
 
-                logger.LogInformation("Promoted booking {BookingId} from waitlist", nextWaitlisted.Id);
+                logger.LogInformation("Promoted booking {BookingId} from waitlist for class {ScheduleId}",
+                    nextWaitlisted.Id, booking.ClassScheduleId);
             }
         }
-        else if (wasWaitlisted)
+        else
         {
+            // Was waitlisted
             booking.ClassSchedule.WaitlistCount--;
+            booking.ClassSchedule.UpdatedAt = now;
 
-            // Reorder waitlist
+            // Reorder waitlist positions
             var remainingWaitlisted = await db.Bookings
-                .Where(b => b.ClassScheduleId == booking.ClassScheduleId && b.Status == BookingStatus.Waitlisted)
+                .Where(b => b.ClassScheduleId == booking.ClassScheduleId
+                    && b.Status == BookingStatus.Waitlisted
+                    && b.Id != id)
                 .OrderBy(b => b.WaitlistPosition)
                 .ToListAsync(ct);
 
-            for (int i = 0; i < remainingWaitlisted.Count; i++)
+            var pos = 1;
+            foreach (var w in remainingWaitlisted)
             {
-                remainingWaitlisted[i].WaitlistPosition = i + 1;
+                w.WaitlistPosition = pos++;
+                w.UpdatedAt = now;
             }
         }
 
-        booking.ClassSchedule.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Cancelled booking {BookingId}", booking.Id);
+        logger.LogInformation("Cancelled booking {BookingId}", id);
         return MapToResponse(booking);
     }
 
@@ -214,31 +224,29 @@ public class BookingService(FitnessDbContext db, ILogger<BookingService> logger)
     {
         var booking = await db.Bookings
             .Include(b => b.ClassSchedule).ThenInclude(cs => cs.ClassType)
-            .Include(b => b.ClassSchedule).ThenInclude(cs => cs.Instructor)
             .Include(b => b.Member)
             .FirstOrDefaultAsync(b => b.Id == id, ct)
-            ?? throw new KeyNotFoundException($"Booking with ID {id} not found.");
+            ?? throw new KeyNotFoundException($"Booking {id} not found.");
 
         if (booking.Status != BookingStatus.Confirmed)
             throw new InvalidOperationException("Only confirmed bookings can be checked in.");
 
-        // Rule 11: Check-in window - 15 min before to 15 min after class start
         var now = DateTime.UtcNow;
-        var windowStart = booking.ClassSchedule.StartTime.AddMinutes(-15);
-        var windowEnd = booking.ClassSchedule.StartTime.AddMinutes(15);
+        var classStart = booking.ClassSchedule.StartTime;
 
-        if (now < windowStart)
-            throw new ArgumentException("Check-in is not yet available. You can check in starting 15 minutes before class.");
+        // Check-in window: 15 min before to 15 min after class start
+        if (now < classStart.AddMinutes(-15))
+            throw new InvalidOperationException("Check-in is not yet available. Check-in opens 15 minutes before class.");
 
-        if (now > windowEnd)
-            throw new ArgumentException("Check-in window has passed. Check-in is available up to 15 minutes after class start.");
+        if (now > classStart.AddMinutes(15))
+            throw new InvalidOperationException("Check-in window has closed. Check-in is available up to 15 minutes after class start.");
 
         booking.Status = BookingStatus.Attended;
         booking.CheckInTime = now;
-        booking.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+        booking.UpdatedAt = now;
 
-        logger.LogInformation("Checked in booking {BookingId}", booking.Id);
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Checked in booking {BookingId} for member {MemberId}", id, booking.MemberId);
         return MapToResponse(booking);
     }
 
@@ -246,54 +254,37 @@ public class BookingService(FitnessDbContext db, ILogger<BookingService> logger)
     {
         var booking = await db.Bookings
             .Include(b => b.ClassSchedule).ThenInclude(cs => cs.ClassType)
-            .Include(b => b.ClassSchedule).ThenInclude(cs => cs.Instructor)
             .Include(b => b.Member)
             .FirstOrDefaultAsync(b => b.Id == id, ct)
-            ?? throw new KeyNotFoundException($"Booking with ID {id} not found.");
+            ?? throw new KeyNotFoundException($"Booking {id} not found.");
 
         if (booking.Status != BookingStatus.Confirmed)
             throw new InvalidOperationException("Only confirmed bookings can be marked as no-show.");
 
-        // Rule 12: Can only mark no-show 15 minutes after class start
         var now = DateTime.UtcNow;
         if (now < booking.ClassSchedule.StartTime.AddMinutes(15))
-            throw new ArgumentException("Cannot mark as no-show until 15 minutes after class start.");
+            throw new InvalidOperationException("Cannot mark no-show until 15 minutes after class start time.");
 
         booking.Status = BookingStatus.NoShow;
-        booking.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+        booking.UpdatedAt = now;
 
-        logger.LogInformation("Marked booking {BookingId} as no-show", booking.Id);
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Marked booking {BookingId} as no-show", id);
         return MapToResponse(booking);
     }
 
-    private static DateTime GetStartOfIsoWeek(DateTime date)
+    private static DateTime GetIsoWeekStart(DateTime date)
     {
         var dayOfWeek = (int)date.DayOfWeek;
-        var daysToMonday = (dayOfWeek == 0 ? 6 : dayOfWeek - 1);
-        return date.Date.AddDays(-daysToMonday);
+        // ISO weeks start on Monday (DayOfWeek.Monday = 1, Sunday = 0)
+        var diff = dayOfWeek == 0 ? 6 : dayOfWeek - 1;
+        return date.Date.AddDays(-diff);
     }
 
-    private static BookingResponse MapToResponse(Booking b) => new()
-    {
-        Id = b.Id,
-        ClassScheduleId = b.ClassScheduleId,
-        ClassName = b.ClassSchedule?.ClassType?.Name ?? string.Empty,
-        MemberId = b.MemberId,
-        MemberName = b.Member is not null ? $"{b.Member.FirstName} {b.Member.LastName}" : string.Empty,
-        BookingDate = b.BookingDate,
-        Status = b.Status,
-        WaitlistPosition = b.WaitlistPosition,
-        CheckInTime = b.CheckInTime,
-        CancellationDate = b.CancellationDate,
-        CancellationReason = b.CancellationReason,
-        ClassStartTime = b.ClassSchedule?.StartTime ?? default,
-        ClassEndTime = b.ClassSchedule?.EndTime ?? default,
-        Room = b.ClassSchedule?.Room ?? string.Empty,
-        InstructorName = b.ClassSchedule?.Instructor is not null
-            ? $"{b.ClassSchedule.Instructor.FirstName} {b.ClassSchedule.Instructor.LastName}"
-            : string.Empty,
-        CreatedAt = b.CreatedAt,
-        UpdatedAt = b.UpdatedAt
-    };
+    private static BookingResponse MapToResponse(Booking b) =>
+        new(b.Id, b.ClassScheduleId, b.ClassSchedule.ClassType.Name,
+            b.MemberId, $"{b.Member.FirstName} {b.Member.LastName}",
+            b.BookingDate, b.Status.ToString(), b.WaitlistPosition,
+            b.CheckInTime, b.CancellationDate, b.CancellationReason,
+            b.CreatedAt, b.UpdatedAt);
 }

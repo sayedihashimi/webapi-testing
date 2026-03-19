@@ -17,7 +17,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // BookAuthor composite key
         modelBuilder.Entity<BookAuthor>()
             .HasKey(ba => new { ba.BookId, ba.AuthorId });
 
@@ -31,7 +30,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             .WithMany(a => a.BookAuthors)
             .HasForeignKey(ba => ba.AuthorId);
 
-        // BookCategory composite key
         modelBuilder.Entity<BookCategory>()
             .HasKey(bc => new { bc.BookId, bc.CategoryId });
 
@@ -45,7 +43,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             .WithMany(c => c.BookCategories)
             .HasForeignKey(bc => bc.CategoryId);
 
-        // Unique constraints
         modelBuilder.Entity<Book>()
             .HasIndex(b => b.ISBN)
             .IsUnique();
@@ -58,29 +55,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             .HasIndex(p => p.Email)
             .IsUnique();
 
-        // Decimal precision for Fine.Amount
-        modelBuilder.Entity<Fine>()
-            .Property(f => f.Amount)
-            .HasColumnType("decimal(10,2)");
-
-        // Enum storage as strings
-        modelBuilder.Entity<Patron>()
-            .Property(p => p.MembershipType)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Loan>()
-            .Property(l => l.Status)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Reservation>()
-            .Property(r => r.Status)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Fine>()
-            .Property(f => f.Status)
-            .HasConversion<string>();
-
-        // Loan relationships
         modelBuilder.Entity<Loan>()
             .HasOne(l => l.Book)
             .WithMany(b => b.Loans)
@@ -91,7 +65,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             .WithMany(p => p.Loans)
             .HasForeignKey(l => l.PatronId);
 
-        // Reservation relationships
         modelBuilder.Entity<Reservation>()
             .HasOne(r => r.Book)
             .WithMany(b => b.Reservations)
@@ -102,7 +75,6 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             .WithMany(p => p.Reservations)
             .HasForeignKey(r => r.PatronId);
 
-        // Fine relationships
         modelBuilder.Entity<Fine>()
             .HasOne(f => f.Patron)
             .WithMany(p => p.Fines)
@@ -112,5 +84,9 @@ public sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> options)
             .HasOne(f => f.Loan)
             .WithMany(l => l.Fines)
             .HasForeignKey(f => f.LoanId);
+
+        modelBuilder.Entity<Fine>()
+            .Property(f => f.Amount)
+            .HasColumnType("decimal(10,2)");
     }
 }

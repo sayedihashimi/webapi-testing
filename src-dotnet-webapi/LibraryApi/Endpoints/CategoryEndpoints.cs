@@ -1,70 +1,61 @@
 using LibraryApi.DTOs;
 using LibraryApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LibraryApi.Endpoints;
 
 public static class CategoryEndpoints
 {
-    public static RouteGroupBuilder MapCategoryEndpoints(this IEndpointRouteBuilder routes)
+    public static RouteGroupBuilder MapCategoryEndpoints(this WebApplication app)
     {
-        var group = routes.MapGroup("/api/categories").WithTags("Categories");
+        var group = app.MapGroup("/api/categories").WithTags("Categories");
 
-        group.MapGet("/", async (int? page, int? pageSize, ICategoryService service, CancellationToken ct) =>
+        group.MapGet("/", async Task<Ok<IReadOnlyList<CategoryResponse>>> (
+            ICategoryService service, CancellationToken ct) =>
         {
-            var result = await service.GetAllAsync(page ?? 1, Math.Clamp(pageSize ?? 10, 1, 100), ct);
-            return Results.Ok(result);
+            var result = await service.GetAllAsync(ct);
+            return TypedResults.Ok(result);
         })
         .WithName("GetCategories")
-        .WithSummary("List categories")
-        .WithDescription("Returns a paginated list of all categories.")
-        .Produces<PaginatedResponse<CategoryResponse>>();
+        .WithSummary("List all categories");
 
-        group.MapGet("/{id:int}", async (int id, ICategoryService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}", async Task<Results<Ok<CategoryDetailResponse>, NotFound>> (
+            int id, ICategoryService service, CancellationToken ct) =>
         {
-            var category = await service.GetByIdAsync(id, ct);
-            return category is null ? Results.NotFound() : Results.Ok(category);
+            var result = await service.GetByIdAsync(id, ct);
+            return result is not null ? TypedResults.Ok(result) : TypedResults.NotFound();
         })
         .WithName("GetCategoryById")
         .WithSummary("Get category by ID")
-        .WithDescription("Returns category details including the count of associated books.")
-        .Produces<CategoryDetailResponse>()
-        .Produces(StatusCodes.Status404NotFound);
+        .WithDescription("Returns category details with book count.");
 
-        group.MapPost("/", async (CreateCategoryRequest request, ICategoryService service, CancellationToken ct) =>
+        group.MapPost("/", async Task<Created<CategoryResponse>> (
+            CreateCategoryRequest request, ICategoryService service, CancellationToken ct) =>
         {
-            var category = await service.CreateAsync(request, ct);
-            return Results.Created($"/api/categories/{category.Id}", category);
+            var result = await service.CreateAsync(request, ct);
+            return TypedResults.Created($"/api/categories/{result.Id}", result);
         })
         .WithName("CreateCategory")
-        .WithSummary("Create a category")
-        .WithDescription("Creates a new book category. Name must be unique.")
-        .Produces<CategoryResponse>(StatusCodes.Status201Created)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithSummary("Create a new category");
 
-        group.MapPut("/{id:int}", async (int id, UpdateCategoryRequest request, ICategoryService service, CancellationToken ct) =>
+        group.MapPut("/{id:int}", async Task<Results<Ok<CategoryResponse>, NotFound>> (
+            int id, UpdateCategoryRequest request, ICategoryService service, CancellationToken ct) =>
         {
-            var category = await service.UpdateAsync(id, request, ct);
-            return category is null ? Results.NotFound() : Results.Ok(category);
+            var result = await service.UpdateAsync(id, request, ct);
+            return TypedResults.Ok(result);
         })
         .WithName("UpdateCategory")
-        .WithSummary("Update a category")
-        .WithDescription("Updates an existing category. Name must remain unique.")
-        .Produces<CategoryResponse>()
-        .Produces(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status400BadRequest);
+        .WithSummary("Update a category");
 
-        group.MapDelete("/{id:int}", async (int id, ICategoryService service, CancellationToken ct) =>
+        group.MapDelete("/{id:int}", async Task<NoContent> (
+            int id, ICategoryService service, CancellationToken ct) =>
         {
             await service.DeleteAsync(id, ct);
-            return Results.NoContent();
+            return TypedResults.NoContent();
         })
         .WithName("DeleteCategory")
         .WithSummary("Delete a category")
-        .WithDescription("Deletes a category. Fails if the category has associated books.")
-        .Produces(StatusCodes.Status204NoContent)
-        .Produces(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithDescription("Fails if the category has associated books.");
 
         return group;
     }

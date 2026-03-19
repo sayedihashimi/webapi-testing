@@ -3,65 +3,70 @@ using LibraryApi.Models;
 
 namespace LibraryApi.DTOs;
 
-public class CreatePatronRequest
+public sealed record PatronResponse(
+    int Id,
+    string FirstName,
+    string LastName,
+    string Email,
+    string? Phone,
+    string? Address,
+    DateOnly MembershipDate,
+    MembershipType MembershipType,
+    bool IsActive,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public sealed record PatronDetailResponse(
+    int Id,
+    string FirstName,
+    string LastName,
+    string Email,
+    string? Phone,
+    string? Address,
+    DateOnly MembershipDate,
+    MembershipType MembershipType,
+    bool IsActive,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    int ActiveLoans,
+    decimal UnpaidFines);
+
+public sealed record CreatePatronRequest
 {
-    [Required]
-    [MaxLength(100)]
-    public string FirstName { get; set; } = string.Empty;
+    [Required, MaxLength(100)]
+    public required string FirstName { get; init; }
 
-    [Required]
-    [MaxLength(100)]
-    public string LastName { get; set; } = string.Empty;
+    [Required, MaxLength(100)]
+    public required string LastName { get; init; }
 
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
+    [Required, EmailAddress, MaxLength(200)]
+    public required string Email { get; init; }
 
-    public string? Phone { get; set; }
-    public string? Address { get; set; }
+    [MaxLength(20)]
+    public string? Phone { get; init; }
 
-    [Required]
-    public MembershipType MembershipType { get; set; }
+    [MaxLength(500)]
+    public string? Address { get; init; }
+
+    public MembershipType MembershipType { get; init; } = MembershipType.Standard;
 }
 
-public class UpdatePatronRequest
+public sealed record UpdatePatronRequest
 {
-    [Required]
-    [MaxLength(100)]
-    public string FirstName { get; set; } = string.Empty;
+    [Required, MaxLength(100)]
+    public required string FirstName { get; init; }
 
-    [Required]
-    [MaxLength(100)]
-    public string LastName { get; set; } = string.Empty;
+    [Required, MaxLength(100)]
+    public required string LastName { get; init; }
 
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
+    [Required, EmailAddress, MaxLength(200)]
+    public required string Email { get; init; }
 
-    public string? Phone { get; set; }
-    public string? Address { get; set; }
+    [MaxLength(20)]
+    public string? Phone { get; init; }
 
-    [Required]
-    public MembershipType MembershipType { get; set; }
-}
+    [MaxLength(500)]
+    public string? Address { get; init; }
 
-public class PatronResponse
-{
-    public int Id { get; set; }
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string? Phone { get; set; }
-    public string? Address { get; set; }
-    public DateOnly MembershipDate { get; set; }
-    public MembershipType MembershipType { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-}
-
-public class PatronDetailResponse : PatronResponse
-{
-    public int ActiveLoansCount { get; set; }
-    public decimal UnpaidFinesBalance { get; set; }
+    public required MembershipType MembershipType { get; init; }
 }

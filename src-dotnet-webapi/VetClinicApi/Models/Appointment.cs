@@ -1,6 +1,6 @@
 namespace VetClinicApi.Models;
 
-public class Appointment
+public sealed class Appointment
 {
     public int Id { get; set; }
     public int PetId { get; set; }

@@ -1,6 +1,6 @@
 namespace VetClinicApi.Models;
 
-public class Vaccination
+public sealed class Vaccination
 {
     public int Id { get; set; }
     public int PetId { get; set; }
@@ -13,5 +13,5 @@ public class Vaccination
     public DateTime CreatedAt { get; set; }
 
     public Pet Pet { get; set; } = null!;
-    public Veterinarian AdministeredBy { get; set; } = null!;
+    public Veterinarian AdministeredByVet { get; set; } = null!;
 }

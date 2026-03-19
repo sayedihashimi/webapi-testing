@@ -1,89 +1,99 @@
-using Microsoft.AspNetCore.Http.HttpResults;
 using VetClinicApi.DTOs;
-using VetClinicApi.Models;
 using VetClinicApi.Services;
 
 namespace VetClinicApi.Endpoints;
 
 public static class VeterinarianEndpoints
 {
-    public static RouteGroupBuilder MapVeterinarianEndpoints(this WebApplication app)
+    public static RouteGroupBuilder MapVeterinarianEndpoints(this IEndpointRouteBuilder routes)
     {
-        var group = app.MapGroup("/api/veterinarians").WithTags("Veterinarians");
+        var group = routes.MapGroup("/api/veterinarians")
+            .WithTags("Veterinarians");
 
-        group.MapGet("/", GetAll)
-            .WithName("GetVeterinarians")
-            .WithSummary("Get all veterinarians with optional filters");
-
-        group.MapGet("/{id:int}", GetById)
-            .WithName("GetVeterinarianById")
-            .WithSummary("Get veterinarian by ID");
-
-        group.MapPost("/", Create)
-            .WithName("CreateVeterinarian")
-            .WithSummary("Create a new veterinarian");
-
-        group.MapPut("/{id:int}", Update)
-            .WithName("UpdateVeterinarian")
-            .WithSummary("Update an existing veterinarian");
-
-        group.MapGet("/{id:int}/schedule", GetSchedule)
-            .WithName("GetVeterinarianSchedule")
-            .WithSummary("Get a veterinarian's schedule for a specific date");
-
-        group.MapGet("/{id:int}/appointments", GetAppointments)
-            .WithName("GetVeterinarianAppointments")
-            .WithSummary("Get appointments for a veterinarian with optional status filter");
+        group.MapGet("/", GetAllAsync);
+        group.MapGet("/{id:int}", GetByIdAsync);
+        group.MapPost("/", CreateAsync);
+        group.MapPut("/{id:int}", UpdateAsync);
+        group.MapGet("/{id:int}/schedule", GetScheduleAsync);
+        group.MapGet("/{id:int}/appointments", GetAppointmentsAsync);
 
         return group;
     }
 
-    private static async Task<Ok<PagedResponse<VeterinarianResponse>>> GetAll(
-        VeterinarianService service, string? specialization = null, bool? isAvailable = null,
-        int page = 1, int pageSize = 20, CancellationToken ct = default)
+    private static async Task<IResult> GetAllAsync(
+        IVeterinarianService service,
+        string? specialization = null,
+        bool? isAvailable = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
     {
-        pageSize = Math.Clamp(pageSize, 1, 100);
-        page = Math.Max(1, page);
         var result = await service.GetAllAsync(specialization, isAvailable, page, pageSize, ct);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<Results<Ok<VeterinarianResponse>, NotFound>> GetById(
-        int id, VeterinarianService service, CancellationToken ct)
+    private static async Task<IResult> GetByIdAsync(
+        int id,
+        IVeterinarianService service,
+        CancellationToken ct = default)
     {
         var vet = await service.GetByIdAsync(id, ct);
-        return vet is not null ? TypedResults.Ok(vet) : TypedResults.NotFound();
+        return vet is not null
+            ? TypedResults.Ok(vet)
+            : TypedResults.NotFound();
     }
 
-    private static async Task<Created<VeterinarianResponse>> Create(
-        CreateVeterinarianRequest request, VeterinarianService service, CancellationToken ct)
+    private static async Task<IResult> CreateAsync(
+        CreateVeterinarianDto dto,
+        IVeterinarianService service,
+        CancellationToken ct = default)
     {
-        var vet = await service.CreateAsync(request, ct);
+        var vet = await service.CreateAsync(dto, ct);
         return TypedResults.Created($"/api/veterinarians/{vet.Id}", vet);
     }
 
-    private static async Task<Results<Ok<VeterinarianResponse>, NotFound>> Update(
-        int id, UpdateVeterinarianRequest request, VeterinarianService service, CancellationToken ct)
+    private static async Task<IResult> UpdateAsync(
+        int id,
+        UpdateVeterinarianDto dto,
+        IVeterinarianService service,
+        CancellationToken ct = default)
     {
-        var vet = await service.UpdateAsync(id, request, ct);
-        return vet is not null ? TypedResults.Ok(vet) : TypedResults.NotFound();
+        var vet = await service.UpdateAsync(id, dto, ct);
+        return vet is not null
+            ? TypedResults.Ok(vet)
+            : TypedResults.NotFound();
     }
 
-    private static async Task<Ok<List<AppointmentResponse>>> GetSchedule(
-        int id, VeterinarianService service, DateOnly? date = null, CancellationToken ct = default)
+    private static async Task<IResult> GetScheduleAsync(
+        int id,
+        IVeterinarianService service,
+        DateOnly? date = null,
+        CancellationToken ct = default)
     {
+        if (!await service.ExistsAsync(id, ct))
+        {
+            return TypedResults.NotFound();
+        }
+
         var scheduleDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
         var schedule = await service.GetScheduleAsync(id, scheduleDate, ct);
         return TypedResults.Ok(schedule);
     }
 
-    private static async Task<Ok<PagedResponse<AppointmentResponse>>> GetAppointments(
-        int id, VeterinarianService service, AppointmentStatus? status = null,
-        int page = 1, int pageSize = 20, CancellationToken ct = default)
+    private static async Task<IResult> GetAppointmentsAsync(
+        int id,
+        IVeterinarianService service,
+        string? status = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
     {
-        pageSize = Math.Clamp(pageSize, 1, 100);
-        page = Math.Max(1, page);
-        var result = await service.GetAppointmentsAsync(id, status, page, pageSize, ct);
-        return TypedResults.Ok(result);
+        if (!await service.ExistsAsync(id, ct))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var appointments = await service.GetAppointmentsAsync(id, status, page, pageSize, ct);
+        return TypedResults.Ok(appointments);
     }
 }

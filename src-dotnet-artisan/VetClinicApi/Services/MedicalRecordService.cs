@@ -5,67 +5,59 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public sealed class MedicalRecordService(VetClinicDbContext db, ILogger<MedicalRecordService> logger)
+public sealed class MedicalRecordService(VetClinicDbContext db, ILogger<MedicalRecordService> logger) : IMedicalRecordService
 {
-    public async Task<MedicalRecordResponse?> GetByIdAsync(int id, CancellationToken ct)
+    public async Task<MedicalRecordDetailDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var record = await db.MedicalRecords
-            .AsNoTracking()
-            .Include(m => m.Pet)
-            .Include(m => m.Veterinarian)
             .Include(m => m.Prescriptions)
             .FirstOrDefaultAsync(m => m.Id == id, ct);
 
-        return record is null ? null : PetService.MapToMedicalRecordResponse(record);
+        if (record is null)
+        {
+            return null;
+        }
+
+        var prescriptionDtos = record.Prescriptions
+            .Select(p => new PrescriptionDto(
+                p.Id, p.MedicalRecordId, p.MedicationName, p.Dosage,
+                p.DurationDays, p.StartDate, p.EndDate, p.IsActive,
+                p.Instructions, p.CreatedAt))
+            .ToList();
+
+        return new MedicalRecordDetailDto(
+            record.Id, record.AppointmentId, record.PetId, record.VeterinarianId,
+            record.Diagnosis, record.Treatment, record.Notes, record.FollowUpDate,
+            record.CreatedAt, prescriptionDtos);
     }
 
-    public async Task<MedicalRecordResponse> CreateAsync(CreateMedicalRecordRequest request, CancellationToken ct)
+    public async Task<MedicalRecordDto> CreateAsync(CreateMedicalRecordDto dto, CancellationToken ct = default)
     {
-        var appointment = await db.Appointments
-            .Include(a => a.Pet)
-            .Include(a => a.Veterinarian)
-            .FirstOrDefaultAsync(a => a.Id == request.AppointmentId, ct)
-            ?? throw new KeyNotFoundException($"Appointment with ID {request.AppointmentId} not found.");
-
-        if (appointment.Status is not (AppointmentStatus.Completed or AppointmentStatus.InProgress))
-        {
-            throw new InvalidOperationException(
-                $"Medical records can only be created for appointments with status 'Completed' or 'InProgress'. Current status: '{appointment.Status}'.");
-        }
-
-        if (await db.MedicalRecords.AnyAsync(m => m.AppointmentId == request.AppointmentId, ct))
-        {
-            throw new InvalidOperationException($"A medical record already exists for appointment {request.AppointmentId}.");
-        }
+        var appointment = await db.Appointments.FindAsync([dto.AppointmentId], ct);
 
         var record = new MedicalRecord
         {
-            AppointmentId = request.AppointmentId,
-            PetId = appointment.PetId,
+            AppointmentId = dto.AppointmentId,
+            PetId = appointment!.PetId,
             VeterinarianId = appointment.VeterinarianId,
-            Diagnosis = request.Diagnosis,
-            Treatment = request.Treatment,
-            Notes = request.Notes,
-            FollowUpDate = request.FollowUpDate
+            Diagnosis = dto.Diagnosis,
+            Treatment = dto.Treatment,
+            Notes = dto.Notes,
+            FollowUpDate = dto.FollowUpDate
         };
 
         db.MedicalRecords.Add(record);
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("Created medical record {RecordId} for appointment {AppointmentId}", record.Id, request.AppointmentId);
+        logger.LogInformation("Created medical record {RecordId} for appointment {AppointmentId}",
+            record.Id, record.AppointmentId);
 
-        // Reload with navigation properties
-        var created = await db.MedicalRecords
-            .AsNoTracking()
-            .Include(m => m.Pet)
-            .Include(m => m.Veterinarian)
-            .Include(m => m.Prescriptions)
-            .FirstAsync(m => m.Id == record.Id, ct);
-
-        return PetService.MapToMedicalRecordResponse(created);
+        return new MedicalRecordDto(
+            record.Id, record.AppointmentId, record.PetId, record.VeterinarianId,
+            record.Diagnosis, record.Treatment, record.Notes, record.FollowUpDate, record.CreatedAt);
     }
 
-    public async Task<MedicalRecordResponse?> UpdateAsync(int id, UpdateMedicalRecordRequest request, CancellationToken ct)
+    public async Task<MedicalRecordDto?> UpdateAsync(int id, UpdateMedicalRecordDto dto, CancellationToken ct = default)
     {
         var record = await db.MedicalRecords.FindAsync([id], ct);
         if (record is null)
@@ -73,22 +65,39 @@ public sealed class MedicalRecordService(VetClinicDbContext db, ILogger<MedicalR
             return null;
         }
 
-        record.Diagnosis = request.Diagnosis;
-        record.Treatment = request.Treatment;
-        record.Notes = request.Notes;
-        record.FollowUpDate = request.FollowUpDate;
+        record.Diagnosis = dto.Diagnosis;
+        record.Treatment = dto.Treatment;
+        record.Notes = dto.Notes;
+        record.FollowUpDate = dto.FollowUpDate;
 
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("Updated medical record {RecordId}", id);
+        logger.LogInformation("Updated medical record {RecordId}", record.Id);
 
-        var updated = await db.MedicalRecords
-            .AsNoTracking()
-            .Include(m => m.Pet)
-            .Include(m => m.Veterinarian)
-            .Include(m => m.Prescriptions)
-            .FirstAsync(m => m.Id == id, ct);
+        return new MedicalRecordDto(
+            record.Id, record.AppointmentId, record.PetId, record.VeterinarianId,
+            record.Diagnosis, record.Treatment, record.Notes, record.FollowUpDate, record.CreatedAt);
+    }
 
-        return PetService.MapToMedicalRecordResponse(updated);
+    public async Task<string?> ValidateAppointmentForRecordAsync(int appointmentId, CancellationToken ct = default)
+    {
+        var appointment = await db.Appointments.FindAsync([appointmentId], ct);
+        if (appointment is null)
+        {
+            return "Appointment not found.";
+        }
+
+        if (appointment.Status is not (AppointmentStatus.Completed or AppointmentStatus.InProgress))
+        {
+            return $"Medical records can only be created for Completed or InProgress appointments. Current status: {appointment.Status}.";
+        }
+
+        var existingRecord = await db.MedicalRecords.AnyAsync(m => m.AppointmentId == appointmentId, ct);
+        if (existingRecord)
+        {
+            return "A medical record already exists for this appointment.";
+        }
+
+        return null;
     }
 }

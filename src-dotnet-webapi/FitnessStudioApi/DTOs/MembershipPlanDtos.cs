@@ -2,56 +2,56 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FitnessStudioApi.DTOs;
 
-public class CreateMembershipPlanRequest
+public sealed record MembershipPlanResponse(
+    int Id,
+    string Name,
+    string? Description,
+    int DurationMonths,
+    decimal Price,
+    int MaxClassBookingsPerWeek,
+    bool AllowsPremiumClasses,
+    bool IsActive,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public sealed record CreateMembershipPlanRequest
 {
     [Required, MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; init; }
 
     [MaxLength(500)]
-    public string? Description { get; set; }
+    public string? Description { get; init; }
 
     [Range(1, 24)]
-    public int DurationMonths { get; set; }
+    public required int DurationMonths { get; init; }
 
-    [Range(0.01, (double)decimal.MaxValue)]
-    public decimal Price { get; set; }
+    [Range(0.01, 999999.99)]
+    public required decimal Price { get; init; }
 
-    public int MaxClassBookingsPerWeek { get; set; }
+    [Range(-1, 100)]
+    public required int MaxClassBookingsPerWeek { get; init; }
 
-    public bool AllowsPremiumClasses { get; set; }
+    public required bool AllowsPremiumClasses { get; init; }
 }
 
-public class UpdateMembershipPlanRequest
+public sealed record UpdateMembershipPlanRequest
 {
     [Required, MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; init; }
 
     [MaxLength(500)]
-    public string? Description { get; set; }
+    public string? Description { get; init; }
 
     [Range(1, 24)]
-    public int DurationMonths { get; set; }
+    public required int DurationMonths { get; init; }
 
-    [Range(0.01, (double)decimal.MaxValue)]
-    public decimal Price { get; set; }
+    [Range(0.01, 999999.99)]
+    public required decimal Price { get; init; }
 
-    public int MaxClassBookingsPerWeek { get; set; }
+    [Range(-1, 100)]
+    public required int MaxClassBookingsPerWeek { get; init; }
 
-    public bool AllowsPremiumClasses { get; set; }
+    public required bool AllowsPremiumClasses { get; init; }
 
-    public bool IsActive { get; set; }
-}
-
-public class MembershipPlanResponse
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public int DurationMonths { get; set; }
-    public decimal Price { get; set; }
-    public int MaxClassBookingsPerWeek { get; set; }
-    public bool AllowsPremiumClasses { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public required bool IsActive { get; init; }
 }

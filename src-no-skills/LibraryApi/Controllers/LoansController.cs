@@ -1,5 +1,7 @@
-using LibraryApi.DTOs;
-using LibraryApi.Services;
+using LibraryApi.DTOs.Common;
+using LibraryApi.DTOs.Loan;
+using LibraryApi.Models.Enums;
+using LibraryApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApi.Controllers;
@@ -9,80 +11,53 @@ namespace LibraryApi.Controllers;
 [Produces("application/json")]
 public class LoansController : ControllerBase
 {
-    private readonly ILoanService _loanService;
+    private readonly ILoanService _service;
 
-    public LoansController(ILoanService loanService)
-    {
-        _loanService = loanService;
-    }
+    public LoansController(ILoanService service) => _service = service;
 
-    /// <summary>List loans with filters for status, overdue flag, date range, and pagination</summary>
+    /// <summary>List loans with filters, pagination.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<LoanDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<LoanDto>>> GetLoans(
-        [FromQuery] string? status,
-        [FromQuery] bool? overdue,
-        [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var result = await _loanService.GetLoansAsync(status, overdue, fromDate, toDate,
-            new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    [ProducesResponseType(typeof(PagedResult<LoanListDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] LoanStatus? status, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetAllAsync(status, pagination));
 
-    /// <summary>Get loan details</summary>
+    /// <summary>Get loan details.</summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(LoanDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LoanDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<LoanDto>> GetLoan(int id)
-    {
-        var result = await _loanService.GetLoanByIdAsync(id);
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetById(int id)
+        => Ok(await _service.GetByIdAsync(id));
 
-    /// <summary>Check out a book — creates a loan enforcing all checkout rules</summary>
+    /// <summary>Checkout a book (enforce all borrowing rules).</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(LoanDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(LoanDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<LoanDto>> CheckoutBook([FromBody] CreateLoanDto dto)
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Checkout([FromBody] CreateLoanDto dto)
     {
-        var result = await _loanService.CheckoutBookAsync(dto);
-        return CreatedAtAction(nameof(GetLoan), new { id = result.Id }, result);
+        var result = await _service.CheckoutAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Return a book — enforces all return processing rules</summary>
+    /// <summary>Return a book (process overdue fines, promotions).</summary>
     [HttpPost("{id}/return")]
-    [ProducesResponseType(typeof(LoanDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ReturnLoanDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<LoanDto>> ReturnBook(int id)
-    {
-        var result = await _loanService.ReturnBookAsync(id);
-        return Ok(result);
-    }
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Return(int id)
+        => Ok(await _service.ReturnAsync(id));
 
-    /// <summary>Renew a loan — enforces all renewal rules</summary>
+    /// <summary>Renew a loan (enforce renewal rules).</summary>
     [HttpPost("{id}/renew")]
-    [ProducesResponseType(typeof(LoanDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RenewLoanDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<LoanDto>> RenewLoan(int id)
-    {
-        var result = await _loanService.RenewLoanAsync(id);
-        return Ok(result);
-    }
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Renew(int id)
+        => Ok(await _service.RenewAsync(id));
 
-    /// <summary>Get all currently overdue loans (also flags active loans past due date)</summary>
+    /// <summary>Get all overdue loans.</summary>
     [HttpGet("overdue")]
-    [ProducesResponseType(typeof(PagedResult<LoanDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<LoanDto>>> GetOverdueLoans(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var result = await _loanService.GetOverdueLoansAsync(new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    [ProducesResponseType(typeof(List<LoanListDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOverdue()
+        => Ok(await _service.GetOverdueLoansAsync());
 }

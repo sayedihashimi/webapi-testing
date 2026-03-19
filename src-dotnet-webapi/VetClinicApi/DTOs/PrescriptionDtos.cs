@@ -2,15 +2,30 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-public record CreatePrescriptionRequest(
-    [property: Required] int MedicalRecordId,
-    [property: Required, MaxLength(200)] string MedicationName,
-    [property: Required, MaxLength(100)] string Dosage,
-    [property: Required, Range(1, 3650)] int DurationDays,
-    [property: Required] DateOnly StartDate,
-    [property: MaxLength(500)] string? Instructions);
+// --- Prescription DTOs ---
 
-public record PrescriptionResponse(
+public sealed record CreatePrescriptionRequest
+{
+    [Required]
+    public required int MedicalRecordId { get; init; }
+
+    [Required, MaxLength(200)]
+    public required string MedicationName { get; init; }
+
+    [Required, MaxLength(100)]
+    public required string Dosage { get; init; }
+
+    [Range(1, 365)]
+    public required int DurationDays { get; init; }
+
+    [Required]
+    public required DateOnly StartDate { get; init; }
+
+    [MaxLength(500)]
+    public string? Instructions { get; init; }
+}
+
+public sealed record PrescriptionResponse(
     int Id,
     int MedicalRecordId,
     string MedicationName,

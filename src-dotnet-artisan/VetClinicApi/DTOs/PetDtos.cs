@@ -1,30 +1,6 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace VetClinicApi.DTOs;
 
-// --- Pet DTOs ---
-
-public sealed record CreatePetRequest(
-    [Required, MaxLength(100)] string Name,
-    [Required] string Species,
-    [MaxLength(100)] string? Breed,
-    DateOnly? DateOfBirth,
-    [Range(0.01, double.MaxValue)] decimal? Weight,
-    string? Color,
-    string? MicrochipNumber,
-    [Required] int OwnerId);
-
-public sealed record UpdatePetRequest(
-    [Required, MaxLength(100)] string Name,
-    [Required] string Species,
-    [MaxLength(100)] string? Breed,
-    DateOnly? DateOfBirth,
-    [Range(0.01, double.MaxValue)] decimal? Weight,
-    string? Color,
-    string? MicrochipNumber,
-    [Required] int OwnerId);
-
-public sealed record PetResponse(
+public sealed record PetDto(
     int Id,
     string Name,
     string Species,
@@ -38,7 +14,7 @@ public sealed record PetResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
-public sealed record PetDetailResponse(
+public sealed record PetDetailDto(
     int Id,
     string Name,
     string Species,
@@ -49,6 +25,33 @@ public sealed record PetDetailResponse(
     string? MicrochipNumber,
     bool IsActive,
     int OwnerId,
-    string OwnerName,
+    OwnerDto Owner,
     DateTime CreatedAt,
     DateTime UpdatedAt);
+
+public sealed record PetSummaryDto(
+    int Id,
+    string Name,
+    string Species,
+    string? Breed,
+    bool IsActive);
+
+public sealed record CreatePetDto(
+    string Name,
+    string Species,
+    string? Breed,
+    DateOnly? DateOfBirth,
+    decimal? Weight,
+    string? Color,
+    string? MicrochipNumber,
+    int OwnerId);
+
+public sealed record UpdatePetDto(
+    string Name,
+    string Species,
+    string? Breed,
+    DateOnly? DateOfBirth,
+    decimal? Weight,
+    string? Color,
+    string? MicrochipNumber,
+    int OwnerId);

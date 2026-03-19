@@ -1,5 +1,8 @@
-using LibraryApi.DTOs;
-using LibraryApi.Services;
+using LibraryApi.DTOs.Book;
+using LibraryApi.DTOs.Common;
+using LibraryApi.DTOs.Loan;
+using LibraryApi.DTOs.Reservation;
+using LibraryApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApi.Controllers;
@@ -9,93 +12,64 @@ namespace LibraryApi.Controllers;
 [Produces("application/json")]
 public class BooksController : ControllerBase
 {
-    private readonly IBookService _bookService;
+    private readonly IBookService _service;
 
-    public BooksController(IBookService bookService)
-    {
-        _bookService = bookService;
-    }
+    public BooksController(IBookService service) => _service = service;
 
-    /// <summary>List books with search, filter by availability, pagination and sorting</summary>
+    /// <summary>List books with search, filter, pagination, sorting.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<BookDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<BookDto>>> GetBooks(
-        [FromQuery] string? search,
-        [FromQuery] string? category,
-        [FromQuery] bool? available,
-        [FromQuery] string? sortBy,
-        [FromQuery] string? sortOrder,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var result = await _bookService.GetBooksAsync(search, category, available, sortBy, sortOrder,
-            new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    [ProducesResponseType(typeof(PagedResult<BookListDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? search, [FromQuery] int? categoryId, [FromQuery] int? authorId,
+        [FromQuery] string? sortBy, [FromQuery] string? sortOrder,
+        [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetAllAsync(search, categoryId, authorId, sortBy, sortOrder, pagination));
 
-    /// <summary>Get book details including authors, categories, and availability</summary>
+    /// <summary>Get book details with authors, categories, availability.</summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(BookDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BookDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<BookDto>> GetBook(int id)
-    {
-        var result = await _bookService.GetBookByIdAsync(id);
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetById(int id)
+        => Ok(await _service.GetByIdAsync(id));
 
-    /// <summary>Create a new book with author IDs and category IDs</summary>
+    /// <summary>Create a book with author/category IDs.</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(BookDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(BookDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<BookDto>> CreateBook([FromBody] CreateBookDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateBookDto dto)
     {
-        var result = await _bookService.CreateBookAsync(dto);
-        return CreatedAtAction(nameof(GetBook), new { id = result.Id }, result);
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update an existing book</summary>
+    /// <summary>Update a book.</summary>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(BookDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BookDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<BookDto>> UpdateBook(int id, [FromBody] UpdateBookDto dto)
-    {
-        var result = await _bookService.UpdateBookAsync(id, dto);
-        return Ok(result);
-    }
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateBookDto dto)
+        => Ok(await _service.UpdateAsync(id, dto));
 
-    /// <summary>Delete a book (fails if the book has active loans)</summary>
+    /// <summary>Delete a book (fails if active loans).</summary>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DeleteBook(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        await _bookService.DeleteBookAsync(id);
+        await _service.DeleteAsync(id);
         return NoContent();
     }
 
-    /// <summary>Get loan history for a specific book</summary>
+    /// <summary>Get loan history for a book.</summary>
     [HttpGet("{id}/loans")]
-    [ProducesResponseType(typeof(PagedResult<LoanDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<LoanListDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResult<LoanDto>>> GetBookLoans(int id,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-    {
-        var result = await _bookService.GetBookLoansAsync(id, new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetLoans(int id, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetBookLoansAsync(id, pagination));
 
-    /// <summary>Get active reservations queue for a specific book</summary>
+    /// <summary>Get active reservations for a book.</summary>
     [HttpGet("{id}/reservations")]
-    [ProducesResponseType(typeof(PagedResult<ReservationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<ReservationListDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResult<ReservationDto>>> GetBookReservations(int id,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-    {
-        var result = await _bookService.GetBookReservationsAsync(id, new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetReservations(int id)
+        => Ok(await _service.GetBookReservationsAsync(id));
 }

@@ -1,6 +1,5 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services.Interfaces;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessStudioApi.Controllers;
@@ -12,78 +11,90 @@ public class ClassSchedulesController : ControllerBase
 {
     private readonly IClassScheduleService _service;
 
-    public ClassSchedulesController(IClassScheduleService service) => _service = service;
+    public ClassSchedulesController(IClassScheduleService service)
+    {
+        _service = service;
+    }
 
-    /// <summary>List scheduled classes with filters and pagination</summary>
+    /// <summary>List scheduled classes with filtering and pagination</summary>
     [HttpGet]
-    [ProducesResponseType<PagedResult<ClassScheduleDto>>(200)]
+    [ProducesResponseType(typeof(PagedResult<ClassScheduleResponseDto>), 200)]
     public async Task<IActionResult> GetAll(
-        [FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate,
         [FromQuery] int? classTypeId, [FromQuery] int? instructorId,
         [FromQuery] bool? hasAvailability,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAllAsync(from, to, classTypeId, instructorId, hasAvailability, page, pageSize));
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var result = await _service.GetAllAsync(fromDate, toDate, classTypeId, instructorId, hasAvailability,
+            new PaginationParams { Page = page, PageSize = pageSize });
+        return Ok(result);
+    }
 
-    /// <summary>Get class details with availability info</summary>
+    /// <summary>Get class schedule details</summary>
     [HttpGet("{id:int}")]
-    [ProducesResponseType<ClassScheduleDetailDto>(200)]
+    [ProducesResponseType(typeof(ClassScheduleResponseDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetById(int id)
     {
-        var cs = await _service.GetByIdAsync(id);
-        return cs is null ? NotFound() : Ok(cs);
+        var classSchedule = await _service.GetByIdAsync(id);
+        return classSchedule is null ? NotFound() : Ok(classSchedule);
     }
 
     /// <summary>Schedule a new class</summary>
     [HttpPost]
-    [ProducesResponseType<ClassScheduleDto>(201)]
+    [ProducesResponseType(typeof(ClassScheduleResponseDto), 201)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> Create(
-        [FromBody] CreateClassScheduleDto dto,
-        [FromServices] IValidator<CreateClassScheduleDto> validator)
+    public async Task<IActionResult> Create([FromBody] ClassScheduleCreateDto dto)
     {
-        var validation = await validator.ValidateAsync(dto);
-        if (!validation.IsValid)
-            return ValidationProblem(new ValidationProblemDetails(
-                validation.Errors.GroupBy(e => e.PropertyName)
-                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray())));
-
-        var schedule = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = schedule.Id }, schedule);
+        var classSchedule = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = classSchedule.Id }, classSchedule);
     }
 
-    /// <summary>Update class schedule details</summary>
+    /// <summary>Update class details</summary>
     [HttpPut("{id:int}")]
-    [ProducesResponseType<ClassScheduleDto>(200)]
+    [ProducesResponseType(typeof(ClassScheduleResponseDto), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateClassScheduleDto dto)
-        => Ok(await _service.UpdateAsync(id, dto));
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> Update(int id, [FromBody] ClassScheduleUpdateDto dto)
+    {
+        var classSchedule = await _service.UpdateAsync(id, dto);
+        return classSchedule is null ? NotFound() : Ok(classSchedule);
+    }
 
-    /// <summary>Cancel a class (cascades to all bookings)</summary>
+    /// <summary>Cancel a class (cascade cancels all bookings)</summary>
     [HttpPatch("{id:int}/cancel")]
-    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(ClassScheduleResponseDto), 200)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Cancel(int id, [FromBody] CancelClassDto dto)
     {
-        await _service.CancelAsync(id, dto);
-        return NoContent();
+        var result = await _service.CancelAsync(id, dto);
+        return Ok(result);
     }
 
-    /// <summary>Get confirmed members roster for a class</summary>
+    /// <summary>Get the roster of confirmed members for a class</summary>
     [HttpGet("{id:int}/roster")]
-    [ProducesResponseType<IReadOnlyList<RosterEntryDto>>(200)]
+    [ProducesResponseType(typeof(List<RosterEntryDto>), 200)]
     public async Task<IActionResult> GetRoster(int id)
-        => Ok(await _service.GetRosterAsync(id));
+    {
+        var result = await _service.GetRosterAsync(id);
+        return Ok(result);
+    }
 
-    /// <summary>Get waitlist for a class</summary>
+    /// <summary>Get the waitlist for a class</summary>
     [HttpGet("{id:int}/waitlist")]
-    [ProducesResponseType<IReadOnlyList<WaitlistEntryDto>>(200)]
+    [ProducesResponseType(typeof(List<WaitlistEntryDto>), 200)]
     public async Task<IActionResult> GetWaitlist(int id)
-        => Ok(await _service.GetWaitlistAsync(id));
+    {
+        var result = await _service.GetWaitlistAsync(id);
+        return Ok(result);
+    }
 
     /// <summary>Get classes with available spots in the next 7 days</summary>
     [HttpGet("available")]
-    [ProducesResponseType<IReadOnlyList<ClassScheduleDto>>(200)]
+    [ProducesResponseType(typeof(List<ClassScheduleResponseDto>), 200)]
     public async Task<IActionResult> GetAvailable()
-        => Ok(await _service.GetAvailableAsync());
+    {
+        var result = await _service.GetAvailableAsync();
+        return Ok(result);
+    }
 }

@@ -5,31 +5,23 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public interface IPrescriptionService
-{
-    Task<PrescriptionResponse?> GetByIdAsync(int id, CancellationToken ct);
-    Task<PrescriptionResponse> CreateAsync(CreatePrescriptionRequest request, CancellationToken ct);
-}
-
-public class PrescriptionService(VetClinicDbContext db, ILogger<PrescriptionService> logger) : IPrescriptionService
+public sealed class PrescriptionService(VetClinicDbContext db, ILogger<PrescriptionService> logger) : IPrescriptionService
 {
     public async Task<PrescriptionResponse?> GetByIdAsync(int id, CancellationToken ct)
     {
+        var p = await db.Prescriptions.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
+        if (p is null) return null;
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return await db.Prescriptions.AsNoTracking()
-            .Where(p => p.Id == id)
-            .Select(p => new PrescriptionResponse(p.Id, p.MedicalRecordId, p.MedicationName, p.Dosage,
-                p.DurationDays, p.StartDate, p.EndDate, p.Instructions, p.EndDate >= today, p.CreatedAt))
-            .FirstOrDefaultAsync(ct);
+        return new PrescriptionResponse(
+            p.Id, p.MedicalRecordId, p.MedicationName, p.Dosage, p.DurationDays,
+            p.StartDate, p.EndDate, p.Instructions, p.EndDate >= today, p.CreatedAt);
     }
 
     public async Task<PrescriptionResponse> CreateAsync(CreatePrescriptionRequest request, CancellationToken ct)
     {
         if (!await db.MedicalRecords.AnyAsync(m => m.Id == request.MedicalRecordId, ct))
             throw new KeyNotFoundException($"Medical record with ID {request.MedicalRecordId} not found.");
-
-        var endDate = request.StartDate.AddDays(request.DurationDays);
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var prescription = new Prescription
         {
@@ -38,17 +30,21 @@ public class PrescriptionService(VetClinicDbContext db, ILogger<PrescriptionServ
             Dosage = request.Dosage,
             DurationDays = request.DurationDays,
             StartDate = request.StartDate,
-            EndDate = endDate,
+            EndDate = request.StartDate.AddDays(request.DurationDays),
             Instructions = request.Instructions,
             CreatedAt = DateTime.UtcNow
         };
 
         db.Prescriptions.Add(prescription);
         await db.SaveChangesAsync(ct);
-        logger.LogInformation("Created prescription {PrescriptionId} for medical record {RecordId}", prescription.Id, prescription.MedicalRecordId);
 
-        return new PrescriptionResponse(prescription.Id, prescription.MedicalRecordId, prescription.MedicationName,
-            prescription.Dosage, prescription.DurationDays, prescription.StartDate, prescription.EndDate,
-            prescription.Instructions, prescription.EndDate >= today, prescription.CreatedAt);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        logger.LogInformation("Created prescription {PrescriptionId} for record {RecordId}", prescription.Id, request.MedicalRecordId);
+
+        return new PrescriptionResponse(
+            prescription.Id, prescription.MedicalRecordId, prescription.MedicationName,
+            prescription.Dosage, prescription.DurationDays, prescription.StartDate,
+            prescription.EndDate, prescription.Instructions, prescription.EndDate >= today,
+            prescription.CreatedAt);
     }
 }

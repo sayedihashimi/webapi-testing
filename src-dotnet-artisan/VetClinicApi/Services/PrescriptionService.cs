@@ -5,51 +5,48 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public sealed class PrescriptionService(VetClinicDbContext db, ILogger<PrescriptionService> logger)
+public sealed class PrescriptionService(VetClinicDbContext db, ILogger<PrescriptionService> logger) : IPrescriptionService
 {
-    public async Task<PrescriptionResponse?> GetByIdAsync(int id, CancellationToken ct)
+    public async Task<PrescriptionDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var rx = await db.Prescriptions
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == id, ct);
-
-        if (rx is null)
+        var prescription = await db.Prescriptions.FindAsync([id], ct);
+        if (prescription is null)
         {
             return null;
         }
 
-        return new PrescriptionResponse(
-            rx.Id, rx.MedicalRecordId, rx.MedicationName, rx.Dosage,
-            rx.DurationDays, rx.StartDate, rx.EndDate, rx.IsActive,
-            rx.Instructions, rx.CreatedAt);
+        return MapToDto(prescription);
     }
 
-    public async Task<PrescriptionResponse> CreateAsync(CreatePrescriptionRequest request, CancellationToken ct)
+    public async Task<PrescriptionDto> CreateAsync(CreatePrescriptionDto dto, CancellationToken ct = default)
     {
-        if (!await db.MedicalRecords.AnyAsync(m => m.Id == request.MedicalRecordId, ct))
+        var recordExists = await db.MedicalRecords.AnyAsync(m => m.Id == dto.MedicalRecordId, ct);
+        if (!recordExists)
         {
-            throw new KeyNotFoundException($"Medical record with ID {request.MedicalRecordId} not found.");
+            throw new InvalidOperationException($"Medical record {dto.MedicalRecordId} not found.");
         }
 
-        var rx = new Prescription
+        var prescription = new Prescription
         {
-            MedicalRecordId = request.MedicalRecordId,
-            MedicationName = request.MedicationName,
-            Dosage = request.Dosage,
-            DurationDays = request.DurationDays,
-            StartDate = request.StartDate,
-            Instructions = request.Instructions
+            MedicalRecordId = dto.MedicalRecordId,
+            MedicationName = dto.MedicationName,
+            Dosage = dto.Dosage,
+            DurationDays = dto.DurationDays,
+            StartDate = dto.StartDate,
+            Instructions = dto.Instructions
         };
 
-        db.Prescriptions.Add(rx);
+        db.Prescriptions.Add(prescription);
         await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Created prescription {PrescriptionId} for medical record {RecordId}",
-            rx.Id, request.MedicalRecordId);
+            prescription.Id, prescription.MedicalRecordId);
 
-        return new PrescriptionResponse(
-            rx.Id, rx.MedicalRecordId, rx.MedicationName, rx.Dosage,
-            rx.DurationDays, rx.StartDate, rx.EndDate, rx.IsActive,
-            rx.Instructions, rx.CreatedAt);
+        return MapToDto(prescription);
     }
+
+    private static PrescriptionDto MapToDto(Prescription p) =>
+        new(p.Id, p.MedicalRecordId, p.MedicationName, p.Dosage,
+            p.DurationDays, p.StartDate, p.EndDate, p.IsActive,
+            p.Instructions, p.CreatedAt);
 }

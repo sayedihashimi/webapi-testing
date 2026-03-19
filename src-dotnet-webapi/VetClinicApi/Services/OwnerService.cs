@@ -5,20 +5,10 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public interface IOwnerService
+public sealed class OwnerService(VetClinicDbContext db, ILogger<OwnerService> logger) : IOwnerService
 {
-    Task<PaginatedResponse<OwnerResponse>> GetAllAsync(string? search, int page, int pageSize, CancellationToken ct);
-    Task<OwnerDetailResponse?> GetByIdAsync(int id, CancellationToken ct);
-    Task<OwnerResponse> CreateAsync(CreateOwnerRequest request, CancellationToken ct);
-    Task<OwnerResponse?> UpdateAsync(int id, UpdateOwnerRequest request, CancellationToken ct);
-    Task<bool> DeleteAsync(int id, CancellationToken ct);
-    Task<List<PetResponse>?> GetOwnerPetsAsync(int id, CancellationToken ct);
-    Task<PaginatedResponse<AppointmentResponse>?> GetOwnerAppointmentsAsync(int id, int page, int pageSize, CancellationToken ct);
-}
-
-public class OwnerService(VetClinicDbContext db, ILogger<OwnerService> logger) : IOwnerService
-{
-    public async Task<PaginatedResponse<OwnerResponse>> GetAllAsync(string? search, int page, int pageSize, CancellationToken ct)
+    public async Task<PaginatedResponse<OwnerResponse>> GetAllAsync(
+        string? search, int page, int pageSize, CancellationToken ct)
     {
         var query = db.Owners.AsNoTracking().AsQueryable();
 
@@ -32,28 +22,29 @@ public class OwnerService(VetClinicDbContext db, ILogger<OwnerService> logger) :
         }
 
         var totalCount = await query.CountAsync(ct);
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
         var items = await query
             .OrderBy(o => o.LastName).ThenBy(o => o.FirstName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(o => new OwnerResponse(o.Id, o.FirstName, o.LastName, o.Email, o.Phone, o.Address, o.City, o.State, o.ZipCode, o.CreatedAt, o.UpdatedAt))
+            .Select(o => MapToResponse(o))
             .ToListAsync(ct);
 
-        return new PaginatedResponse<OwnerResponse>(items, page, pageSize, totalCount, totalPages, page < totalPages, page > 1);
+        return PaginatedResponse<OwnerResponse>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task<OwnerDetailResponse?> GetByIdAsync(int id, CancellationToken ct)
     {
-        return await db.Owners.AsNoTracking()
+        var owner = await db.Owners.AsNoTracking()
             .Include(o => o.Pets)
-            .Where(o => o.Id == id)
-            .Select(o => new OwnerDetailResponse(
-                o.Id, o.FirstName, o.LastName, o.Email, o.Phone,
-                o.Address, o.City, o.State, o.ZipCode, o.CreatedAt, o.UpdatedAt,
-                o.Pets.Select(p => new PetSummaryResponse(p.Id, p.Name, p.Species, p.Breed, p.IsActive)).ToList()))
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (owner is null) return null;
+
+        return new OwnerDetailResponse(
+            owner.Id, owner.FirstName, owner.LastName, owner.Email, owner.Phone,
+            owner.Address, owner.City, owner.State, owner.ZipCode,
+            owner.CreatedAt, owner.UpdatedAt,
+            owner.Pets.Select(p => new PetSummaryResponse(p.Id, p.Name, p.Species, p.Breed, p.IsActive)).ToList());
     }
 
     public async Task<OwnerResponse> CreateAsync(CreateOwnerRequest request, CancellationToken ct)
@@ -78,9 +69,7 @@ public class OwnerService(VetClinicDbContext db, ILogger<OwnerService> logger) :
         db.Owners.Add(owner);
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Created owner {OwnerId}: {Name}", owner.Id, $"{owner.FirstName} {owner.LastName}");
-
-        return new OwnerResponse(owner.Id, owner.FirstName, owner.LastName, owner.Email, owner.Phone,
-            owner.Address, owner.City, owner.State, owner.ZipCode, owner.CreatedAt, owner.UpdatedAt);
+        return MapToResponse(owner);
     }
 
     public async Task<OwnerResponse?> UpdateAsync(int id, UpdateOwnerRequest request, CancellationToken ct)
@@ -103,16 +92,13 @@ public class OwnerService(VetClinicDbContext db, ILogger<OwnerService> logger) :
 
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Updated owner {OwnerId}", owner.Id);
-
-        return new OwnerResponse(owner.Id, owner.FirstName, owner.LastName, owner.Email, owner.Phone,
-            owner.Address, owner.City, owner.State, owner.ZipCode, owner.CreatedAt, owner.UpdatedAt);
+        return MapToResponse(owner);
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct)
     {
         var owner = await db.Owners.Include(o => o.Pets).FirstOrDefaultAsync(o => o.Id == id, ct);
-        if (owner is null)
-            throw new KeyNotFoundException($"Owner with ID {id} not found.");
+        if (owner is null) return false;
 
         if (owner.Pets.Any(p => p.IsActive))
             throw new InvalidOperationException("Cannot delete owner with active pets. Deactivate pets first.");
@@ -123,42 +109,43 @@ public class OwnerService(VetClinicDbContext db, ILogger<OwnerService> logger) :
         return true;
     }
 
-    public async Task<List<PetResponse>?> GetOwnerPetsAsync(int id, CancellationToken ct)
+    public async Task<IReadOnlyList<PetSummaryResponse>> GetPetsAsync(int ownerId, CancellationToken ct)
     {
-        if (!await db.Owners.AnyAsync(o => o.Id == id, ct))
-            return null;
+        if (!await db.Owners.AnyAsync(o => o.Id == ownerId, ct))
+            throw new KeyNotFoundException($"Owner with ID {ownerId} not found.");
 
         return await db.Pets.AsNoTracking()
-            .Where(p => p.OwnerId == id)
-            .OrderBy(p => p.Name)
-            .Select(p => new PetResponse(p.Id, p.Name, p.Species, p.Breed, p.DateOfBirth, p.Weight, p.Color,
-                p.MicrochipNumber, p.IsActive, p.OwnerId, p.CreatedAt, p.UpdatedAt))
+            .Where(p => p.OwnerId == ownerId)
+            .Select(p => new PetSummaryResponse(p.Id, p.Name, p.Species, p.Breed, p.IsActive))
             .ToListAsync(ct);
     }
 
-    public async Task<PaginatedResponse<AppointmentResponse>?> GetOwnerAppointmentsAsync(int id, int page, int pageSize, CancellationToken ct)
+    public async Task<PaginatedResponse<AppointmentResponse>> GetAppointmentsAsync(
+        int ownerId, int page, int pageSize, CancellationToken ct)
     {
-        if (!await db.Owners.AnyAsync(o => o.Id == id, ct))
-            return null;
+        if (!await db.Owners.AnyAsync(o => o.Id == ownerId, ct))
+            throw new KeyNotFoundException($"Owner with ID {ownerId} not found.");
 
         var query = db.Appointments.AsNoTracking()
             .Include(a => a.Pet)
             .Include(a => a.Veterinarian)
-            .Where(a => a.Pet.OwnerId == id);
+            .Where(a => a.Pet.OwnerId == ownerId);
 
         var totalCount = await query.CountAsync(ct);
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
         var items = await query
             .OrderByDescending(a => a.AppointmentDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => new AppointmentResponse(a.Id, a.PetId, a.Pet.Name, a.VeterinarianId,
-                $"{a.Veterinarian.FirstName} {a.Veterinarian.LastName}",
-                a.AppointmentDate, a.DurationMinutes, a.Status, a.Reason, a.Notes, a.CancellationReason,
-                a.CreatedAt, a.UpdatedAt))
+            .Select(a => MapAppointmentToResponse(a))
             .ToListAsync(ct);
 
-        return new PaginatedResponse<AppointmentResponse>(items, page, pageSize, totalCount, totalPages, page < totalPages, page > 1);
+        return PaginatedResponse<AppointmentResponse>.Create(items, page, pageSize, totalCount);
     }
+
+    private static OwnerResponse MapToResponse(Owner o) =>
+        new(o.Id, o.FirstName, o.LastName, o.Email, o.Phone, o.Address, o.City, o.State, o.ZipCode, o.CreatedAt, o.UpdatedAt);
+
+    private static AppointmentResponse MapAppointmentToResponse(Appointment a) =>
+        new(a.Id, a.PetId, a.Pet.Name, a.VeterinarianId, $"{a.Veterinarian.FirstName} {a.Veterinarian.LastName}",
+            a.AppointmentDate, a.DurationMinutes, a.Status, a.Reason, a.Notes, a.CancellationReason, a.CreatedAt, a.UpdatedAt);
 }

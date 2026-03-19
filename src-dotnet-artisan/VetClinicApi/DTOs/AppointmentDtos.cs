@@ -1,31 +1,8 @@
-using System.ComponentModel.DataAnnotations;
 using VetClinicApi.Models;
 
 namespace VetClinicApi.DTOs;
 
-// --- Appointment DTOs ---
-
-public sealed record CreateAppointmentRequest(
-    [Required] int PetId,
-    [Required] int VeterinarianId,
-    [Required] DateTime AppointmentDate,
-    [Range(15, 120)] int DurationMinutes = 30,
-    [Required, MaxLength(500)] string Reason = "",
-    [MaxLength(2000)] string? Notes = null);
-
-public sealed record UpdateAppointmentRequest(
-    [Required] int PetId,
-    [Required] int VeterinarianId,
-    [Required] DateTime AppointmentDate,
-    [Range(15, 120)] int DurationMinutes = 30,
-    [Required, MaxLength(500)] string Reason = "",
-    [MaxLength(2000)] string? Notes = null);
-
-public sealed record UpdateAppointmentStatusRequest(
-    [Required] AppointmentStatus Status,
-    string? CancellationReason = null);
-
-public sealed record AppointmentResponse(
+public sealed record AppointmentDto(
     int Id,
     int PetId,
     string PetName,
@@ -40,15 +17,12 @@ public sealed record AppointmentResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
-public sealed record AppointmentDetailResponse(
+public sealed record AppointmentDetailDto(
     int Id,
     int PetId,
-    string PetName,
-    string PetSpecies,
-    int OwnerId,
-    string OwnerName,
+    PetSummaryDto Pet,
     int VeterinarianId,
-    string VeterinarianName,
+    VeterinarianDto Veterinarian,
     DateTime AppointmentDate,
     int DurationMinutes,
     AppointmentStatus Status,
@@ -57,4 +31,24 @@ public sealed record AppointmentDetailResponse(
     string? CancellationReason,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    MedicalRecordResponse? MedicalRecord);
+    MedicalRecordDto? MedicalRecord);
+
+public sealed record CreateAppointmentDto(
+    int PetId,
+    int VeterinarianId,
+    DateTime AppointmentDate,
+    int DurationMinutes = 30,
+    string Reason = "",
+    string? Notes = null);
+
+public sealed record UpdateAppointmentDto(
+    int PetId,
+    int VeterinarianId,
+    DateTime AppointmentDate,
+    int DurationMinutes,
+    string Reason,
+    string? Notes);
+
+public sealed record UpdateAppointmentStatusDto(
+    AppointmentStatus NewStatus,
+    string? CancellationReason = null);

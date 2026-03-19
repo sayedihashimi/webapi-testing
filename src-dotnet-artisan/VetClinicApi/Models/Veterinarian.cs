@@ -18,15 +18,15 @@ public sealed class Veterinarian
     [Required, Phone]
     public string Phone { get; set; } = string.Empty;
 
+    [MaxLength(100)]
     public string? Specialization { get; set; }
 
-    [Required]
+    [Required, MaxLength(50)]
     public string LicenseNumber { get; set; } = string.Empty;
 
     public bool IsAvailable { get; set; } = true;
 
-    [Required]
     public DateOnly HireDate { get; set; }
 
-    public List<Appointment> Appointments { get; set; } = [];
+    public ICollection<Appointment> Appointments { get; set; } = [];
 }

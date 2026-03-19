@@ -1,64 +1,95 @@
 using LibraryApi.DTOs;
 using LibraryApi.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LibraryApi.Endpoints;
 
 public static class CategoryEndpoints
 {
-    public static RouteGroupBuilder MapCategoryEndpoints(this WebApplication app)
+    public static RouteGroupBuilder MapCategoryEndpoints(this IEndpointRouteBuilder routes)
     {
-        var group = app.MapGroup("/api/categories").WithTags("Categories");
+        var group = routes.MapGroup("/api/categories")
+            .WithTags("Categories");
 
-        group.MapGet("/", GetCategories).WithName("GetCategories");
-        group.MapGet("/{id:int}", GetCategory).WithName("GetCategory");
-        group.MapPost("/", CreateCategory).WithName("CreateCategory");
-        group.MapPut("/{id:int}", UpdateCategory).WithName("UpdateCategory");
-        group.MapDelete("/{id:int}", DeleteCategory).WithName("DeleteCategory");
+        group.MapGet("/", GetCategoriesAsync);
+        group.MapGet("/{id:int}", GetCategoryByIdAsync);
+        group.MapPost("/", CreateCategoryAsync);
+        group.MapPut("/{id:int}", UpdateCategoryAsync);
+        group.MapDelete("/{id:int}", DeleteCategoryAsync);
 
         return group;
     }
 
-    private static async Task<Ok<List<CategoryResponse>>> GetCategories(LibraryService service)
+    private static async Task<IResult> GetCategoriesAsync(
+        ICategoryService service,
+        CancellationToken ct = default)
     {
-        var result = await service.GetCategoriesAsync();
+        var result = await service.GetCategoriesAsync(ct);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<Results<Ok<CategoryDetailResponse>, NotFound>> GetCategory(
-        LibraryService service, int id)
+    private static async Task<IResult> GetCategoryByIdAsync(
+        int id,
+        ICategoryService service,
+        CancellationToken ct = default)
     {
-        var result = await service.GetCategoryByIdAsync(id);
-        return result is not null
-            ? TypedResults.Ok(result)
+        var category = await service.GetCategoryByIdAsync(id, ct);
+        return category is not null
+            ? TypedResults.Ok(category)
             : TypedResults.NotFound();
     }
 
-    private static async Task<Results<Created<CategoryResponse>, Conflict<string>>> CreateCategory(
-        LibraryService service, CreateCategoryRequest request)
+    private static async Task<IResult> CreateCategoryAsync(
+        CreateCategoryDto dto,
+        ICategoryService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.CreateCategoryAsync(request);
-        return result is not null
-            ? TypedResults.Created($"/api/categories/{result.Id}", result)
-            : TypedResults.Conflict(error!);
+        if (string.IsNullOrWhiteSpace(dto.Name))
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["Name"] = ["Name is required."] });
+        }
+
+        var category = await service.CreateCategoryAsync(dto, ct);
+        return TypedResults.Created($"/api/categories/{category.Id}", category);
     }
 
-    private static async Task<Results<Ok<CategoryResponse>, NotFound, Conflict<string>>> UpdateCategory(
-        LibraryService service, int id, UpdateCategoryRequest request)
+    private static async Task<IResult> UpdateCategoryAsync(
+        int id,
+        UpdateCategoryDto dto,
+        ICategoryService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.UpdateCategoryAsync(id, request);
-        if (error == "Category not found") { return TypedResults.NotFound(); }
-        return result is not null
-            ? TypedResults.Ok(result)
-            : TypedResults.Conflict(error!);
+        if (string.IsNullOrWhiteSpace(dto.Name))
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["Name"] = ["Name is required."] });
+        }
+
+        var category = await service.UpdateCategoryAsync(id, dto, ct);
+        return category is not null
+            ? TypedResults.Ok(category)
+            : TypedResults.NotFound();
     }
 
-    private static async Task<Results<NoContent, NotFound, Conflict<string>>> DeleteCategory(
-        LibraryService service, int id)
+    private static async Task<IResult> DeleteCategoryAsync(
+        int id,
+        ICategoryService service,
+        CancellationToken ct = default)
     {
-        var (success, error) = await service.DeleteCategoryAsync(id);
-        if (error == "Category not found") { return TypedResults.NotFound(); }
-        if (!success) { return TypedResults.Conflict(error!); }
+        var (found, hasBooks) = await service.DeleteCategoryAsync(id, ct);
+
+        if (!found)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (hasBooks)
+        {
+            return TypedResults.Problem(
+                detail: "Cannot delete category with associated books.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
         return TypedResults.NoContent();
     }
 }

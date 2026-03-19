@@ -1,6 +1,8 @@
 using LibraryApi.Data;
-using LibraryApi.DTOs;
+using LibraryApi.DTOs.Author;
+using LibraryApi.DTOs.Common;
 using LibraryApi.Models;
+using LibraryApi.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApi.Services;
@@ -16,7 +18,7 @@ public class AuthorService : IAuthorService
         _logger = logger;
     }
 
-    public async Task<PagedResult<AuthorDto>> GetAuthorsAsync(string? search, PaginationParams pagination)
+    public async Task<PagedResult<AuthorListDto>> GetAllAsync(string? search, PaginationParams pagination)
     {
         var query = _db.Authors.AsQueryable();
 
@@ -32,56 +34,32 @@ public class AuthorService : IAuthorService
             .OrderBy(a => a.LastName).ThenBy(a => a.FirstName)
             .Skip((pagination.Page - 1) * pagination.PageSize)
             .Take(pagination.PageSize)
-            .Select(a => new AuthorDto
-            {
-                Id = a.Id,
-                FirstName = a.FirstName,
-                LastName = a.LastName,
-                Biography = a.Biography,
-                BirthDate = a.BirthDate,
-                Country = a.Country,
-                CreatedAt = a.CreatedAt
-            })
+            .Select(a => new AuthorListDto(
+                a.Id, a.FirstName, a.LastName, a.Country,
+                a.BookAuthors.Count))
             .ToListAsync();
 
-        return new PagedResult<AuthorDto>
+        return new PagedResult<AuthorListDto>
         {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize
+            Items = items, TotalCount = totalCount,
+            Page = pagination.Page, PageSize = pagination.PageSize
         };
     }
 
-    public async Task<AuthorDetailDto> GetAuthorByIdAsync(int id)
+    public async Task<AuthorDetailDto> GetByIdAsync(int id)
     {
         var author = await _db.Authors
-            .Include(a => a.BookAuthors)
-            .ThenInclude(ba => ba.Book)
+            .Include(a => a.BookAuthors).ThenInclude(ba => ba.Book)
             .FirstOrDefaultAsync(a => a.Id == id)
-            ?? throw new NotFoundException($"Author with ID {id} not found");
+            ?? throw new KeyNotFoundException($"Author with ID {id} not found.");
 
-        return new AuthorDetailDto
-        {
-            Id = author.Id,
-            FirstName = author.FirstName,
-            LastName = author.LastName,
-            Biography = author.Biography,
-            BirthDate = author.BirthDate,
-            Country = author.Country,
-            CreatedAt = author.CreatedAt,
-            Books = author.BookAuthors.Select(ba => new BookSummaryDto
-            {
-                Id = ba.Book.Id,
-                Title = ba.Book.Title,
-                ISBN = ba.Book.ISBN,
-                TotalCopies = ba.Book.TotalCopies,
-                AvailableCopies = ba.Book.AvailableCopies
-            }).ToList()
-        };
+        return new AuthorDetailDto(
+            author.Id, author.FirstName, author.LastName,
+            author.Biography, author.BirthDate, author.Country, author.CreatedAt,
+            author.BookAuthors.Select(ba => new AuthorBookDto(ba.Book.Id, ba.Book.Title, ba.Book.ISBN)).ToList());
     }
 
-    public async Task<AuthorDto> CreateAuthorAsync(CreateAuthorDto dto)
+    public async Task<AuthorDetailDto> CreateAsync(CreateAuthorDto dto)
     {
         var author = new Author
         {
@@ -89,31 +67,20 @@ public class AuthorService : IAuthorService
             LastName = dto.LastName,
             Biography = dto.Biography,
             BirthDate = dto.BirthDate,
-            Country = dto.Country,
-            CreatedAt = DateTime.UtcNow
+            Country = dto.Country
         };
 
         _db.Authors.Add(author);
         await _db.SaveChangesAsync();
+        _logger.LogInformation("Created author {AuthorId}: {FirstName} {LastName}", author.Id, author.FirstName, author.LastName);
 
-        _logger.LogInformation("Created author: {FirstName} {LastName} (ID: {Id})", author.FirstName, author.LastName, author.Id);
-
-        return new AuthorDto
-        {
-            Id = author.Id,
-            FirstName = author.FirstName,
-            LastName = author.LastName,
-            Biography = author.Biography,
-            BirthDate = author.BirthDate,
-            Country = author.Country,
-            CreatedAt = author.CreatedAt
-        };
+        return await GetByIdAsync(author.Id);
     }
 
-    public async Task<AuthorDto> UpdateAuthorAsync(int id, UpdateAuthorDto dto)
+    public async Task<AuthorDetailDto> UpdateAsync(int id, UpdateAuthorDto dto)
     {
         var author = await _db.Authors.FindAsync(id)
-            ?? throw new NotFoundException($"Author with ID {id} not found");
+            ?? throw new KeyNotFoundException($"Author with ID {id} not found.");
 
         author.FirstName = dto.FirstName;
         author.LastName = dto.LastName;
@@ -122,32 +89,23 @@ public class AuthorService : IAuthorService
         author.Country = dto.Country;
 
         await _db.SaveChangesAsync();
+        _logger.LogInformation("Updated author {AuthorId}", id);
 
-        return new AuthorDto
-        {
-            Id = author.Id,
-            FirstName = author.FirstName,
-            LastName = author.LastName,
-            Biography = author.Biography,
-            BirthDate = author.BirthDate,
-            Country = author.Country,
-            CreatedAt = author.CreatedAt
-        };
+        return await GetByIdAsync(id);
     }
 
-    public async Task DeleteAuthorAsync(int id)
+    public async Task DeleteAsync(int id)
     {
         var author = await _db.Authors
             .Include(a => a.BookAuthors)
             .FirstOrDefaultAsync(a => a.Id == id)
-            ?? throw new NotFoundException($"Author with ID {id} not found");
+            ?? throw new KeyNotFoundException($"Author with ID {id} not found.");
 
-        if (author.BookAuthors.Any())
-            throw new BusinessRuleException("Cannot delete author with associated books. Remove the books first.", 409);
+        if (author.BookAuthors.Count != 0)
+            throw new InvalidOperationException($"Cannot delete author with ID {id} because they have {author.BookAuthors.Count} associated book(s).");
 
         _db.Authors.Remove(author);
         await _db.SaveChangesAsync();
-
-        _logger.LogInformation("Deleted author: {FirstName} {LastName} (ID: {Id})", author.FirstName, author.LastName, author.Id);
+        _logger.LogInformation("Deleted author {AuthorId}", id);
     }
 }

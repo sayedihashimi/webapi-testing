@@ -1,78 +1,79 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using VetClinicApi.DTOs;
-using VetClinicApi.Models;
 using VetClinicApi.Services;
 
 namespace VetClinicApi.Endpoints;
 
 public static class AppointmentEndpoints
 {
-    public static void MapAppointmentEndpoints(this IEndpointRouteBuilder app)
+    public static RouteGroupBuilder MapAppointmentEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/appointments").WithTags("Appointments");
 
-        group.MapGet("/", async (DateTime? date, AppointmentStatus? status, int? vetId, int? petId, int page, int pageSize, IAppointmentService service, CancellationToken ct) =>
+        group.MapGet("/", async Task<Results<Ok<PaginatedResponse<AppointmentResponse>>, BadRequest>> (
+            DateTime? dateFrom, DateTime? dateTo, string? status, int? vetId, int? petId,
+            int? page, int? pageSize,
+            IAppointmentService service, CancellationToken ct) =>
         {
-            page = page < 1 ? 1 : page;
-            pageSize = pageSize < 1 ? 20 : pageSize > 100 ? 100 : pageSize;
-            return Results.Ok(await service.GetAllAsync(date, status, vetId, petId, page, pageSize, ct));
+            var p = Math.Clamp(page ?? 1, 1, int.MaxValue);
+            var ps = Math.Clamp(pageSize ?? 20, 1, 100);
+            var result = await service.GetAllAsync(dateFrom, dateTo, status, vetId, petId, p, ps, ct);
+            return TypedResults.Ok(result);
         })
         .WithName("GetAppointments")
-        .WithSummary("List appointments")
-        .WithDescription("Returns a paginated list of appointments. Filter by date, status, veterinarian, or pet.")
-        .Produces<PaginatedResponse<AppointmentResponse>>();
+        .WithSummary("List all appointments")
+        .WithDescription("Returns paginated appointments. Filter by date range, status, vet, or pet.");
 
-        group.MapGet("/today", async (IAppointmentService service, CancellationToken ct) =>
-            Results.Ok(await service.GetTodayAsync(ct)))
-        .WithName("GetTodaysAppointments")
+        group.MapGet("/today", async Task<Ok<IReadOnlyList<AppointmentResponse>>> (
+            IAppointmentService service, CancellationToken ct) =>
+        {
+            var result = await service.GetTodayAsync(ct);
+            return TypedResults.Ok(result);
+        })
+        .WithName("GetTodayAppointments")
         .WithSummary("Get today's appointments")
-        .WithDescription("Returns all appointments scheduled for today, ordered by time.")
-        .Produces<List<AppointmentResponse>>();
+        .WithDescription("Returns all appointments scheduled for today.");
 
-        group.MapGet("/{id:int}", async (int id, IAppointmentService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}", async Task<Results<Ok<AppointmentDetailResponse>, NotFound>> (
+            int id, IAppointmentService service, CancellationToken ct) =>
         {
             var appointment = await service.GetByIdAsync(id, ct);
-            return appointment is null ? Results.NotFound() : Results.Ok(appointment);
+            return appointment is null ? TypedResults.NotFound() : TypedResults.Ok(appointment);
         })
         .WithName("GetAppointmentById")
-        .WithSummary("Get appointment details")
-        .WithDescription("Returns full appointment details including pet, veterinarian, owner, and medical record.")
-        .Produces<AppointmentDetailResponse>()
-        .Produces(StatusCodes.Status404NotFound);
+        .WithSummary("Get appointment by ID")
+        .WithDescription("Returns full appointment details including pet, veterinarian, and medical record.");
 
-        group.MapPost("/", async (CreateAppointmentRequest request, IAppointmentService service, CancellationToken ct) =>
+        group.MapPost("/", async Task<Results<Created<AppointmentResponse>, BadRequest>> (
+            CreateAppointmentRequest request, IAppointmentService service, CancellationToken ct) =>
         {
             var appointment = await service.CreateAsync(request, ct);
-            return Results.Created($"/api/appointments/{appointment.Id}", appointment);
+            return TypedResults.Created($"/api/appointments/{appointment.Id}", appointment);
         })
         .WithName("CreateAppointment")
-        .WithSummary("Schedule an appointment")
-        .WithDescription("Schedules a new appointment. Validates scheduling conflicts and requires a future date.")
-        .Produces<AppointmentResponse>(StatusCodes.Status201Created)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithSummary("Schedule a new appointment")
+        .WithDescription("Schedules a new appointment. Enforces scheduling conflict detection.");
 
-        group.MapPut("/{id:int}", async (int id, UpdateAppointmentRequest request, IAppointmentService service, CancellationToken ct) =>
+        group.MapPut("/{id:int}", async Task<Results<Ok<AppointmentResponse>, NotFound>> (
+            int id, UpdateAppointmentRequest request, IAppointmentService service, CancellationToken ct) =>
         {
             var appointment = await service.UpdateAsync(id, request, ct);
-            return appointment is null ? Results.NotFound() : Results.Ok(appointment);
+            return appointment is null ? TypedResults.NotFound() : TypedResults.Ok(appointment);
         })
         .WithName("UpdateAppointment")
         .WithSummary("Update an appointment")
-        .WithDescription("Updates appointment details. Re-validates scheduling conflicts.")
-        .Produces<AppointmentResponse>()
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status404NotFound);
+        .WithDescription("Updates appointment details. Re-checks conflicts if time or vet changed.");
 
-        group.MapPatch("/{id:int}/status", async (int id, UpdateAppointmentStatusRequest request, IAppointmentService service, CancellationToken ct) =>
+        group.MapPatch("/{id:int}/status", async Task<Results<Ok<AppointmentResponse>, NotFound>> (
+            int id, UpdateAppointmentStatusRequest request, IAppointmentService service, CancellationToken ct) =>
         {
             var appointment = await service.UpdateStatusAsync(id, request, ct);
-            return appointment is null ? Results.NotFound() : Results.Ok(appointment);
+            return appointment is null ? TypedResults.NotFound() : TypedResults.Ok(appointment);
         })
         .WithName("UpdateAppointmentStatus")
         .WithSummary("Update appointment status")
-        .WithDescription("Updates the status following the workflow: Scheduled→CheckedIn/Cancelled/NoShow, CheckedIn→InProgress/Cancelled, InProgress→Completed.")
-        .Produces<AppointmentResponse>()
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status404NotFound);
+        .WithDescription("Updates the appointment status following the allowed workflow transitions.");
+
+        return group;
     }
 }

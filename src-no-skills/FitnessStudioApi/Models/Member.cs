@@ -18,6 +18,7 @@ public class Member
     [Required]
     public string Phone { get; set; } = string.Empty;
 
+    [Required]
     public DateOnly DateOfBirth { get; set; }
 
     [Required, MaxLength(200)]
@@ -33,7 +34,6 @@ public class Member
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation properties
     public ICollection<Membership> Memberships { get; set; } = new List<Membership>();
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }

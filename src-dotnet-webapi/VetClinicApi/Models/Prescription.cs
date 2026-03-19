@@ -1,6 +1,6 @@
 namespace VetClinicApi.Models;
 
-public class Prescription
+public sealed class Prescription
 {
     public int Id { get; set; }
     public int MedicalRecordId { get; set; }

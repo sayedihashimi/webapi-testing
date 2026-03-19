@@ -1,75 +1,71 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs;
-using VetClinicApi.Services;
+using VetClinicApi.DTOs.Common;
+using VetClinicApi.DTOs.Owner;
+using VetClinicApi.Services.Interfaces;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class OwnersController : ControllerBase
 {
-    private readonly IOwnerService _service;
+    private readonly IOwnerService _ownerService;
 
-    public OwnersController(IOwnerService service) => _service = service;
+    public OwnersController(IOwnerService ownerService) => _ownerService = ownerService;
 
-    /// <summary>List all owners with optional search and pagination</summary>
+    /// <summary>List owners with optional search and pagination</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<OwnerResponseDto>), 200)]
-    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAllAsync(search, new PaginationParams { Page = page, PageSize = pageSize }));
+    [ProducesResponseType(typeof(PagedResult<OwnerDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] PaginationParams pagination)
+        => Ok(await _ownerService.GetAllAsync(search, pagination));
 
-    /// <summary>Get owner by ID with their pets</summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(OwnerDetailDto), 200)]
-    [ProducesResponseType(404)]
+    /// <summary>Get owner details with pets</summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(OwnerDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
-    {
-        var owner = await _service.GetByIdAsync(id);
-        return owner is null ? NotFound() : Ok(owner);
-    }
+        => Ok(await _ownerService.GetByIdAsync(id));
 
     /// <summary>Create a new owner</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(OwnerResponseDto), 201)]
-    [ProducesResponseType(typeof(ValidationProblemDetails), 400)]
-    public async Task<IActionResult> Create([FromBody] OwnerCreateDto dto)
+    [ProducesResponseType(typeof(OwnerDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreateOwnerDto dto)
     {
-        var result = await _service.CreateAsync(dto);
+        var result = await _ownerService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update an existing owner</summary>
-    [HttpPut("{id}")]
-    [ProducesResponseType(typeof(OwnerResponseDto), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(int id, [FromBody] OwnerUpdateDto dto)
-    {
-        var result = await _service.UpdateAsync(id, dto);
-        return result is null ? NotFound() : Ok(result);
-    }
+    /// <summary>Update an owner</summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(OwnerDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateOwnerDto dto)
+        => Ok(await _ownerService.UpdateAsync(id, dto));
 
-    /// <summary>Delete owner (fails if owner has active pets)</summary>
-    [HttpDelete("{id}")]
-    [ProducesResponseType(204)]
-    [ProducesResponseType(typeof(ProblemDetails), 400)]
-    [ProducesResponseType(404)]
+    /// <summary>Delete an owner (fails if has active pets)</summary>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(int id)
     {
-        var (success, error) = await _service.DeleteAsync(id);
-        if (error == "Owner not found") return NotFound();
-        if (!success) return BadRequest(new ProblemDetails { Title = "Cannot delete owner", Detail = error, Status = 400 });
+        await _ownerService.DeleteAsync(id);
         return NoContent();
     }
 
-    /// <summary>Get all pets for an owner</summary>
-    [HttpGet("{id}/pets")]
-    [ProducesResponseType(typeof(IEnumerable<PetResponseDto>), 200)]
+    /// <summary>Get an owner's pets</summary>
+    [HttpGet("{id:int}/pets")]
+    [ProducesResponseType(typeof(List<DTOs.Pet.PetDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPets(int id)
-        => Ok(await _service.GetPetsAsync(id));
+        => Ok(await _ownerService.GetPetsAsync(id));
 
-    /// <summary>Get appointment history for an owner's pets</summary>
-    [HttpGet("{id}/appointments")]
-    [ProducesResponseType(typeof(PagedResult<AppointmentResponseDto>), 200)]
-    public async Task<IActionResult> GetAppointments(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAppointmentsAsync(id, new PaginationParams { Page = page, PageSize = pageSize }));
+    /// <summary>Get appointments for an owner's pets</summary>
+    [HttpGet("{id:int}/appointments")]
+    [ProducesResponseType(typeof(PagedResult<DTOs.Appointment.AppointmentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAppointments(int id, [FromQuery] PaginationParams pagination)
+        => Ok(await _ownerService.GetAppointmentsAsync(id, pagination));
 }

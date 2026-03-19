@@ -1,16 +1,17 @@
 namespace LibraryApi.DTOs;
 
-public class PaginatedResponse<T>
+public sealed record PaginatedResponse<T>
 {
-    public List<T> Items { get; set; } = [];
-    public int Page { get; set; }
-    public int PageSize { get; set; }
-    public int TotalCount { get; set; }
-    public int TotalPages { get; set; }
-    public bool HasNextPage { get; set; }
-    public bool HasPreviousPage { get; set; }
+    public required IReadOnlyList<T> Items { get; init; }
+    public required int Page { get; init; }
+    public required int PageSize { get; init; }
+    public required int TotalCount { get; init; }
+    public required int TotalPages { get; init; }
+    public required bool HasNextPage { get; init; }
+    public required bool HasPreviousPage { get; init; }
 
-    public static PaginatedResponse<T> Create(List<T> items, int page, int pageSize, int totalCount)
+    public static PaginatedResponse<T> Create(
+        IReadOnlyList<T> items, int page, int pageSize, int totalCount)
     {
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
         return new PaginatedResponse<T>

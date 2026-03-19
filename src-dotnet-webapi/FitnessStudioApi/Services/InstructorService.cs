@@ -5,27 +5,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessStudioApi.Services;
 
-public class InstructorService(FitnessDbContext db, ILogger<InstructorService> logger) : IInstructorService
+public sealed class InstructorService(StudioDbContext db, ILogger<InstructorService> logger) : IInstructorService
 {
-    public async Task<PaginatedResponse<InstructorResponse>> GetAllAsync(string? specialization, bool? isActive, int page, int pageSize, CancellationToken ct)
+    public async Task<IReadOnlyList<InstructorResponse>> GetAllAsync(string? specialization, bool? isActive, CancellationToken ct)
     {
         var query = db.Instructors.AsNoTracking().AsQueryable();
-
-        if (isActive.HasValue)
-            query = query.Where(i => i.IsActive == isActive.Value);
 
         if (!string.IsNullOrWhiteSpace(specialization))
             query = query.Where(i => i.Specializations != null && i.Specializations.Contains(specialization));
 
-        var totalCount = await query.CountAsync(ct);
-        var items = await query
-            .OrderBy(i => i.LastName).ThenBy(i => i.FirstName)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+        if (isActive.HasValue)
+            query = query.Where(i => i.IsActive == isActive.Value);
+
+        return await query.OrderBy(i => i.LastName)
             .Select(i => MapToResponse(i))
             .ToListAsync(ct);
-
-        return PaginatedResponse<InstructorResponse>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task<InstructorResponse?> GetByIdAsync(int id, CancellationToken ct)
@@ -47,20 +41,21 @@ public class InstructorService(FitnessDbContext db, ILogger<InstructorService> l
             Phone = request.Phone,
             Bio = request.Bio,
             Specializations = request.Specializations,
-            HireDate = request.HireDate
+            HireDate = request.HireDate,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         db.Instructors.Add(instructor);
         await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Created instructor {InstructorEmail} with ID {InstructorId}", instructor.Email, instructor.Id);
+        logger.LogInformation("Created instructor {InstructorId}: {Name}", instructor.Id, $"{instructor.FirstName} {instructor.LastName}");
         return MapToResponse(instructor);
     }
 
-    public async Task<InstructorResponse?> UpdateAsync(int id, UpdateInstructorRequest request, CancellationToken ct)
+    public async Task<InstructorResponse> UpdateAsync(int id, UpdateInstructorRequest request, CancellationToken ct)
     {
-        var instructor = await db.Instructors.FindAsync([id], ct);
-        if (instructor is null) return null;
+        var instructor = await db.Instructors.FindAsync([id], ct)
+            ?? throw new KeyNotFoundException($"Instructor {id} not found.");
 
         if (await db.Instructors.AnyAsync(i => i.Email == request.Email && i.Id != id, ct))
             throw new InvalidOperationException($"An instructor with email '{request.Email}' already exists.");
@@ -75,15 +70,15 @@ public class InstructorService(FitnessDbContext db, ILogger<InstructorService> l
         instructor.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Updated instructor {InstructorId}", instructor.Id);
+        logger.LogInformation("Updated instructor {InstructorId}", id);
         return MapToResponse(instructor);
     }
 
-    public async Task<List<ClassScheduleResponse>> GetScheduleAsync(int instructorId, DateOnly? from, DateOnly? to, CancellationToken ct)
+    public async Task<IReadOnlyList<ClassScheduleResponse>> GetScheduleAsync(
+        int instructorId, DateOnly? from, DateOnly? to, CancellationToken ct)
     {
         if (!await db.Instructors.AnyAsync(i => i.Id == instructorId, ct))
-            throw new KeyNotFoundException($"Instructor with ID {instructorId} not found.");
+            throw new KeyNotFoundException($"Instructor {instructorId} not found.");
 
         var query = db.ClassSchedules.AsNoTracking()
             .Include(cs => cs.ClassType)
@@ -96,40 +91,20 @@ public class InstructorService(FitnessDbContext db, ILogger<InstructorService> l
         if (to.HasValue)
             query = query.Where(cs => DateOnly.FromDateTime(cs.StartTime) <= to.Value);
 
-        var schedules = await query.OrderBy(cs => cs.StartTime).ToListAsync(ct);
-
-        return schedules.Select(cs => new ClassScheduleResponse
-        {
-            Id = cs.Id,
-            ClassTypeId = cs.ClassTypeId,
-            ClassTypeName = cs.ClassType.Name,
-            InstructorId = cs.InstructorId,
-            InstructorName = $"{cs.Instructor.FirstName} {cs.Instructor.LastName}",
-            StartTime = cs.StartTime,
-            EndTime = cs.EndTime,
-            Capacity = cs.Capacity,
-            CurrentEnrollment = cs.CurrentEnrollment,
-            WaitlistCount = cs.WaitlistCount,
-            Room = cs.Room,
-            Status = cs.Status,
-            CancellationReason = cs.CancellationReason,
-            CreatedAt = cs.CreatedAt,
-            UpdatedAt = cs.UpdatedAt
-        }).ToList();
+        return await query.OrderBy(cs => cs.StartTime)
+            .Select(cs => MapScheduleToResponse(cs))
+            .ToListAsync(ct);
     }
 
-    private static InstructorResponse MapToResponse(Instructor i) => new()
-    {
-        Id = i.Id,
-        FirstName = i.FirstName,
-        LastName = i.LastName,
-        Email = i.Email,
-        Phone = i.Phone,
-        Bio = i.Bio,
-        Specializations = i.Specializations,
-        HireDate = i.HireDate,
-        IsActive = i.IsActive,
-        CreatedAt = i.CreatedAt,
-        UpdatedAt = i.UpdatedAt
-    };
+    private static InstructorResponse MapToResponse(Instructor i) =>
+        new(i.Id, i.FirstName, i.LastName, i.Email, i.Phone, i.Bio,
+            i.Specializations, i.HireDate, i.IsActive, i.CreatedAt, i.UpdatedAt);
+
+    private static ClassScheduleResponse MapScheduleToResponse(ClassSchedule cs) =>
+        new(cs.Id, cs.ClassTypeId, cs.ClassType.Name, cs.InstructorId,
+            $"{cs.Instructor.FirstName} {cs.Instructor.LastName}",
+            cs.StartTime, cs.EndTime, cs.Capacity, cs.CurrentEnrollment,
+            cs.WaitlistCount, Math.Max(0, cs.Capacity - cs.CurrentEnrollment),
+            cs.Room, cs.Status.ToString(), cs.CancellationReason,
+            cs.CreatedAt, cs.UpdatedAt);
 }

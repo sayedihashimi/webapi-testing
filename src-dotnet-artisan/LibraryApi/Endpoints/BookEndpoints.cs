@@ -1,82 +1,128 @@
 using LibraryApi.DTOs;
 using LibraryApi.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LibraryApi.Endpoints;
 
 public static class BookEndpoints
 {
-    public static RouteGroupBuilder MapBookEndpoints(this WebApplication app)
+    public static RouteGroupBuilder MapBookEndpoints(this IEndpointRouteBuilder routes)
     {
-        var group = app.MapGroup("/api/books").WithTags("Books");
+        var group = routes.MapGroup("/api/books")
+            .WithTags("Books");
 
-        group.MapGet("/", GetBooks).WithName("GetBooks");
-        group.MapGet("/{id:int}", GetBook).WithName("GetBook");
-        group.MapPost("/", CreateBook).WithName("CreateBook");
-        group.MapPut("/{id:int}", UpdateBook).WithName("UpdateBook");
-        group.MapDelete("/{id:int}", DeleteBook).WithName("DeleteBook");
-        group.MapGet("/{id:int}/loans", GetBookLoans).WithName("GetBookLoans");
-        group.MapGet("/{id:int}/reservations", GetBookReservations).WithName("GetBookReservations");
+        group.MapGet("/", GetBooksAsync);
+        group.MapGet("/{id:int}", GetBookByIdAsync);
+        group.MapPost("/", CreateBookAsync);
+        group.MapPut("/{id:int}", UpdateBookAsync);
+        group.MapDelete("/{id:int}", DeleteBookAsync);
+        group.MapGet("/{id:int}/loans", GetBookLoansAsync);
+        group.MapGet("/{id:int}/reservations", GetBookReservationsAsync);
 
         return group;
     }
 
-    private static async Task<Ok<PaginatedResponse<BookSummaryResponse>>> GetBooks(
-        LibraryService service,
-        string? search = null, string? category = null, bool? available = null,
-        string? sortBy = null, string? sortOrder = null,
-        int page = 1, int pageSize = 10)
+    private static async Task<IResult> GetBooksAsync(
+        IBookService service,
+        string? search = null,
+        string? category = null,
+        bool? available = null,
+        string? sortBy = null,
+        string? sortDirection = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
     {
-        var result = await service.GetBooksAsync(search, category, available, sortBy, sortOrder, page, pageSize);
+        var result = await service.GetBooksAsync(search, category, available, sortBy, sortDirection, page, pageSize, ct);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<Results<Ok<BookDetailResponse>, NotFound>> GetBook(
-        LibraryService service, int id)
+    private static async Task<IResult> GetBookByIdAsync(
+        int id,
+        IBookService service,
+        CancellationToken ct = default)
     {
-        var result = await service.GetBookByIdAsync(id);
-        return result is not null
-            ? TypedResults.Ok(result)
+        var book = await service.GetBookByIdAsync(id, ct);
+        return book is not null
+            ? TypedResults.Ok(book)
             : TypedResults.NotFound();
     }
 
-    private static async Task<Results<Created<BookDetailResponse>, Conflict<string>>> CreateBook(
-        LibraryService service, CreateBookRequest request)
+    private static async Task<IResult> CreateBookAsync(
+        CreateBookDto dto,
+        IBookService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.CreateBookAsync(request);
-        return result is not null
-            ? TypedResults.Created($"/api/books/{result.Id}", result)
-            : TypedResults.Conflict(error!);
+        if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.ISBN))
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { [""] = ["Title and ISBN are required."] });
+        }
+
+        if (dto.TotalCopies < 1)
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["TotalCopies"] = ["TotalCopies must be at least 1."] });
+        }
+
+        var book = await service.CreateBookAsync(dto, ct);
+        return TypedResults.Created($"/api/books/{book.Id}", book);
     }
 
-    private static async Task<Results<Ok<BookDetailResponse>, NotFound, Conflict<string>>> UpdateBook(
-        LibraryService service, int id, UpdateBookRequest request)
+    private static async Task<IResult> UpdateBookAsync(
+        int id,
+        UpdateBookDto dto,
+        IBookService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.UpdateBookAsync(id, request);
-        if (error == "Book not found") { return TypedResults.NotFound(); }
-        return result is not null
-            ? TypedResults.Ok(result)
-            : TypedResults.Conflict(error!);
+        if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.ISBN))
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { [""] = ["Title and ISBN are required."] });
+        }
+
+        var book = await service.UpdateBookAsync(id, dto, ct);
+        return book is not null
+            ? TypedResults.Ok(book)
+            : TypedResults.NotFound();
     }
 
-    private static async Task<Results<NoContent, NotFound, Conflict<string>>> DeleteBook(
-        LibraryService service, int id)
+    private static async Task<IResult> DeleteBookAsync(
+        int id,
+        IBookService service,
+        CancellationToken ct = default)
     {
-        var (success, error) = await service.DeleteBookAsync(id);
-        if (error == "Book not found") { return TypedResults.NotFound(); }
-        if (!success) { return TypedResults.Conflict(error!); }
+        var (found, hasActiveLoans) = await service.DeleteBookAsync(id, ct);
+
+        if (!found)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (hasActiveLoans)
+        {
+            return TypedResults.Problem(
+                detail: "Cannot delete book with active loans.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
         return TypedResults.NoContent();
     }
 
-    private static async Task<Ok<List<LoanResponse>>> GetBookLoans(LibraryService service, int id)
+    private static async Task<IResult> GetBookLoansAsync(
+        int id,
+        IBookService service,
+        CancellationToken ct = default)
     {
-        var result = await service.GetBookLoansAsync(id);
-        return TypedResults.Ok(result);
+        var loans = await service.GetBookLoansAsync(id, ct);
+        return TypedResults.Ok(loans);
     }
 
-    private static async Task<Ok<List<ReservationResponse>>> GetBookReservations(LibraryService service, int id)
+    private static async Task<IResult> GetBookReservationsAsync(
+        int id,
+        IBookService service,
+        CancellationToken ct = default)
     {
-        var result = await service.GetBookReservationsAsync(id);
-        return TypedResults.Ok(result);
+        var reservations = await service.GetBookReservationsAsync(id, ct);
+        return TypedResults.Ok(reservations);
     }
 }

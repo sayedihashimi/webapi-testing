@@ -1,32 +1,37 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace VetClinicApi.DTOs;
 
-// --- Medical Record DTOs ---
-
-public sealed record CreateMedicalRecordRequest(
-    [Required] int AppointmentId,
-    [Required, MaxLength(1000)] string Diagnosis,
-    [Required, MaxLength(2000)] string Treatment,
-    [MaxLength(2000)] string? Notes,
-    DateOnly? FollowUpDate);
-
-public sealed record UpdateMedicalRecordRequest(
-    [Required, MaxLength(1000)] string Diagnosis,
-    [Required, MaxLength(2000)] string Treatment,
-    [MaxLength(2000)] string? Notes,
-    DateOnly? FollowUpDate);
-
-public sealed record MedicalRecordResponse(
+public sealed record MedicalRecordDto(
     int Id,
     int AppointmentId,
     int PetId,
-    string PetName,
     int VeterinarianId,
-    string VeterinarianName,
+    string Diagnosis,
+    string Treatment,
+    string? Notes,
+    DateOnly? FollowUpDate,
+    DateTime CreatedAt);
+
+public sealed record MedicalRecordDetailDto(
+    int Id,
+    int AppointmentId,
+    int PetId,
+    int VeterinarianId,
     string Diagnosis,
     string Treatment,
     string? Notes,
     DateOnly? FollowUpDate,
     DateTime CreatedAt,
-    List<PrescriptionResponse>? Prescriptions);
+    IReadOnlyList<PrescriptionDto> Prescriptions);
+
+public sealed record CreateMedicalRecordDto(
+    int AppointmentId,
+    string Diagnosis,
+    string Treatment,
+    string? Notes = null,
+    DateOnly? FollowUpDate = null);
+
+public sealed record UpdateMedicalRecordDto(
+    string Diagnosis,
+    string Treatment,
+    string? Notes,
+    DateOnly? FollowUpDate);

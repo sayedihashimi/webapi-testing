@@ -11,7 +11,9 @@ public sealed class Loan
     public Patron Patron { get; set; } = null!;
 
     public DateTime LoanDate { get; set; } = DateTime.UtcNow;
+
     public DateTime DueDate { get; set; }
+
     public DateTime? ReturnDate { get; set; }
 
     public LoanStatus Status { get; set; } = LoanStatus.Active;

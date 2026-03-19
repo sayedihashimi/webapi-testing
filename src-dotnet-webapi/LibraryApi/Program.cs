@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
-using LibraryApi;
 using LibraryApi.Data;
 using LibraryApi.Endpoints;
+using LibraryApi.Middleware;
 using LibraryApi.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,22 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Database
 builder.Services.AddDbContext<LibraryDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// JSON enum serialization as strings
-builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
-// OpenAPI + Swagger
-builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new() { Title = "Sunrise Community Library API", Version = "v1" });
-});
-
-// Error handling
-builder.Services.AddExceptionHandler<ApiExceptionHandler>();
-builder.Services.AddProblemDetails();
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=library.db"));
 
 // Services
 builder.Services.AddScoped<IAuthorService, AuthorService>();
@@ -35,6 +20,17 @@ builder.Services.AddScoped<ILoanService, LoanService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IFineService, FineService>();
 
+// OpenAPI
+builder.Services.AddOpenApi();
+
+// JSON enum serialization as strings
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Error handling
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
 
 // Middleware
@@ -44,8 +40,13 @@ app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.UseSwagger();
-    app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "Library API v1"));
+}
+
+// Ensure database created and seeded
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
+    dbContext.Database.EnsureCreated();
 }
 
 // Map endpoints
@@ -56,13 +57,5 @@ app.MapPatronEndpoints();
 app.MapLoanEndpoints();
 app.MapReservationEndpoints();
 app.MapFineEndpoints();
-
-// Seed database
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
-    db.Database.EnsureCreated();
-    SeedData.Initialize(db);
-}
 
 app.Run();

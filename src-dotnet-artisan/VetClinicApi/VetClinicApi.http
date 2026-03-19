@@ -1,17 +1,20 @@
-@baseUrl = http://localhost:5033
+@baseUrl = http://localhost:5048
 
 ### ===========================
 ### OWNERS
 ### ===========================
 
-### Get all owners
+### List all owners
 GET {{baseUrl}}/api/owners?page=1&pageSize=10
+Accept: application/json
 
 ### Search owners by name
-GET {{baseUrl}}/api/owners?search=Johnson
+GET {{baseUrl}}/api/owners?search=johnson&page=1&pageSize=10
+Accept: application/json
 
-### Get owner by ID (with pets)
+### Get owner by ID (includes pets)
 GET {{baseUrl}}/api/owners/1
+Accept: application/json
 
 ### Create a new owner
 POST {{baseUrl}}/api/owners
@@ -19,10 +22,10 @@ Content-Type: application/json
 
 {
   "firstName": "David",
-  "lastName": "Thompson",
-  "email": "david.thompson@email.com",
+  "lastName": "Martinez",
+  "email": "david.martinez@email.com",
   "phone": "555-0106",
-  "address": "987 Cedar Court",
+  "address": "100 Cedar Court",
   "city": "Chicago",
   "state": "IL",
   "zipCode": "60601"
@@ -34,59 +37,62 @@ Content-Type: application/json
 
 {
   "firstName": "Sarah",
-  "lastName": "Johnson",
+  "lastName": "Johnson-Smith",
   "email": "sarah.johnson@email.com",
   "phone": "555-0101",
-  "address": "123 Oak Street, Apt 2B",
+  "address": "123 Oak Street",
   "city": "Springfield",
   "state": "IL",
   "zipCode": "62701"
 }
 
-### Delete an owner (will fail if active pets)
+### Delete an owner (fails if has active pets)
 DELETE {{baseUrl}}/api/owners/5
 
 ### Get owner's pets
 GET {{baseUrl}}/api/owners/1/pets
+Accept: application/json
 
 ### Get owner's appointments
-GET {{baseUrl}}/api/owners/1/appointments?page=1&pageSize=10
+GET {{baseUrl}}/api/owners/1/appointments
+Accept: application/json
 
 ### ===========================
 ### PETS
 ### ===========================
 
-### Get all active pets
+### List all active pets
 GET {{baseUrl}}/api/pets?page=1&pageSize=10
+Accept: application/json
 
 ### Search pets by name
-GET {{baseUrl}}/api/pets?search=Buddy
+GET {{baseUrl}}/api/pets?search=buddy&page=1&pageSize=10
+Accept: application/json
 
-### Filter pets by species
-GET {{baseUrl}}/api/pets?species=Cat
+### Search pets including inactive
+GET {{baseUrl}}/api/pets?includeInactive=true&page=1&pageSize=10
+Accept: application/json
 
-### Include inactive pets
-GET {{baseUrl}}/api/pets?includeInactive=true
-
-### Get pet by ID (with owner info)
+### Get pet by ID (includes owner)
 GET {{baseUrl}}/api/pets/1
+Accept: application/json
 
 ### Create a new pet
 POST {{baseUrl}}/api/pets
 Content-Type: application/json
 
 {
-  "name": "Rocky",
+  "name": "Daisy",
   "species": "Dog",
-  "breed": "Bulldog",
-  "dateOfBirth": "2023-03-20",
-  "weight": 22.5,
-  "color": "Brindle",
+  "breed": "Poodle",
+  "dateOfBirth": "2023-06-15",
+  "weight": 8.5,
+  "color": "White",
   "microchipNumber": "MC-009-2023",
-  "ownerId": 3
+  "ownerId": 1
 }
 
-### Update a pet (including owner transfer)
+### Update a pet (owner transfer example)
 PUT {{baseUrl}}/api/pets/1
 Content-Type: application/json
 
@@ -98,53 +104,60 @@ Content-Type: application/json
   "weight": 33.0,
   "color": "Golden",
   "microchipNumber": "MC-001-2020",
-  "ownerId": 1
+  "ownerId": 2
 }
 
-### Soft-delete a pet
-DELETE {{baseUrl}}/api/pets/7
+### Soft delete a pet
+DELETE {{baseUrl}}/api/pets/1
 
-### Get pet medical records
+### Get pet's medical records
 GET {{baseUrl}}/api/pets/1/medical-records
+Accept: application/json
 
-### Get pet vaccinations
+### Get pet's vaccinations
 GET {{baseUrl}}/api/pets/1/vaccinations
+Accept: application/json
 
-### Get upcoming/overdue vaccinations for a pet
+### Get pet's upcoming/overdue vaccinations
 GET {{baseUrl}}/api/pets/3/vaccinations/upcoming
+Accept: application/json
 
-### Get active prescriptions for a pet
+### Get pet's active prescriptions
 GET {{baseUrl}}/api/pets/3/prescriptions/active
+Accept: application/json
 
 ### ===========================
 ### VETERINARIANS
 ### ===========================
 
-### Get all veterinarians
-GET {{baseUrl}}/api/veterinarians
+### List all veterinarians
+GET {{baseUrl}}/api/veterinarians?page=1&pageSize=10
+Accept: application/json
 
 ### Filter by specialization
-GET {{baseUrl}}/api/veterinarians?specialization=Surgery
+GET {{baseUrl}}/api/veterinarians?specialization=surgery&page=1&pageSize=10
+Accept: application/json
 
 ### Filter by availability
 GET {{baseUrl}}/api/veterinarians?isAvailable=true
+Accept: application/json
 
 ### Get veterinarian by ID
 GET {{baseUrl}}/api/veterinarians/1
+Accept: application/json
 
 ### Create a new veterinarian
 POST {{baseUrl}}/api/veterinarians
 Content-Type: application/json
 
 {
-  "firstName": "Dr. Karen",
-  "lastName": "Mitchell",
-  "email": "karen.mitchell@happypaws.com",
+  "firstName": "Dr. Jennifer",
+  "lastName": "Park",
+  "email": "jennifer.park@happypaws.com",
   "phone": "555-0204",
   "specialization": "Dermatology",
-  "licenseNumber": "VET-2023-004",
-  "isAvailable": true,
-  "hireDate": "2023-08-01"
+  "licenseNumber": "VET-2022-004",
+  "hireDate": "2022-01-15"
 }
 
 ### Update a veterinarian
@@ -156,47 +169,50 @@ Content-Type: application/json
   "lastName": "Foster",
   "email": "amanda.foster@happypaws.com",
   "phone": "555-0201",
-  "specialization": "General Practice & Internal Medicine",
+  "specialization": "General Practice",
   "licenseNumber": "VET-2015-001",
   "isAvailable": true
 }
 
-### Get veterinarian schedule for today
+### Get veterinarian's schedule for today
 GET {{baseUrl}}/api/veterinarians/1/schedule
+Accept: application/json
 
-### Get veterinarian schedule for a specific date
-GET {{baseUrl}}/api/veterinarians/1/schedule?date=2025-07-20
+### Get veterinarian's schedule for a specific date
+GET {{baseUrl}}/api/veterinarians/1/schedule?date=2025-04-01
+Accept: application/json
 
-### Get veterinarian appointments
-GET {{baseUrl}}/api/veterinarians/1/appointments?page=1&pageSize=10
-
-### Get veterinarian appointments filtered by status
-GET {{baseUrl}}/api/veterinarians/1/appointments?status=Completed
+### Get veterinarian's appointments with status filter
+GET {{baseUrl}}/api/veterinarians/1/appointments?status=Scheduled&page=1&pageSize=10
+Accept: application/json
 
 ### ===========================
 ### APPOINTMENTS
 ### ===========================
 
-### Get all appointments
+### List all appointments
 GET {{baseUrl}}/api/appointments?page=1&pageSize=10
-
-### Filter by status
-GET {{baseUrl}}/api/appointments?status=Scheduled
+Accept: application/json
 
 ### Filter by date range
-GET {{baseUrl}}/api/appointments?dateFrom=2025-07-01T00:00:00Z&dateTo=2025-07-31T23:59:59Z
+GET {{baseUrl}}/api/appointments?fromDate=2025-01-01&toDate=2025-12-31&page=1&pageSize=10
+Accept: application/json
 
-### Filter by veterinarian
-GET {{baseUrl}}/api/appointments?vetId=1
+### Filter by status
+GET {{baseUrl}}/api/appointments?status=Scheduled&page=1&pageSize=10
+Accept: application/json
 
-### Filter by pet
-GET {{baseUrl}}/api/appointments?petId=1
+### Filter by vet and pet
+GET {{baseUrl}}/api/appointments?vetId=1&petId=1&page=1&pageSize=10
+Accept: application/json
 
 ### Get today's appointments
 GET {{baseUrl}}/api/appointments/today
+Accept: application/json
 
-### Get appointment by ID (with full details)
+### Get appointment by ID (includes pet, vet, medical record)
 GET {{baseUrl}}/api/appointments/1
+Accept: application/json
 
 ### Create a new appointment
 POST {{baseUrl}}/api/appointments
@@ -205,75 +221,76 @@ Content-Type: application/json
 {
   "petId": 4,
   "veterinarianId": 1,
-  "appointmentDate": "2025-08-15T10:00:00Z",
+  "appointmentDate": "2025-12-20T10:00:00Z",
   "durationMinutes": 30,
-  "reason": "Routine wellness examination",
-  "notes": "Owner reports cat is eating well"
+  "reason": "Annual wellness checkup",
+  "notes": "First visit for this pet"
 }
 
 ### Update an appointment
-PUT {{baseUrl}}/api/appointments/6
+PUT {{baseUrl}}/api/appointments/7
 Content-Type: application/json
 
 {
   "petId": 1,
   "veterinarianId": 1,
-  "appointmentDate": "2025-08-16T09:00:00Z",
+  "appointmentDate": "2025-12-22T14:00:00Z",
   "durationMinutes": 45,
-  "reason": "Follow-up checkup — extended",
-  "notes": "Include blood work"
+  "reason": "Vaccination booster and checkup",
+  "notes": "Extended appointment for full checkup"
 }
 
-### Check in an appointment
-PATCH {{baseUrl}}/api/appointments/6/status
-Content-Type: application/json
-
-{
-  "status": "CheckedIn"
-}
-
-### Start an appointment (InProgress)
-PATCH {{baseUrl}}/api/appointments/6/status
-Content-Type: application/json
-
-{
-  "status": "InProgress"
-}
-
-### Complete an appointment
-PATCH {{baseUrl}}/api/appointments/6/status
-Content-Type: application/json
-
-{
-  "status": "Completed"
-}
-
-### Cancel an appointment (requires reason)
+### Update appointment status — Check in
 PATCH {{baseUrl}}/api/appointments/7/status
 Content-Type: application/json
 
 {
-  "status": "Cancelled",
-  "cancellationReason": "Owner called to reschedule due to travel"
+  "newStatus": "CheckedIn"
+}
+
+### Update appointment status — Start
+PATCH {{baseUrl}}/api/appointments/7/status
+Content-Type: application/json
+
+{
+  "newStatus": "InProgress"
+}
+
+### Update appointment status — Complete
+PATCH {{baseUrl}}/api/appointments/7/status
+Content-Type: application/json
+
+{
+  "newStatus": "Completed"
+}
+
+### Update appointment status — Cancel (requires reason)
+PATCH {{baseUrl}}/api/appointments/8/status
+Content-Type: application/json
+
+{
+  "newStatus": "Cancelled",
+  "cancellationReason": "Pet is feeling better, owner cancelled"
 }
 
 ### ===========================
 ### MEDICAL RECORDS
 ### ===========================
 
-### Get medical record by ID (with prescriptions)
+### Get medical record by ID (includes prescriptions)
 GET {{baseUrl}}/api/medical-records/1
+Accept: application/json
 
-### Create a medical record (for completed appointment)
+### Create a medical record (appointment must be Completed or InProgress)
 POST {{baseUrl}}/api/medical-records
 Content-Type: application/json
 
 {
   "appointmentId": 1,
-  "diagnosis": "Healthy, no concerns found",
-  "treatment": "Routine physical examination completed",
-  "notes": "Recommend continued monthly heartworm prevention",
-  "followUpDate": "2026-01-15"
+  "diagnosis": "Healthy - annual wellness exam",
+  "treatment": "Routine vaccinations administered",
+  "notes": "Dog is in excellent health",
+  "followUpDate": "2026-03-15"
 }
 
 ### Update a medical record
@@ -281,10 +298,10 @@ PUT {{baseUrl}}/api/medical-records/1
 Content-Type: application/json
 
 {
-  "diagnosis": "Healthy, minor dental tartar noted",
-  "treatment": "Routine physical examination completed. Recommended dental cleaning in 6 months.",
-  "notes": "Weight stable at 32.5kg. Coat condition excellent.",
-  "followUpDate": "2026-01-15"
+  "diagnosis": "Healthy - annual wellness exam (updated)",
+  "treatment": "Routine vaccinations administered, heartworm test performed",
+  "notes": "Dog is in excellent health. Heartworm test negative.",
+  "followUpDate": "2026-03-15"
 }
 
 ### ===========================
@@ -293,6 +310,7 @@ Content-Type: application/json
 
 ### Get prescription by ID
 GET {{baseUrl}}/api/prescriptions/1
+Accept: application/json
 
 ### Create a prescription
 POST {{baseUrl}}/api/prescriptions
@@ -300,66 +318,31 @@ Content-Type: application/json
 
 {
   "medicalRecordId": 1,
-  "medicationName": "Nexgard",
-  "dosage": "1 chewable monthly",
-  "durationDays": 90,
-  "startDate": "2025-07-15",
-  "instructions": "Flea and tick prevention. Give with food on the same day each month."
+  "medicationName": "Apoquel",
+  "dosage": "16mg once daily",
+  "durationDays": 30,
+  "startDate": "2025-03-20",
+  "instructions": "Give with morning meal"
 }
 
 ### ===========================
 ### VACCINATIONS
 ### ===========================
 
+### Get vaccination by ID
+GET {{baseUrl}}/api/vaccinations/1
+Accept: application/json
+
 ### Create a vaccination
 POST {{baseUrl}}/api/vaccinations
 Content-Type: application/json
 
 {
-  "petId": 4,
-  "vaccineName": "FVRCP",
-  "dateAdministered": "2025-07-15",
-  "expirationDate": "2026-07-15",
-  "batchNumber": "FVR-2025-G7",
-  "administeredByVetId": 3,
-  "notes": "Annual booster"
-}
-
-### Get vaccination by ID
-GET {{baseUrl}}/api/vaccinations/1
-
-### ===========================
-### ERROR CASES
-### ===========================
-
-### Get non-existent owner (expect 404)
-GET {{baseUrl}}/api/owners/999
-
-### Create owner with duplicate email (expect 409)
-POST {{baseUrl}}/api/owners
-Content-Type: application/json
-
-{
-  "firstName": "Test",
-  "lastName": "User",
-  "email": "sarah.johnson@email.com",
-  "phone": "555-9999"
-}
-
-### Invalid species (expect 400)
-POST {{baseUrl}}/api/pets
-Content-Type: application/json
-
-{
-  "name": "Nemo",
-  "species": "Fish",
-  "ownerId": 1
-}
-
-### Cancel with no reason (expect 400)
-PATCH {{baseUrl}}/api/appointments/8/status
-Content-Type: application/json
-
-{
-  "status": "Cancelled"
+  "petId": 1,
+  "vaccineName": "Leptospirosis",
+  "dateAdministered": "2025-03-18",
+  "expirationDate": "2026-03-18",
+  "batchNumber": "LEP-2025-5001",
+  "administeredByVetId": 1,
+  "notes": "Annual leptospirosis booster"
 }

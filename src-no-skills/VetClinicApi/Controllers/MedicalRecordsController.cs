@@ -1,45 +1,40 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs;
-using VetClinicApi.Services;
+using VetClinicApi.DTOs.MedicalRecord;
+using VetClinicApi.Services.Interfaces;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/medical-records")]
+[Produces("application/json")]
 public class MedicalRecordsController : ControllerBase
 {
-    private readonly IMedicalRecordService _service;
+    private readonly IMedicalRecordService _medicalRecordService;
 
-    public MedicalRecordsController(IMedicalRecordService service) => _service = service;
+    public MedicalRecordsController(IMedicalRecordService medicalRecordService) => _medicalRecordService = medicalRecordService;
 
     /// <summary>Get medical record with prescriptions</summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(MedicalRecordResponseDto), 200)]
-    [ProducesResponseType(404)]
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(MedicalRecordDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
-    {
-        var record = await _service.GetByIdAsync(id);
-        return record is null ? NotFound() : Ok(record);
-    }
+        => Ok(await _medicalRecordService.GetByIdAsync(id));
 
-    /// <summary>Create medical record (appointment must be Completed or InProgress)</summary>
+    /// <summary>Create a medical record (appointment must be InProgress or Completed)</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(MedicalRecordResponseDto), 201)]
-    [ProducesResponseType(typeof(ProblemDetails), 400)]
-    public async Task<IActionResult> Create([FromBody] MedicalRecordCreateDto dto)
+    [ProducesResponseType(typeof(MedicalRecordDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Create([FromBody] CreateMedicalRecordDto dto)
     {
-        var (result, error) = await _service.CreateAsync(dto);
-        if (error is not null) return BadRequest(new ProblemDetails { Title = "Medical record creation failed", Detail = error, Status = 400 });
-        return CreatedAtAction(nameof(GetById), new { id = result!.Id }, result);
+        var result = await _medicalRecordService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update medical record</summary>
-    [HttpPut("{id}")]
-    [ProducesResponseType(typeof(MedicalRecordResponseDto), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(int id, [FromBody] MedicalRecordUpdateDto dto)
-    {
-        var result = await _service.UpdateAsync(id, dto);
-        return result is null ? NotFound() : Ok(result);
-    }
+    /// <summary>Update a medical record</summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(MedicalRecordDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateMedicalRecordDto dto)
+        => Ok(await _medicalRecordService.UpdateAsync(id, dto));
 }

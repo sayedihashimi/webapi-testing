@@ -17,11 +17,15 @@ public sealed class Pet
 
     public DateOnly? DateOfBirth { get; set; }
 
-    [Range(0.01, double.MaxValue)]
+    [Range(0.01, 9999.99)]
     public decimal? Weight { get; set; }
 
+    [MaxLength(50)]
     public string? Color { get; set; }
+
+    [MaxLength(50)]
     public string? MicrochipNumber { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public int OwnerId { get; set; }
@@ -30,7 +34,7 @@ public sealed class Pet
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public List<Appointment> Appointments { get; set; } = [];
-    public List<MedicalRecord> MedicalRecords { get; set; } = [];
-    public List<Vaccination> Vaccinations { get; set; } = [];
+    public ICollection<Appointment> Appointments { get; set; } = [];
+    public ICollection<MedicalRecord> MedicalRecords { get; set; } = [];
+    public ICollection<Vaccination> Vaccinations { get; set; } = [];
 }

@@ -1,67 +1,88 @@
 using LibraryApi.DTOs;
-using LibraryApi.Models;
 using LibraryApi.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LibraryApi.Endpoints;
 
 public static class ReservationEndpoints
 {
-    public static RouteGroupBuilder MapReservationEndpoints(this WebApplication app)
+    public static RouteGroupBuilder MapReservationEndpoints(this IEndpointRouteBuilder routes)
     {
-        var group = app.MapGroup("/api/reservations").WithTags("Reservations");
+        var group = routes.MapGroup("/api/reservations")
+            .WithTags("Reservations");
 
-        group.MapGet("/", GetReservations).WithName("GetReservations");
-        group.MapGet("/{id:int}", GetReservation).WithName("GetReservation");
-        group.MapPost("/", CreateReservation).WithName("CreateReservation");
-        group.MapPost("/{id:int}/cancel", CancelReservation).WithName("CancelReservation");
-        group.MapPost("/{id:int}/fulfill", FulfillReservation).WithName("FulfillReservation");
+        group.MapGet("/", GetReservationsAsync);
+        group.MapGet("/{id:int}", GetReservationByIdAsync);
+        group.MapPost("/", CreateReservationAsync);
+        group.MapPost("/{id:int}/cancel", CancelReservationAsync);
+        group.MapPost("/{id:int}/fulfill", FulfillReservationAsync);
 
         return group;
     }
 
-    private static async Task<Ok<PaginatedResponse<ReservationResponse>>> GetReservations(
-        LibraryService service, ReservationStatus? status = null, int page = 1, int pageSize = 10)
+    private static async Task<IResult> GetReservationsAsync(
+        IReservationService service,
+        string? status = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
     {
-        var result = await service.GetReservationsAsync(status, page, pageSize);
+        var result = await service.GetReservationsAsync(status, page, pageSize, ct);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<Results<Ok<ReservationResponse>, NotFound>> GetReservation(
-        LibraryService service, int id)
+    private static async Task<IResult> GetReservationByIdAsync(
+        int id,
+        IReservationService service,
+        CancellationToken ct = default)
     {
-        var result = await service.GetReservationByIdAsync(id);
-        return result is not null
-            ? TypedResults.Ok(result)
+        var reservation = await service.GetReservationByIdAsync(id, ct);
+        return reservation is not null
+            ? TypedResults.Ok(reservation)
             : TypedResults.NotFound();
     }
 
-    private static async Task<Results<Created<ReservationResponse>, BadRequest<string>>> CreateReservation(
-        LibraryService service, CreateReservationRequest request)
+    private static async Task<IResult> CreateReservationAsync(
+        CreateReservationDto dto,
+        IReservationService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.CreateReservationAsync(request);
-        return result is not null
-            ? TypedResults.Created($"/api/reservations/{result.Id}", result)
-            : TypedResults.BadRequest(error!);
+        var (reservation, error) = await service.CreateReservationAsync(dto, ct);
+
+        if (error is not null)
+        {
+            return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return TypedResults.Created($"/api/reservations/{reservation!.Id}", reservation);
     }
 
-    private static async Task<Results<Ok<ReservationResponse>, NotFound, BadRequest<string>>> CancelReservation(
-        LibraryService service, int id)
+    private static async Task<IResult> CancelReservationAsync(
+        int id,
+        IReservationService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.CancelReservationAsync(id);
-        if (error == "Reservation not found") { return TypedResults.NotFound(); }
-        return result is not null
-            ? TypedResults.Ok(result)
-            : TypedResults.BadRequest(error!);
+        var (reservation, error) = await service.CancelReservationAsync(id, ct);
+
+        if (error is not null)
+        {
+            return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return TypedResults.Ok(reservation);
     }
 
-    private static async Task<Results<Created<LoanResponse>, NotFound, BadRequest<string>>> FulfillReservation(
-        LibraryService service, int id)
+    private static async Task<IResult> FulfillReservationAsync(
+        int id,
+        IReservationService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.FulfillReservationAsync(id);
-        if (error == "Reservation not found") { return TypedResults.NotFound(); }
-        return result is not null
-            ? TypedResults.Created($"/api/loans/{result.Id}", result)
-            : TypedResults.BadRequest(error!);
+        var (loan, error) = await service.FulfillReservationAsync(id, ct);
+
+        if (error is not null)
+        {
+            return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return TypedResults.Created($"/api/loans/{loan!.Id}", loan);
     }
 }

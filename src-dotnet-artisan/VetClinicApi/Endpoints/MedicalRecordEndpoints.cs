@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http.HttpResults;
 using VetClinicApi.DTOs;
 using VetClinicApi.Services;
 
@@ -6,43 +5,56 @@ namespace VetClinicApi.Endpoints;
 
 public static class MedicalRecordEndpoints
 {
-    public static RouteGroupBuilder MapMedicalRecordEndpoints(this WebApplication app)
+    public static RouteGroupBuilder MapMedicalRecordEndpoints(this IEndpointRouteBuilder routes)
     {
-        var group = app.MapGroup("/api/medical-records").WithTags("Medical Records");
+        var group = routes.MapGroup("/api/medical-records")
+            .WithTags("Medical Records");
 
-        group.MapGet("/{id:int}", GetById)
-            .WithName("GetMedicalRecordById")
-            .WithSummary("Get medical record by ID with prescriptions");
-
-        group.MapPost("/", Create)
-            .WithName("CreateMedicalRecord")
-            .WithSummary("Create a medical record for a completed/in-progress appointment");
-
-        group.MapPut("/{id:int}", Update)
-            .WithName("UpdateMedicalRecord")
-            .WithSummary("Update an existing medical record");
+        group.MapGet("/{id:int}", GetByIdAsync);
+        group.MapPost("/", CreateAsync);
+        group.MapPut("/{id:int}", UpdateAsync);
 
         return group;
     }
 
-    private static async Task<Results<Ok<MedicalRecordResponse>, NotFound>> GetById(
-        int id, MedicalRecordService service, CancellationToken ct)
+    private static async Task<IResult> GetByIdAsync(
+        int id,
+        IMedicalRecordService service,
+        CancellationToken ct = default)
     {
         var record = await service.GetByIdAsync(id, ct);
-        return record is not null ? TypedResults.Ok(record) : TypedResults.NotFound();
+        return record is not null
+            ? TypedResults.Ok(record)
+            : TypedResults.NotFound();
     }
 
-    private static async Task<Created<MedicalRecordResponse>> Create(
-        CreateMedicalRecordRequest request, MedicalRecordService service, CancellationToken ct)
+    private static async Task<IResult> CreateAsync(
+        CreateMedicalRecordDto dto,
+        IMedicalRecordService service,
+        CancellationToken ct = default)
     {
-        var record = await service.CreateAsync(request, ct);
+        var validationError = await service.ValidateAppointmentForRecordAsync(dto.AppointmentId, ct);
+        if (validationError is not null)
+        {
+            return TypedResults.Problem(
+                detail: validationError,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Validation Error");
+        }
+
+        var record = await service.CreateAsync(dto, ct);
         return TypedResults.Created($"/api/medical-records/{record.Id}", record);
     }
 
-    private static async Task<Results<Ok<MedicalRecordResponse>, NotFound>> Update(
-        int id, UpdateMedicalRecordRequest request, MedicalRecordService service, CancellationToken ct)
+    private static async Task<IResult> UpdateAsync(
+        int id,
+        UpdateMedicalRecordDto dto,
+        IMedicalRecordService service,
+        CancellationToken ct = default)
     {
-        var record = await service.UpdateAsync(id, request, ct);
-        return record is not null ? TypedResults.Ok(record) : TypedResults.NotFound();
+        var record = await service.UpdateAsync(id, dto, ct);
+        return record is not null
+            ? TypedResults.Ok(record)
+            : TypedResults.NotFound();
     }
 }

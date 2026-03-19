@@ -1,66 +1,81 @@
 using System.ComponentModel.DataAnnotations;
-using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.DTOs;
 
-public class CreateClassScheduleRequest
+public sealed record ClassScheduleResponse(
+    int Id,
+    int ClassTypeId,
+    string ClassTypeName,
+    int InstructorId,
+    string InstructorName,
+    DateTime StartTime,
+    DateTime EndTime,
+    int Capacity,
+    int CurrentEnrollment,
+    int WaitlistCount,
+    int AvailableSpots,
+    string Room,
+    string Status,
+    string? CancellationReason,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public sealed record CreateClassScheduleRequest
 {
-    public int ClassTypeId { get; set; }
-    public int InstructorId { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
+    [Required]
+    public required int ClassTypeId { get; init; }
+
+    [Required]
+    public required int InstructorId { get; init; }
+
+    [Required]
+    public required DateTime StartTime { get; init; }
+
+    [Required]
+    public required DateTime EndTime { get; init; }
 
     [Range(1, 100)]
-    public int Capacity { get; set; }
+    public required int Capacity { get; init; }
 
     [Required, MaxLength(50)]
-    public string Room { get; set; } = string.Empty;
+    public required string Room { get; init; }
 }
 
-public class UpdateClassScheduleRequest
+public sealed record UpdateClassScheduleRequest
 {
-    public int ClassTypeId { get; set; }
-    public int InstructorId { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
+    [Required]
+    public required int InstructorId { get; init; }
+
+    [Required]
+    public required DateTime StartTime { get; init; }
+
+    [Required]
+    public required DateTime EndTime { get; init; }
 
     [Range(1, 100)]
-    public int Capacity { get; set; }
+    public required int Capacity { get; init; }
 
     [Required, MaxLength(50)]
-    public string Room { get; set; } = string.Empty;
+    public required string Room { get; init; }
 }
 
-public class CancelClassRequest
+public sealed record CancelClassRequest
 {
-    public string? CancellationReason { get; set; }
+    [Required]
+    public required string Reason { get; init; }
 }
 
-public class ClassScheduleResponse
-{
-    public int Id { get; set; }
-    public int ClassTypeId { get; set; }
-    public string ClassTypeName { get; set; } = string.Empty;
-    public int InstructorId { get; set; }
-    public string InstructorName { get; set; } = string.Empty;
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public int Capacity { get; set; }
-    public int CurrentEnrollment { get; set; }
-    public int WaitlistCount { get; set; }
-    public int AvailableSpots => Math.Max(0, Capacity - CurrentEnrollment);
-    public string Room { get; set; } = string.Empty;
-    public ClassScheduleStatus Status { get; set; }
-    public string? CancellationReason { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-}
+public sealed record ClassRosterResponse(
+    int BookingId,
+    int MemberId,
+    string MemberName,
+    string Status,
+    DateTime BookingDate,
+    DateTime? CheckInTime);
 
-public class ClassRosterResponse
-{
-    public int MemberId { get; set; }
-    public string MemberName { get; set; } = string.Empty;
-    public BookingStatus BookingStatus { get; set; }
-    public DateTime BookingDate { get; set; }
-    public DateTime? CheckInTime { get; set; }
-}
+public sealed record ClassWaitlistResponse(
+    int BookingId,
+    int MemberId,
+    string MemberName,
+    int? WaitlistPosition,
+    DateTime BookingDate);

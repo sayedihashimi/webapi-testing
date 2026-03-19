@@ -28,5 +28,5 @@ public sealed class MedicalRecord
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public List<Prescription> Prescriptions { get; set; } = [];
+    public ICollection<Prescription> Prescriptions { get; set; } = [];
 }

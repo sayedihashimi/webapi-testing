@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -5,38 +6,20 @@ namespace VetClinicApi.Middleware;
 
 public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
-    public async ValueTask<bool> TryHandleAsync(
-        HttpContext httpContext,
-        Exception exception,
-        CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
-        var (statusCode, title) = exception switch
-        {
-            KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
-            ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request"),
-            InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
-            _ => (0, (string?)null)
-        };
+        logger.LogError(exception, "Unhandled exception occurred: {Message}", exception.Message);
 
-        if (statusCode == 0)
+        var problemDetails = new ProblemDetails
         {
-            logger.LogError(exception, "Unhandled exception");
-            statusCode = StatusCodes.Status500InternalServerError;
-            title = "Internal Server Error";
-        }
-        else
-        {
-            logger.LogWarning(exception, "Handled API exception: {Title}", title);
-        }
-
-        httpContext.Response.StatusCode = statusCode;
-        await httpContext.Response.WriteAsJsonAsync(new ProblemDetails
-        {
-            Status = statusCode,
-            Title = title,
+            Status = (int)HttpStatusCode.InternalServerError,
+            Title = "An unexpected error occurred",
             Detail = exception.Message,
             Instance = httpContext.Request.Path
-        }, cancellationToken);
+        };
+
+        httpContext.Response.StatusCode = problemDetails.Status.Value;
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
         return true;
     }

@@ -3,61 +3,63 @@ using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.DTOs;
 
-public class CreateClassTypeRequest
+public sealed record ClassTypeResponse(
+    int Id,
+    string Name,
+    string? Description,
+    int DefaultDurationMinutes,
+    int DefaultCapacity,
+    bool IsPremium,
+    int? CaloriesPerSession,
+    string DifficultyLevel,
+    bool IsActive,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public sealed record CreateClassTypeRequest
 {
     [Required, MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; init; }
 
     [MaxLength(500)]
-    public string? Description { get; set; }
+    public string? Description { get; init; }
 
     [Range(30, 120)]
-    public int DefaultDurationMinutes { get; set; }
+    public required int DefaultDurationMinutes { get; init; }
 
     [Range(1, 50)]
-    public int DefaultCapacity { get; set; }
+    public required int DefaultCapacity { get; init; }
 
-    public bool IsPremium { get; set; }
+    public required bool IsPremium { get; init; }
 
-    public int? CaloriesPerSession { get; set; }
+    [Range(0, 2000)]
+    public int? CaloriesPerSession { get; init; }
 
-    public DifficultyLevel DifficultyLevel { get; set; }
+    [Required]
+    public required DifficultyLevel DifficultyLevel { get; init; }
 }
 
-public class UpdateClassTypeRequest
+public sealed record UpdateClassTypeRequest
 {
     [Required, MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; init; }
 
     [MaxLength(500)]
-    public string? Description { get; set; }
+    public string? Description { get; init; }
 
     [Range(30, 120)]
-    public int DefaultDurationMinutes { get; set; }
+    public required int DefaultDurationMinutes { get; init; }
 
     [Range(1, 50)]
-    public int DefaultCapacity { get; set; }
+    public required int DefaultCapacity { get; init; }
 
-    public bool IsPremium { get; set; }
+    public required bool IsPremium { get; init; }
 
-    public int? CaloriesPerSession { get; set; }
+    [Range(0, 2000)]
+    public int? CaloriesPerSession { get; init; }
 
-    public DifficultyLevel DifficultyLevel { get; set; }
+    [Required]
+    public required DifficultyLevel DifficultyLevel { get; init; }
 
-    public bool IsActive { get; set; }
-}
-
-public class ClassTypeResponse
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public int DefaultDurationMinutes { get; set; }
-    public int DefaultCapacity { get; set; }
-    public bool IsPremium { get; set; }
-    public int? CaloriesPerSession { get; set; }
-    public DifficultyLevel DifficultyLevel { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public required bool IsActive { get; init; }
 }

@@ -1,5 +1,7 @@
-using LibraryApi.DTOs;
-using LibraryApi.Services;
+using LibraryApi.DTOs.Common;
+using LibraryApi.DTOs.Reservation;
+using LibraryApi.Models.Enums;
+using LibraryApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApi.Controllers;
@@ -9,66 +11,50 @@ namespace LibraryApi.Controllers;
 [Produces("application/json")]
 public class ReservationsController : ControllerBase
 {
-    private readonly IReservationService _reservationService;
+    private readonly IReservationService _service;
 
-    public ReservationsController(IReservationService reservationService)
-    {
-        _reservationService = reservationService;
-    }
+    public ReservationsController(IReservationService service) => _service = service;
 
-    /// <summary>List reservations with optional status filter and pagination</summary>
+    /// <summary>List reservations with filter, pagination.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<ReservationDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<ReservationDto>>> GetReservations(
-        [FromQuery] string? status,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var result = await _reservationService.GetReservationsAsync(status,
-            new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    [ProducesResponseType(typeof(PagedResult<ReservationListDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] ReservationStatus? status, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetAllAsync(status, pagination));
 
-    /// <summary>Get reservation details</summary>
+    /// <summary>Get reservation details.</summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(ReservationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ReservationDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReservationDto>> GetReservation(int id)
-    {
-        var result = await _reservationService.GetReservationByIdAsync(id);
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetById(int id)
+        => Ok(await _service.GetByIdAsync(id));
 
-    /// <summary>Create a reservation enforcing all reservation rules</summary>
+    /// <summary>Create a reservation (enforce rules).</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(ReservationDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ReservationDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReservationDto>> CreateReservation([FromBody] CreateReservationDto dto)
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Create([FromBody] CreateReservationDto dto)
     {
-        var result = await _reservationService.CreateReservationAsync(dto);
-        return CreatedAtAction(nameof(GetReservation), new { id = result.Id }, result);
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Cancel a reservation</summary>
+    /// <summary>Cancel a reservation.</summary>
     [HttpPost("{id}/cancel")]
-    [ProducesResponseType(typeof(ReservationDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReservationDto>> CancelReservation(int id)
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Cancel(int id)
     {
-        var result = await _reservationService.CancelReservationAsync(id);
-        return Ok(result);
+        await _service.CancelAsync(id);
+        return NoContent();
     }
 
-    /// <summary>Fulfill a Ready reservation (creates a loan for the patron)</summary>
+    /// <summary>Fulfill a "Ready" reservation.</summary>
     [HttpPost("{id}/fulfill")]
-    [ProducesResponseType(typeof(LoanDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ReservationDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<LoanDto>> FulfillReservation(int id)
-    {
-        var result = await _reservationService.FulfillReservationAsync(id);
-        return Ok(result);
-    }
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Fulfill(int id)
+        => Ok(await _service.FulfillAsync(id));
 }

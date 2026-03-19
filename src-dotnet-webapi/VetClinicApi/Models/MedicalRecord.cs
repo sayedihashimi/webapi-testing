@@ -1,6 +1,6 @@
 namespace VetClinicApi.Models;
 
-public class MedicalRecord
+public sealed class MedicalRecord
 {
     public int Id { get; set; }
     public int AppointmentId { get; set; }
@@ -15,5 +15,5 @@ public class MedicalRecord
     public Appointment Appointment { get; set; } = null!;
     public Pet Pet { get; set; } = null!;
     public Veterinarian Veterinarian { get; set; } = null!;
-    public List<Prescription> Prescriptions { get; set; } = [];
+    public ICollection<Prescription> Prescriptions { get; set; } = [];
 }

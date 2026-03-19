@@ -1,62 +1,60 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs;
-using VetClinicApi.Services;
+using VetClinicApi.DTOs.Common;
+using VetClinicApi.DTOs.Veterinarian;
+using VetClinicApi.Services.Interfaces;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class VeterinariansController : ControllerBase
 {
-    private readonly IVeterinarianService _service;
+    private readonly IVeterinarianService _vetService;
 
-    public VeterinariansController(IVeterinarianService service) => _service = service;
+    public VeterinariansController(IVeterinarianService vetService) => _vetService = vetService;
 
-    /// <summary>List all veterinarians with optional filters</summary>
+    /// <summary>List veterinarians (filter by specialization, availability)</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<VetResponseDto>), 200)]
-    public async Task<IActionResult> GetAll([FromQuery] string? specialization, [FromQuery] bool? isAvailable, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAllAsync(specialization, isAvailable, new PaginationParams { Page = page, PageSize = pageSize }));
+    [ProducesResponseType(typeof(PagedResult<VeterinarianDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] string? specialization, [FromQuery] bool? isAvailable, [FromQuery] PaginationParams? pagination = null)
+        => Ok(await _vetService.GetAllAsync(specialization, isAvailable, pagination ?? new PaginationParams()));
 
     /// <summary>Get veterinarian details</summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(VetResponseDto), 200)]
-    [ProducesResponseType(404)]
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(VeterinarianDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
-    {
-        var vet = await _service.GetByIdAsync(id);
-        return vet is null ? NotFound() : Ok(vet);
-    }
+        => Ok(await _vetService.GetByIdAsync(id));
 
     /// <summary>Create a new veterinarian</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(VetResponseDto), 201)]
-    [ProducesResponseType(typeof(ValidationProblemDetails), 400)]
-    public async Task<IActionResult> Create([FromBody] VetCreateDto dto)
+    [ProducesResponseType(typeof(VeterinarianDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreateVeterinarianDto dto)
     {
-        var result = await _service.CreateAsync(dto);
+        var result = await _vetService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update veterinarian info</summary>
-    [HttpPut("{id}")]
-    [ProducesResponseType(typeof(VetResponseDto), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(int id, [FromBody] VetUpdateDto dto)
-    {
-        var result = await _service.UpdateAsync(id, dto);
-        return result is null ? NotFound() : Ok(result);
-    }
+    /// <summary>Update a veterinarian</summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(VeterinarianDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateVeterinarianDto dto)
+        => Ok(await _vetService.UpdateAsync(id, dto));
 
-    /// <summary>Get vet's appointments for a specific date</summary>
-    [HttpGet("{id}/schedule")]
-    [ProducesResponseType(typeof(IEnumerable<AppointmentResponseDto>), 200)]
+    /// <summary>Get veterinarian's schedule for a specific date</summary>
+    [HttpGet("{id:int}/schedule")]
+    [ProducesResponseType(typeof(List<DTOs.Appointment.AppointmentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSchedule(int id, [FromQuery] DateOnly date)
-        => Ok(await _service.GetScheduleAsync(id, date));
+        => Ok(await _vetService.GetScheduleAsync(id, date));
 
-    /// <summary>Get all appointments for a vet with optional status filter</summary>
-    [HttpGet("{id}/appointments")]
-    [ProducesResponseType(typeof(PagedResult<AppointmentResponseDto>), 200)]
-    public async Task<IActionResult> GetAppointments(int id, [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAppointmentsAsync(id, status, new PaginationParams { Page = page, PageSize = pageSize }));
+    /// <summary>Get veterinarian's appointments</summary>
+    [HttpGet("{id:int}/appointments")]
+    [ProducesResponseType(typeof(PagedResult<DTOs.Appointment.AppointmentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAppointments(int id, [FromQuery] PaginationParams? pagination = null)
+        => Ok(await _vetService.GetAppointmentsAsync(id, pagination ?? new PaginationParams()));
 }

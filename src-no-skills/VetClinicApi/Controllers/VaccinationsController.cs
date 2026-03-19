@@ -1,35 +1,32 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs;
-using VetClinicApi.Services;
+using VetClinicApi.DTOs.Vaccination;
+using VetClinicApi.Services.Interfaces;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class VaccinationsController : ControllerBase
 {
-    private readonly IVaccinationService _service;
+    private readonly IVaccinationService _vaccinationService;
 
-    public VaccinationsController(IVaccinationService service) => _service = service;
+    public VaccinationsController(IVaccinationService vaccinationService) => _vaccinationService = vaccinationService;
+
+    /// <summary>Get vaccination details</summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(VaccinationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id)
+        => Ok(await _vaccinationService.GetByIdAsync(id));
 
     /// <summary>Record a new vaccination</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(VaccinationResponseDto), 201)]
-    [ProducesResponseType(typeof(ProblemDetails), 400)]
-    public async Task<IActionResult> Create([FromBody] VaccinationCreateDto dto)
+    [ProducesResponseType(typeof(VaccinationDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreateVaccinationDto dto)
     {
-        var (result, error) = await _service.CreateAsync(dto);
-        if (error is not null) return BadRequest(new ProblemDetails { Title = "Vaccination creation failed", Detail = error, Status = 400 });
-        return CreatedAtAction(nameof(GetById), new { id = result!.Id }, result);
-    }
-
-    /// <summary>Get vaccination details</summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(VaccinationResponseDto), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var vax = await _service.GetByIdAsync(id);
-        return vax is null ? NotFound() : Ok(vax);
+        var result = await _vaccinationService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 }

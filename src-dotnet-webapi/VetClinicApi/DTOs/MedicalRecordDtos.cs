@@ -2,33 +2,40 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-public record CreateMedicalRecordRequest(
-    [property: Required] int AppointmentId,
-    [property: Required, MaxLength(1000)] string Diagnosis,
-    [property: Required, MaxLength(2000)] string Treatment,
-    [property: MaxLength(2000)] string? Notes,
-    DateOnly? FollowUpDate);
+// --- Medical Record DTOs ---
 
-public record UpdateMedicalRecordRequest(
-    [property: Required, MaxLength(1000)] string Diagnosis,
-    [property: Required, MaxLength(2000)] string Treatment,
-    [property: MaxLength(2000)] string? Notes,
-    DateOnly? FollowUpDate);
+public sealed record CreateMedicalRecordRequest
+{
+    [Required]
+    public required int AppointmentId { get; init; }
 
-public record MedicalRecordResponse(
-    int Id,
-    int AppointmentId,
-    int PetId,
-    string PetName,
-    int VeterinarianId,
-    string VeterinarianName,
-    string Diagnosis,
-    string Treatment,
-    string? Notes,
-    DateOnly? FollowUpDate,
-    DateTime CreatedAt);
+    [Required, MaxLength(1000)]
+    public required string Diagnosis { get; init; }
 
-public record MedicalRecordDetailResponse(
+    [Required, MaxLength(2000)]
+    public required string Treatment { get; init; }
+
+    [MaxLength(2000)]
+    public string? Notes { get; init; }
+
+    public DateOnly? FollowUpDate { get; init; }
+}
+
+public sealed record UpdateMedicalRecordRequest
+{
+    [Required, MaxLength(1000)]
+    public required string Diagnosis { get; init; }
+
+    [Required, MaxLength(2000)]
+    public required string Treatment { get; init; }
+
+    [MaxLength(2000)]
+    public string? Notes { get; init; }
+
+    public DateOnly? FollowUpDate { get; init; }
+}
+
+public sealed record MedicalRecordResponse(
     int Id,
     int AppointmentId,
     int PetId,
@@ -40,4 +47,4 @@ public record MedicalRecordDetailResponse(
     string? Notes,
     DateOnly? FollowUpDate,
     DateTime CreatedAt,
-    List<PrescriptionResponse> Prescriptions);
+    IReadOnlyList<PrescriptionResponse> Prescriptions);

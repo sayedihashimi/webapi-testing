@@ -1,6 +1,318 @@
-@LibraryApi_HostAddress = http://localhost:5280
+@baseUrl = http://localhost:5024
 
-GET {{LibraryApi_HostAddress}}/weatherforecast/
-Accept: application/json
+### ==================== AUTHORS ====================
 
-###
+### Get all authors
+GET {{baseUrl}}/api/authors?page=1&pageSize=10
+
+### Search authors by name
+GET {{baseUrl}}/api/authors?search=Orwell
+
+### Get author by ID (with books)
+GET {{baseUrl}}/api/authors/1
+
+### Get non-existent author (404)
+GET {{baseUrl}}/api/authors/999
+
+### Create a new author
+POST {{baseUrl}}/api/authors
+Content-Type: application/json
+
+{
+  "firstName": "Harper",
+  "lastName": "Lee",
+  "biography": "American novelist widely known for To Kill a Mockingbird.",
+  "birthDate": "1926-04-28",
+  "country": "United States"
+}
+
+### Update author
+PUT {{baseUrl}}/api/authors/1
+Content-Type: application/json
+
+{
+  "firstName": "George",
+  "lastName": "Orwell",
+  "biography": "English novelist, essayist, journalist and critic. Best known for 1984 and Animal Farm.",
+  "birthDate": "1903-06-25",
+  "country": "United Kingdom"
+}
+
+### Delete author (should fail - has books)
+DELETE {{baseUrl}}/api/authors/1
+
+### ==================== CATEGORIES ====================
+
+### Get all categories
+GET {{baseUrl}}/api/categories
+
+### Get category by ID (with book count)
+GET {{baseUrl}}/api/categories/1
+
+### Create a new category
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Philosophy",
+  "description": "Books exploring fundamental questions about existence, knowledge, and ethics"
+}
+
+### Update category
+PUT {{baseUrl}}/api/categories/1
+Content-Type: application/json
+
+{
+  "name": "Fiction",
+  "description": "Literary works created from the imagination, including novels and short stories"
+}
+
+### Delete category (should fail - has books)
+DELETE {{baseUrl}}/api/categories/1
+
+### ==================== BOOKS ====================
+
+### Get all books (paginated)
+GET {{baseUrl}}/api/books?page=1&pageSize=10
+
+### Search books by title
+GET {{baseUrl}}/api/books?search=1984
+
+### Search books by author name
+GET {{baseUrl}}/api/books?search=Asimov
+
+### Filter books by category
+GET {{baseUrl}}/api/books?category=Science Fiction
+
+### Filter available books only
+GET {{baseUrl}}/api/books?available=true
+
+### Filter unavailable books
+GET {{baseUrl}}/api/books?available=false
+
+### Sort books by year descending
+GET {{baseUrl}}/api/books?sortBy=year&sortOrder=desc
+
+### Get book by ID (with authors, categories)
+GET {{baseUrl}}/api/books/1
+
+### Create a new book
+POST {{baseUrl}}/api/books
+Content-Type: application/json
+
+{
+  "title": "Brave New World",
+  "isbn": "978-0060850524",
+  "publisher": "Harper Perennial",
+  "publicationYear": 1932,
+  "description": "A dystopian novel by Aldous Huxley.",
+  "pageCount": 288,
+  "language": "English",
+  "totalCopies": 3,
+  "authorIds": [1],
+  "categoryIds": [1, 2]
+}
+
+### Update a book
+PUT {{baseUrl}}/api/books/1
+Content-Type: application/json
+
+{
+  "title": "1984",
+  "isbn": "978-0451524935",
+  "publisher": "Signet Classics",
+  "publicationYear": 1949,
+  "description": "A masterpiece of dystopian fiction about totalitarianism and surveillance.",
+  "pageCount": 328,
+  "language": "English",
+  "totalCopies": 6,
+  "authorIds": [1],
+  "categoryIds": [1, 2, 6]
+}
+
+### Delete book (should fail - has active loans)
+DELETE {{baseUrl}}/api/books/1
+
+### Get book loan history
+GET {{baseUrl}}/api/books/1/loans
+
+### Get book active reservations
+GET {{baseUrl}}/api/books/5/reservations
+
+### ==================== PATRONS ====================
+
+### Get all patrons
+GET {{baseUrl}}/api/patrons?page=1&pageSize=10
+
+### Search patrons by name
+GET {{baseUrl}}/api/patrons?search=Alice
+
+### Filter patrons by membership type
+GET {{baseUrl}}/api/patrons?membershipType=Premium
+
+### Filter student patrons
+GET {{baseUrl}}/api/patrons?membershipType=Student
+
+### Get patron by ID (with summary)
+GET {{baseUrl}}/api/patrons/1
+
+### Create a new patron
+POST {{baseUrl}}/api/patrons
+Content-Type: application/json
+
+{
+  "firstName": "Helen",
+  "lastName": "Taylor",
+  "email": "helen.taylor@email.com",
+  "phone": "555-0108",
+  "address": "258 Spruce Way",
+  "membershipType": "Standard"
+}
+
+### Update patron
+PUT {{baseUrl}}/api/patrons/2
+Content-Type: application/json
+
+{
+  "firstName": "Bob",
+  "lastName": "Smith",
+  "email": "bob.smith@email.com",
+  "phone": "555-0102",
+  "address": "456 Oak Ave, Suite 200",
+  "membershipType": "Premium"
+}
+
+### Deactivate patron (should fail - has active loans)
+DELETE {{baseUrl}}/api/patrons/1
+
+### Get patron's loans
+GET {{baseUrl}}/api/patrons/1/loans
+
+### Get patron's active loans only
+GET {{baseUrl}}/api/patrons/1/loans?status=Active
+
+### Get patron's reservations
+GET {{baseUrl}}/api/patrons/2/reservations
+
+### Get patron's fines
+GET {{baseUrl}}/api/patrons/2/fines
+
+### Get patron's unpaid fines only
+GET {{baseUrl}}/api/patrons/2/fines?status=Unpaid
+
+### ==================== LOANS ====================
+
+### Get all loans
+GET {{baseUrl}}/api/loans?page=1&pageSize=20
+
+### Get active loans only
+GET {{baseUrl}}/api/loans?status=Active
+
+### Get returned loans
+GET {{baseUrl}}/api/loans?status=Returned
+
+### Get overdue loans (filter)
+GET {{baseUrl}}/api/loans?overdue=true
+
+### Get all overdue loans (dedicated endpoint - also updates statuses)
+GET {{baseUrl}}/api/loans/overdue
+
+### Get loan by ID
+GET {{baseUrl}}/api/loans/1
+
+### Checkout a book (normal checkout)
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 9,
+  "patronId": 4
+}
+
+### Return a book
+POST {{baseUrl}}/api/loans/1/return
+
+### Renew a loan
+POST {{baseUrl}}/api/loans/3/renew
+
+### ==================== BUSINESS RULE TESTS ====================
+
+### FAIL: Checkout by inactive patron (Eva, patron 5)
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 9,
+  "patronId": 5
+}
+
+### FAIL: Student exceeding borrowing limit (Carol patron 3 has 2 active, limit is 3)
+### First checkout to bring Carol to limit, then try a 4th
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 11,
+  "patronId": 3
+}
+
+### FAIL: Renew with pending reservations (loan 2 - Foundation has pending reservation)
+POST {{baseUrl}}/api/loans/2/renew
+
+### FAIL: Reserve a book patron already has on loan (Alice has book 1)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "bookId": 1,
+  "patronId": 1
+}
+
+### ==================== RESERVATIONS ====================
+
+### Get all reservations
+GET {{baseUrl}}/api/reservations
+
+### Get pending reservations
+GET {{baseUrl}}/api/reservations?status=Pending
+
+### Get ready reservations
+GET {{baseUrl}}/api/reservations?status=Ready
+
+### Get reservation by ID
+GET {{baseUrl}}/api/reservations/1
+
+### Create a reservation
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "bookId": 7,
+  "patronId": 6
+}
+
+### Cancel a reservation
+POST {{baseUrl}}/api/reservations/3/cancel
+
+### Fulfill a ready reservation
+POST {{baseUrl}}/api/reservations/2/fulfill
+
+### ==================== FINES ====================
+
+### Get all fines
+GET {{baseUrl}}/api/fines
+
+### Get unpaid fines
+GET {{baseUrl}}/api/fines?status=Unpaid
+
+### Get paid fines
+GET {{baseUrl}}/api/fines?status=Paid
+
+### Get fine by ID
+GET {{baseUrl}}/api/fines/1
+
+### Pay a fine
+POST {{baseUrl}}/api/fines/1/pay
+
+### Waive a fine
+POST {{baseUrl}}/api/fines/1/waive

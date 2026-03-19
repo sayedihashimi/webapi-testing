@@ -5,16 +5,15 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public sealed class OwnerService(VetClinicDbContext db, ILogger<OwnerService> logger)
+public sealed class OwnerService(VetClinicDbContext db, ILogger<OwnerService> logger) : IOwnerService
 {
-    public async Task<PagedResponse<OwnerResponse>> GetAllAsync(
-        string? search, int page, int pageSize, CancellationToken ct)
+    public async Task<PagedResult<OwnerDto>> GetAllAsync(string? search, int page, int pageSize, CancellationToken ct = default)
     {
-        var query = db.Owners.AsNoTracking().AsQueryable();
+        var query = db.Owners.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim().ToLower();
+            var term = search.ToLower();
             query = query.Where(o =>
                 o.FirstName.ToLower().Contains(term) ||
                 o.LastName.ToLower().Contains(term) ||
@@ -22,25 +21,20 @@ public sealed class OwnerService(VetClinicDbContext db, ILogger<OwnerService> lo
         }
 
         var totalCount = await query.CountAsync(ct);
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
         var items = await query
             .OrderBy(o => o.LastName).ThenBy(o => o.FirstName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(o => MapToResponse(o))
+            .Select(o => MapToDto(o))
             .ToListAsync(ct);
 
-        return new PagedResponse<OwnerResponse>(
-            items, page, pageSize, totalCount, totalPages,
-            page < totalPages, page > 1);
+        return new PagedResult<OwnerDto>(items, totalCount, page, pageSize);
     }
 
-    public async Task<OwnerDetailResponse?> GetByIdAsync(int id, CancellationToken ct)
+    public async Task<OwnerDetailDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var owner = await db.Owners
-            .AsNoTracking()
-            .Include(o => o.Pets)
+            .Include(o => o.Pets.Where(p => p.IsActive))
             .FirstOrDefaultAsync(o => o.Id == id, ct);
 
         if (owner is null)
@@ -48,40 +42,35 @@ public sealed class OwnerService(VetClinicDbContext db, ILogger<OwnerService> lo
             return null;
         }
 
-        return new OwnerDetailResponse(
+        return new OwnerDetailDto(
             owner.Id, owner.FirstName, owner.LastName, owner.Email, owner.Phone,
             owner.Address, owner.City, owner.State, owner.ZipCode,
             owner.CreatedAt, owner.UpdatedAt,
-            owner.Pets.Select(p => new PetSummaryResponse(p.Id, p.Name, p.Species, p.Breed, p.IsActive)).ToList());
+            owner.Pets.Select(p => new PetSummaryDto(p.Id, p.Name, p.Species, p.Breed, p.IsActive)).ToList());
     }
 
-    public async Task<OwnerResponse> CreateAsync(CreateOwnerRequest request, CancellationToken ct)
+    public async Task<OwnerDto> CreateAsync(CreateOwnerDto dto, CancellationToken ct = default)
     {
-        if (await db.Owners.AnyAsync(o => o.Email == request.Email, ct))
-        {
-            throw new InvalidOperationException($"An owner with email '{request.Email}' already exists.");
-        }
-
         var owner = new Owner
         {
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email,
-            Phone = request.Phone,
-            Address = request.Address,
-            City = request.City,
-            State = request.State,
-            ZipCode = request.ZipCode
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            Email = dto.Email,
+            Phone = dto.Phone,
+            Address = dto.Address,
+            City = dto.City,
+            State = dto.State,
+            ZipCode = dto.ZipCode
         };
 
         db.Owners.Add(owner);
         await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Created owner {OwnerId}: {FirstName} {LastName}", owner.Id, owner.FirstName, owner.LastName);
-        return MapToResponse(owner);
+        return MapToDto(owner);
     }
 
-    public async Task<OwnerResponse?> UpdateAsync(int id, UpdateOwnerRequest request, CancellationToken ct)
+    public async Task<OwnerDto?> UpdateAsync(int id, UpdateOwnerDto dto, CancellationToken ct = default)
     {
         var owner = await db.Owners.FindAsync([id], ct);
         if (owner is null)
@@ -89,97 +78,62 @@ public sealed class OwnerService(VetClinicDbContext db, ILogger<OwnerService> lo
             return null;
         }
 
-        if (await db.Owners.AnyAsync(o => o.Email == request.Email && o.Id != id, ct))
-        {
-            throw new InvalidOperationException($"An owner with email '{request.Email}' already exists.");
-        }
-
-        owner.FirstName = request.FirstName;
-        owner.LastName = request.LastName;
-        owner.Email = request.Email;
-        owner.Phone = request.Phone;
-        owner.Address = request.Address;
-        owner.City = request.City;
-        owner.State = request.State;
-        owner.ZipCode = request.ZipCode;
+        owner.FirstName = dto.FirstName;
+        owner.LastName = dto.LastName;
+        owner.Email = dto.Email;
+        owner.Phone = dto.Phone;
+        owner.Address = dto.Address;
+        owner.City = dto.City;
+        owner.State = dto.State;
+        owner.ZipCode = dto.ZipCode;
         owner.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
+
         logger.LogInformation("Updated owner {OwnerId}", owner.Id);
-        return MapToResponse(owner);
+        return MapToDto(owner);
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken ct)
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var owner = await db.Owners.Include(o => o.Pets).FirstOrDefaultAsync(o => o.Id == id, ct);
+        var owner = await db.Owners.FindAsync([id], ct);
         if (owner is null)
         {
             return false;
         }
 
-        if (owner.Pets.Any(p => p.IsActive))
-        {
-            throw new InvalidOperationException("Cannot delete owner with active pets. Deactivate pets first.");
-        }
-
         db.Owners.Remove(owner);
         await db.SaveChangesAsync(ct);
+
         logger.LogInformation("Deleted owner {OwnerId}", id);
         return true;
     }
 
-    public async Task<List<PetResponse>> GetPetsAsync(int ownerId, CancellationToken ct)
-    {
-        if (!await db.Owners.AnyAsync(o => o.Id == ownerId, ct))
-        {
-            throw new KeyNotFoundException($"Owner with ID {ownerId} not found.");
-        }
+    public async Task<bool> HasActivePetsAsync(int id, CancellationToken ct = default) =>
+        await db.Pets.AnyAsync(p => p.OwnerId == id && p.IsActive, ct);
 
-        return await db.Pets
-            .AsNoTracking()
-            .Where(p => p.OwnerId == ownerId)
-            .Select(p => new PetResponse(
-                p.Id, p.Name, p.Species, p.Breed, p.DateOfBirth,
-                p.Weight, p.Color, p.MicrochipNumber, p.IsActive,
-                p.OwnerId, p.CreatedAt, p.UpdatedAt))
+    public async Task<IReadOnlyList<PetSummaryDto>> GetPetsAsync(int ownerId, CancellationToken ct = default) =>
+        await db.Pets
+            .Where(p => p.OwnerId == ownerId && p.IsActive)
+            .Select(p => new PetSummaryDto(p.Id, p.Name, p.Species, p.Breed, p.IsActive))
             .ToListAsync(ct);
-    }
 
-    public async Task<PagedResponse<AppointmentResponse>> GetAppointmentsAsync(
-        int ownerId, int page, int pageSize, CancellationToken ct)
-    {
-        if (!await db.Owners.AnyAsync(o => o.Id == ownerId, ct))
-        {
-            throw new KeyNotFoundException($"Owner with ID {ownerId} not found.");
-        }
-
-        var query = db.Appointments
-            .AsNoTracking()
+    public async Task<IReadOnlyList<AppointmentDto>> GetAppointmentsAsync(int ownerId, CancellationToken ct = default) =>
+        await db.Appointments
             .Include(a => a.Pet)
             .Include(a => a.Veterinarian)
-            .Where(a => a.Pet.OwnerId == ownerId);
-
-        var totalCount = await query.CountAsync(ct);
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-        var items = await query
+            .Where(a => a.Pet.OwnerId == ownerId)
             .OrderByDescending(a => a.AppointmentDate)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(a => new AppointmentResponse(
-                a.Id, a.PetId, a.Pet.Name, a.VeterinarianId,
-                a.Veterinarian.FirstName + " " + a.Veterinarian.LastName,
+            .Select(a => new AppointmentDto(
+                a.Id, a.PetId, a.Pet.Name,
+                a.VeterinarianId, $"{a.Veterinarian.FirstName} {a.Veterinarian.LastName}",
                 a.AppointmentDate, a.DurationMinutes, a.Status,
                 a.Reason, a.Notes, a.CancellationReason,
                 a.CreatedAt, a.UpdatedAt))
             .ToListAsync(ct);
 
-        return new PagedResponse<AppointmentResponse>(
-            items, page, pageSize, totalCount, totalPages,
-            page < totalPages, page > 1);
-    }
-
-    private static OwnerResponse MapToResponse(Owner o) =>
+    private static OwnerDto MapToDto(Owner o) =>
         new(o.Id, o.FirstName, o.LastName, o.Email, o.Phone,
-            o.Address, o.City, o.State, o.ZipCode, o.CreatedAt, o.UpdatedAt);
+            o.Address, o.City, o.State, o.ZipCode,
+            o.CreatedAt, o.UpdatedAt);
 }

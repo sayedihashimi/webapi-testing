@@ -1,5 +1,10 @@
-using LibraryApi.DTOs;
-using LibraryApi.Services;
+using LibraryApi.DTOs.Common;
+using LibraryApi.DTOs.Fine;
+using LibraryApi.DTOs.Loan;
+using LibraryApi.DTOs.Patron;
+using LibraryApi.DTOs.Reservation;
+using LibraryApi.Models.Enums;
+using LibraryApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApi.Controllers;
@@ -9,105 +14,70 @@ namespace LibraryApi.Controllers;
 [Produces("application/json")]
 public class PatronsController : ControllerBase
 {
-    private readonly IPatronService _patronService;
+    private readonly IPatronService _service;
 
-    public PatronsController(IPatronService patronService)
-    {
-        _patronService = patronService;
-    }
+    public PatronsController(IPatronService service) => _service = service;
 
-    /// <summary>List patrons with search by name/email, filter by membership type, pagination</summary>
+    /// <summary>List patrons with search, filter, pagination.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<PatronDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<PatronDto>>> GetPatrons(
-        [FromQuery] string? search,
-        [FromQuery] string? membershipType,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var result = await _patronService.GetPatronsAsync(search, membershipType,
-            new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    [ProducesResponseType(typeof(PagedResult<PatronListDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? search, [FromQuery] MembershipType? membershipType,
+        [FromQuery] bool? isActive, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetAllAsync(search, membershipType, isActive, pagination));
 
-    /// <summary>Get patron details with active loans count and unpaid fines balance</summary>
+    /// <summary>Get patron details with summary.</summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(PatronDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PatronDetailDto>> GetPatron(int id)
-    {
-        var result = await _patronService.GetPatronByIdAsync(id);
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetById(int id)
+        => Ok(await _service.GetByIdAsync(id));
 
-    /// <summary>Create a new patron</summary>
+    /// <summary>Create a new patron.</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(PatronDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(PatronDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<PatronDto>> CreatePatron([FromBody] CreatePatronDto dto)
+    public async Task<IActionResult> Create([FromBody] CreatePatronDto dto)
     {
-        var result = await _patronService.CreatePatronAsync(dto);
-        return CreatedAtAction(nameof(GetPatron), new { id = result.Id }, result);
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update an existing patron</summary>
+    /// <summary>Update a patron.</summary>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(PatronDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PatronDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PatronDto>> UpdatePatron(int id, [FromBody] UpdatePatronDto dto)
-    {
-        var result = await _patronService.UpdatePatronAsync(id, dto);
-        return Ok(result);
-    }
+    public async Task<IActionResult> Update(int id, [FromBody] UpdatePatronDto dto)
+        => Ok(await _service.UpdateAsync(id, dto));
 
-    /// <summary>Deactivate a patron (fails if patron has active loans)</summary>
+    /// <summary>Deactivate a patron (fails if active loans).</summary>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DeactivatePatron(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        await _patronService.DeactivatePatronAsync(id);
+        await _service.DeleteAsync(id);
         return NoContent();
     }
 
-    /// <summary>Get patron's loans with optional status filter</summary>
+    /// <summary>Get patron loans (filter by status).</summary>
     [HttpGet("{id}/loans")]
-    [ProducesResponseType(typeof(PagedResult<LoanDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<LoanListDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResult<LoanDto>>> GetPatronLoans(int id,
-        [FromQuery] string? status,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-    {
-        var result = await _patronService.GetPatronLoansAsync(id, status,
-            new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetLoans(int id, [FromQuery] LoanStatus? status, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetPatronLoansAsync(id, status, pagination));
 
-    /// <summary>Get patron's reservations</summary>
+    /// <summary>Get patron reservations.</summary>
     [HttpGet("{id}/reservations")]
-    [ProducesResponseType(typeof(PagedResult<ReservationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<ReservationListDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResult<ReservationDto>>> GetPatronReservations(int id,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-    {
-        var result = await _patronService.GetPatronReservationsAsync(id,
-            new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetReservations(int id)
+        => Ok(await _service.GetPatronReservationsAsync(id));
 
-    /// <summary>Get patron's fines with optional status filter</summary>
+    /// <summary>Get patron fines (filter by status).</summary>
     [HttpGet("{id}/fines")]
-    [ProducesResponseType(typeof(PagedResult<FineDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<FineListDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResult<FineDto>>> GetPatronFines(int id,
-        [FromQuery] string? status,
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-    {
-        var result = await _patronService.GetPatronFinesAsync(id, status,
-            new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetFines(int id, [FromQuery] FineStatus? status, [FromQuery] PaginationParams pagination)
+        => Ok(await _service.GetPatronFinesAsync(id, status, pagination));
 }

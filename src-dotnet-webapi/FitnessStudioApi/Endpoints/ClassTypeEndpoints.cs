@@ -1,58 +1,48 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FitnessStudioApi.Endpoints;
 
 public static class ClassTypeEndpoints
 {
-    public static void MapClassTypeEndpoints(this WebApplication app)
+    public static void MapClassTypeEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/class-types").WithTags("Class Types");
+        var group = app.MapGroup("/api/class-types")
+            .WithTags("Class Types");
 
-        group.MapGet("/", async (string? difficulty, bool? isPremium, int? page, int? pageSize, IClassTypeService service, CancellationToken ct) =>
+        group.MapGet("/", async (string? difficulty, bool? isPremium, IClassTypeService service, CancellationToken ct) =>
         {
-            var p = Math.Max(1, page ?? 1);
-            var ps = Math.Clamp(pageSize ?? 20, 1, 100);
-            return Results.Ok(await service.GetAllAsync(difficulty, isPremium, p, ps, ct));
+            var classTypes = await service.GetAllAsync(difficulty, isPremium, ct);
+            return TypedResults.Ok(classTypes);
         })
         .WithName("GetClassTypes")
-        .WithSummary("List class types")
-        .WithDescription("Returns a paginated list of active class types with optional difficulty and premium filters.")
-        .Produces<PaginatedResponse<ClassTypeResponse>>(StatusCodes.Status200OK);
+        .WithSummary("List class types with optional filters");
 
-        group.MapGet("/{id:int}", async (int id, IClassTypeService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}", async Task<Results<Ok<ClassTypeResponse>, NotFound>> (
+            int id, IClassTypeService service, CancellationToken ct) =>
         {
             var classType = await service.GetByIdAsync(id, ct);
-            return classType is null ? Results.NotFound() : Results.Ok(classType);
+            return classType is null ? TypedResults.NotFound() : TypedResults.Ok(classType);
         })
         .WithName("GetClassTypeById")
-        .WithSummary("Get class type details")
-        .WithDescription("Returns the details of a specific class type.")
-        .Produces<ClassTypeResponse>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound);
+        .WithSummary("Get a class type by ID");
 
         group.MapPost("/", async (CreateClassTypeRequest request, IClassTypeService service, CancellationToken ct) =>
         {
             var classType = await service.CreateAsync(request, ct);
-            return Results.Created($"/api/class-types/{classType.Id}", classType);
+            return TypedResults.Created($"/api/class-types/{classType.Id}", classType);
         })
         .WithName("CreateClassType")
-        .WithSummary("Create a new class type")
-        .WithDescription("Creates a new class type for the studio.")
-        .Produces<ClassTypeResponse>(StatusCodes.Status201Created)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithSummary("Create a new class type");
 
-        group.MapPut("/{id:int}", async (int id, UpdateClassTypeRequest request, IClassTypeService service, CancellationToken ct) =>
+        group.MapPut("/{id:int}", async Task<Results<Ok<ClassTypeResponse>, NotFound>> (
+            int id, UpdateClassTypeRequest request, IClassTypeService service, CancellationToken ct) =>
         {
             var classType = await service.UpdateAsync(id, request, ct);
-            return classType is null ? Results.NotFound() : Results.Ok(classType);
+            return TypedResults.Ok(classType);
         })
         .WithName("UpdateClassType")
-        .WithSummary("Update a class type")
-        .WithDescription("Updates an existing class type.")
-        .Produces<ClassTypeResponse>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status404NotFound);
+        .WithSummary("Update a class type");
     }
 }

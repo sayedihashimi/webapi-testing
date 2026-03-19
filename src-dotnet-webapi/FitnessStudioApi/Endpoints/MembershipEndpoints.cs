@@ -1,85 +1,63 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FitnessStudioApi.Endpoints;
 
 public static class MembershipEndpoints
 {
-    public static void MapMembershipEndpoints(this WebApplication app)
+    public static void MapMembershipEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/memberships").WithTags("Memberships");
+        var group = app.MapGroup("/api/memberships")
+            .WithTags("Memberships");
 
         group.MapPost("/", async (CreateMembershipRequest request, IMembershipService service, CancellationToken ct) =>
         {
             var membership = await service.CreateAsync(request, ct);
-            return Results.Created($"/api/memberships/{membership.Id}", membership);
+            return TypedResults.Created($"/api/memberships/{membership.Id}", membership);
         })
         .WithName("CreateMembership")
-        .WithSummary("Create a new membership")
-        .WithDescription("Creates a new membership for a member. Only one active/frozen membership allowed at a time.")
-        .Produces<MembershipResponse>(StatusCodes.Status201Created)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithSummary("Purchase/create a new membership");
 
-        group.MapGet("/{id:int}", async (int id, IMembershipService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}", async Task<Results<Ok<MembershipResponse>, NotFound>> (
+            int id, IMembershipService service, CancellationToken ct) =>
         {
             var membership = await service.GetByIdAsync(id, ct);
-            return membership is null ? Results.NotFound() : Results.Ok(membership);
+            return membership is null ? TypedResults.NotFound() : TypedResults.Ok(membership);
         })
         .WithName("GetMembershipById")
-        .WithSummary("Get membership details")
-        .WithDescription("Returns the details of a specific membership.")
-        .Produces<MembershipResponse>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound);
+        .WithSummary("Get membership details");
 
         group.MapPost("/{id:int}/cancel", async (int id, IMembershipService service, CancellationToken ct) =>
         {
             var membership = await service.CancelAsync(id, ct);
-            return Results.Ok(membership);
+            return TypedResults.Ok(membership);
         })
         .WithName("CancelMembership")
-        .WithSummary("Cancel a membership")
-        .WithDescription("Cancels an active or frozen membership.")
-        .Produces<MembershipResponse>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithSummary("Cancel an active or frozen membership");
 
         group.MapPost("/{id:int}/freeze", async (int id, FreezeMembershipRequest request, IMembershipService service, CancellationToken ct) =>
         {
             var membership = await service.FreezeAsync(id, request, ct);
-            return Results.Ok(membership);
+            return TypedResults.Ok(membership);
         })
         .WithName("FreezeMembership")
-        .WithSummary("Freeze a membership")
-        .WithDescription("Freezes an active membership for 7–30 days. Extends the end date. One freeze per term.")
-        .Produces<MembershipResponse>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithSummary("Freeze an active membership (7-30 days)");
 
         group.MapPost("/{id:int}/unfreeze", async (int id, IMembershipService service, CancellationToken ct) =>
         {
             var membership = await service.UnfreezeAsync(id, ct);
-            return Results.Ok(membership);
+            return TypedResults.Ok(membership);
         })
         .WithName("UnfreezeMembership")
-        .WithSummary("Unfreeze a membership")
-        .WithDescription("Unfreezes a frozen membership back to active status.")
-        .Produces<MembershipResponse>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithSummary("Unfreeze a frozen membership and extend end date");
 
         group.MapPost("/{id:int}/renew", async (int id, IMembershipService service, CancellationToken ct) =>
         {
             var membership = await service.RenewAsync(id, ct);
-            return Results.Ok(membership);
+            return TypedResults.Ok(membership);
         })
         .WithName("RenewMembership")
-        .WithSummary("Renew a membership")
-        .WithDescription("Renews an active or expired membership for another term based on the plan's duration.")
-        .Produces<MembershipResponse>(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status404NotFound)
-        .Produces(StatusCodes.Status409Conflict);
+        .WithSummary("Renew an expired membership");
     }
 }

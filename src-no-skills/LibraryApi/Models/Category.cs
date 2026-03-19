@@ -12,5 +12,6 @@ public class Category
     [MaxLength(500)]
     public string? Description { get; set; }
 
-    public ICollection<BookCategory> BookCategories { get; set; } = new List<BookCategory>();
+    // Navigation
+    public ICollection<BookCategory> BookCategories { get; set; } = [];
 }

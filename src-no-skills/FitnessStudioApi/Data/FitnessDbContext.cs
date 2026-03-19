@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using FitnessStudioApi.Models;
+using FitnessStudioApi.Models.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace FitnessStudioApi.Data;
 
@@ -19,48 +20,72 @@ public class FitnessDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<MembershipPlan>(e =>
+        modelBuilder.Entity<MembershipPlan>(entity =>
         {
-            e.HasIndex(p => p.Name).IsUnique();
-            e.Property(p => p.Price).HasColumnType("decimal(10,2)");
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.Property(e => e.Price).HasColumnType("decimal(10,2)");
         });
 
-        modelBuilder.Entity<Member>(e =>
+        modelBuilder.Entity<Member>(entity =>
         {
-            e.HasIndex(m => m.Email).IsUnique();
+            entity.HasIndex(e => e.Email).IsUnique();
         });
 
-        modelBuilder.Entity<Membership>(e =>
+        modelBuilder.Entity<Membership>(entity =>
         {
-            e.HasOne(m => m.Member).WithMany(m => m.Memberships).HasForeignKey(m => m.MemberId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(m => m.MembershipPlan).WithMany().HasForeignKey(m => m.MembershipPlanId).OnDelete(DeleteBehavior.Restrict);
-            e.Property(m => m.Status).HasConversion<string>();
-            e.Property(m => m.PaymentStatus).HasConversion<string>();
+            entity.HasOne(e => e.Member)
+                .WithMany(m => m.Memberships)
+                .HasForeignKey(e => e.MemberId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.MembershipPlan)
+                .WithMany(p => p.Memberships)
+                .HasForeignKey(e => e.MembershipPlanId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(e => e.Status).HasConversion<string>();
+            entity.Property(e => e.PaymentStatus).HasConversion<string>();
         });
 
-        modelBuilder.Entity<Instructor>(e =>
+        modelBuilder.Entity<Instructor>(entity =>
         {
-            e.HasIndex(i => i.Email).IsUnique();
+            entity.HasIndex(e => e.Email).IsUnique();
         });
 
-        modelBuilder.Entity<ClassType>(e =>
+        modelBuilder.Entity<ClassType>(entity =>
         {
-            e.HasIndex(c => c.Name).IsUnique();
-            e.Property(c => c.DifficultyLevel).HasConversion<string>();
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.Property(e => e.DifficultyLevel).HasConversion<string>();
         });
 
-        modelBuilder.Entity<ClassSchedule>(e =>
+        modelBuilder.Entity<ClassSchedule>(entity =>
         {
-            e.HasOne(cs => cs.ClassType).WithMany().HasForeignKey(cs => cs.ClassTypeId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(cs => cs.Instructor).WithMany(i => i.ClassSchedules).HasForeignKey(cs => cs.InstructorId).OnDelete(DeleteBehavior.Restrict);
-            e.Property(cs => cs.Status).HasConversion<string>();
+            entity.HasOne(e => e.ClassType)
+                .WithMany(ct => ct.ClassSchedules)
+                .HasForeignKey(e => e.ClassTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Instructor)
+                .WithMany(i => i.ClassSchedules)
+                .HasForeignKey(e => e.InstructorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(e => e.Status).HasConversion<string>();
         });
 
-        modelBuilder.Entity<Booking>(e =>
+        modelBuilder.Entity<Booking>(entity =>
         {
-            e.HasOne(b => b.ClassSchedule).WithMany(cs => cs.Bookings).HasForeignKey(b => b.ClassScheduleId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(b => b.Member).WithMany(m => m.Bookings).HasForeignKey(b => b.MemberId).OnDelete(DeleteBehavior.Restrict);
-            e.Property(b => b.Status).HasConversion<string>();
+            entity.HasOne(e => e.ClassSchedule)
+                .WithMany(cs => cs.Bookings)
+                .HasForeignKey(e => e.ClassScheduleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Member)
+                .WithMany(m => m.Bookings)
+                .HasForeignKey(e => e.MemberId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Property(e => e.Status).HasConversion<string>();
         });
     }
 }

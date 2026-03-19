@@ -2,27 +2,55 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-public record CreateOwnerRequest(
-    [property: Required, MaxLength(100)] string FirstName,
-    [property: Required, MaxLength(100)] string LastName,
-    [property: Required, EmailAddress] string Email,
-    [property: Required] string Phone,
-    string? Address,
-    string? City,
-    [property: MaxLength(2)] string? State,
-    string? ZipCode);
+// --- Owner DTOs ---
 
-public record UpdateOwnerRequest(
-    [property: Required, MaxLength(100)] string FirstName,
-    [property: Required, MaxLength(100)] string LastName,
-    [property: Required, EmailAddress] string Email,
-    [property: Required] string Phone,
-    string? Address,
-    string? City,
-    [property: MaxLength(2)] string? State,
-    string? ZipCode);
+public sealed record CreateOwnerRequest
+{
+    [Required, MaxLength(100)]
+    public required string FirstName { get; init; }
 
-public record OwnerResponse(
+    [Required, MaxLength(100)]
+    public required string LastName { get; init; }
+
+    [Required, EmailAddress]
+    public required string Email { get; init; }
+
+    [Required]
+    public required string Phone { get; init; }
+
+    public string? Address { get; init; }
+    public string? City { get; init; }
+
+    [MaxLength(2)]
+    public string? State { get; init; }
+
+    public string? ZipCode { get; init; }
+}
+
+public sealed record UpdateOwnerRequest
+{
+    [Required, MaxLength(100)]
+    public required string FirstName { get; init; }
+
+    [Required, MaxLength(100)]
+    public required string LastName { get; init; }
+
+    [Required, EmailAddress]
+    public required string Email { get; init; }
+
+    [Required]
+    public required string Phone { get; init; }
+
+    public string? Address { get; init; }
+    public string? City { get; init; }
+
+    [MaxLength(2)]
+    public string? State { get; init; }
+
+    public string? ZipCode { get; init; }
+}
+
+public sealed record OwnerResponse(
     int Id,
     string FirstName,
     string LastName,
@@ -35,7 +63,7 @@ public record OwnerResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
-public record OwnerDetailResponse(
+public sealed record OwnerDetailResponse(
     int Id,
     string FirstName,
     string LastName,
@@ -47,11 +75,4 @@ public record OwnerDetailResponse(
     string? ZipCode,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    List<PetSummaryResponse> Pets);
-
-public record PetSummaryResponse(
-    int Id,
-    string Name,
-    string Species,
-    string? Breed,
-    bool IsActive);
+    IReadOnlyList<PetSummaryResponse> Pets);

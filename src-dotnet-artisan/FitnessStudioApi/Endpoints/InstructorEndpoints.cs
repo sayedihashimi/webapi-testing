@@ -1,6 +1,5 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FitnessStudioApi.Endpoints;
 
@@ -8,52 +7,70 @@ public static class InstructorEndpoints
 {
     public static RouteGroupBuilder MapInstructorEndpoints(this IEndpointRouteBuilder routes)
     {
-        var group = routes.MapGroup("/api/instructors").WithTags("Instructors");
+        var group = routes.MapGroup("/api/instructors")
+            .WithTags("Instructors");
 
-        group.MapGet("/", async Task<Ok<List<InstructorResponse>>> (string? specialization, bool? isActive, InstructorService service, CancellationToken ct) =>
-            TypedResults.Ok(await service.GetAllAsync(specialization, isActive, ct)));
-
-        group.MapGet("/{id:int}", async Task<Results<Ok<InstructorResponse>, NotFound<string>>> (int id, InstructorService service, CancellationToken ct) =>
-        {
-            var instructor = await service.GetByIdAsync(id, ct);
-            return instructor is not null
-                ? TypedResults.Ok(instructor)
-                : TypedResults.NotFound("Instructor not found.");
-        });
-
-        group.MapPost("/", async Task<Results<Created<InstructorResponse>, Conflict<string>>> (CreateInstructorRequest request, InstructorService service, CancellationToken ct) =>
-        {
-            try
-            {
-                var instructor = await service.CreateAsync(request, ct);
-                return TypedResults.Created($"/api/instructors/{instructor.Id}", instructor);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return TypedResults.Conflict(ex.Message);
-            }
-        });
-
-        group.MapPut("/{id:int}", async Task<Results<Ok<InstructorResponse>, NotFound<string>, Conflict<string>>> (int id, UpdateInstructorRequest request, InstructorService service, CancellationToken ct) =>
-        {
-            try
-            {
-                var instructor = await service.UpdateAsync(id, request, ct);
-                return instructor is not null
-                    ? TypedResults.Ok(instructor)
-                    : TypedResults.NotFound("Instructor not found.");
-            }
-            catch (InvalidOperationException ex)
-            {
-                return TypedResults.Conflict(ex.Message);
-            }
-        });
-
-        group.MapGet("/{id:int}/schedule", async Task<Ok<List<ClassScheduleResponse>>> (
-            int id, DateTime? from, DateTime? to,
-            InstructorService service, CancellationToken ct) =>
-            TypedResults.Ok(await service.GetScheduleAsync(id, from, to, ct)));
+        group.MapGet("/", GetAllAsync);
+        group.MapGet("/{id:int}", GetByIdAsync);
+        group.MapPost("/", CreateAsync);
+        group.MapPut("/{id:int}", UpdateAsync);
+        group.MapGet("/{id:int}/schedule", GetScheduleAsync);
 
         return group;
+    }
+
+    private static async Task<IResult> GetAllAsync(
+        string? specialization, bool? isActive,
+        IInstructorService service, CancellationToken ct)
+    {
+        var instructors = await service.GetAllAsync(specialization, isActive, ct);
+        return TypedResults.Ok(instructors);
+    }
+
+    private static async Task<IResult> GetByIdAsync(
+        int id, IInstructorService service, CancellationToken ct)
+    {
+        var instructor = await service.GetByIdAsync(id, ct);
+        return instructor is not null
+            ? TypedResults.Ok(instructor)
+            : TypedResults.NotFound();
+    }
+
+    private static async Task<IResult> CreateAsync(
+        CreateInstructorRequest request, IInstructorService service, CancellationToken ct)
+    {
+        try
+        {
+            var instructor = await service.CreateAsync(request, ct);
+            return TypedResults.Created($"/api/instructors/{instructor.Id}", instructor);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return TypedResults.Conflict(new { error = ex.Message });
+        }
+    }
+
+    private static async Task<IResult> UpdateAsync(
+        int id, UpdateInstructorRequest request, IInstructorService service, CancellationToken ct)
+    {
+        try
+        {
+            var instructor = await service.UpdateAsync(id, request, ct);
+            return instructor is not null
+                ? TypedResults.Ok(instructor)
+                : TypedResults.NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return TypedResults.Conflict(new { error = ex.Message });
+        }
+    }
+
+    private static async Task<IResult> GetScheduleAsync(
+        int id, DateOnly? from, DateOnly? to,
+        IInstructorService service, CancellationToken ct)
+    {
+        var schedule = await service.GetScheduleAsync(id, from, to, ct);
+        return TypedResults.Ok(schedule);
     }
 }

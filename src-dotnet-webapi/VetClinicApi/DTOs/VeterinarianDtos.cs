@@ -2,26 +2,54 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VetClinicApi.DTOs;
 
-public record CreateVeterinarianRequest(
-    [property: Required, MaxLength(100)] string FirstName,
-    [property: Required, MaxLength(100)] string LastName,
-    [property: Required, EmailAddress] string Email,
-    [property: Required] string Phone,
-    string? Specialization,
-    [property: Required] string LicenseNumber,
-    [property: Required] DateOnly HireDate);
+// --- Veterinarian DTOs ---
 
-public record UpdateVeterinarianRequest(
-    [property: Required, MaxLength(100)] string FirstName,
-    [property: Required, MaxLength(100)] string LastName,
-    [property: Required, EmailAddress] string Email,
-    [property: Required] string Phone,
-    string? Specialization,
-    [property: Required] string LicenseNumber,
-    bool IsAvailable,
-    [property: Required] DateOnly HireDate);
+public sealed record CreateVeterinarianRequest
+{
+    [Required, MaxLength(100)]
+    public required string FirstName { get; init; }
 
-public record VeterinarianResponse(
+    [Required, MaxLength(100)]
+    public required string LastName { get; init; }
+
+    [Required, EmailAddress]
+    public required string Email { get; init; }
+
+    [Required]
+    public required string Phone { get; init; }
+
+    public string? Specialization { get; init; }
+
+    [Required]
+    public required string LicenseNumber { get; init; }
+
+    [Required]
+    public required DateOnly HireDate { get; init; }
+}
+
+public sealed record UpdateVeterinarianRequest
+{
+    [Required, MaxLength(100)]
+    public required string FirstName { get; init; }
+
+    [Required, MaxLength(100)]
+    public required string LastName { get; init; }
+
+    [Required, EmailAddress]
+    public required string Email { get; init; }
+
+    [Required]
+    public required string Phone { get; init; }
+
+    public string? Specialization { get; init; }
+
+    [Required]
+    public required string LicenseNumber { get; init; }
+
+    public bool IsAvailable { get; init; } = true;
+}
+
+public sealed record VeterinarianResponse(
     int Id,
     string FirstName,
     string LastName,

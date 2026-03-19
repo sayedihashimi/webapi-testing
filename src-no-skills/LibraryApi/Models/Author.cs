@@ -22,5 +22,6 @@ public class Author
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<BookAuthor> BookAuthors { get; set; } = new List<BookAuthor>();
+    // Navigation
+    public ICollection<BookAuthor> BookAuthors { get; set; } = [];
 }

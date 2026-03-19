@@ -1,6 +1,5 @@
 using FitnessStudioApi.Data;
 using FitnessStudioApi.DTOs;
-using FitnessStudioApi.Middleware;
 using FitnessStudioApi.Models;
 using FitnessStudioApi.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -10,27 +9,32 @@ namespace FitnessStudioApi.Services;
 public class MembershipPlanService : IMembershipPlanService
 {
     private readonly FitnessDbContext _db;
+    private readonly ILogger<MembershipPlanService> _logger;
 
-    public MembershipPlanService(FitnessDbContext db) => _db = db;
+    public MembershipPlanService(FitnessDbContext db, ILogger<MembershipPlanService> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
-    public async Task<IReadOnlyList<MembershipPlanDto>> GetAllActiveAsync()
+    public async Task<List<MembershipPlanResponseDto>> GetAllActiveAsync()
     {
         return await _db.MembershipPlans
             .Where(p => p.IsActive)
-            .Select(p => ToDto(p))
+            .Select(p => MapToDto(p))
             .ToListAsync();
     }
 
-    public async Task<MembershipPlanDto?> GetByIdAsync(int id)
+    public async Task<MembershipPlanResponseDto?> GetByIdAsync(int id)
     {
         var plan = await _db.MembershipPlans.FindAsync(id);
-        return plan is null ? null : ToDto(plan);
+        return plan is null ? null : MapToDto(plan);
     }
 
-    public async Task<MembershipPlanDto> CreateAsync(CreateMembershipPlanDto dto)
+    public async Task<MembershipPlanResponseDto> CreateAsync(MembershipPlanCreateDto dto)
     {
         if (await _db.MembershipPlans.AnyAsync(p => p.Name == dto.Name))
-            throw new ConflictException($"A membership plan with name '{dto.Name}' already exists.");
+            throw new BusinessRuleException($"A plan with name '{dto.Name}' already exists.");
 
         var plan = new MembershipPlan
         {
@@ -41,18 +45,20 @@ public class MembershipPlanService : IMembershipPlanService
             MaxClassBookingsPerWeek = dto.MaxClassBookingsPerWeek,
             AllowsPremiumClasses = dto.AllowsPremiumClasses
         };
+
         _db.MembershipPlans.Add(plan);
         await _db.SaveChangesAsync();
-        return ToDto(plan);
+        _logger.LogInformation("Created membership plan {PlanName} with ID {PlanId}", plan.Name, plan.Id);
+        return MapToDto(plan);
     }
 
-    public async Task<MembershipPlanDto> UpdateAsync(int id, UpdateMembershipPlanDto dto)
+    public async Task<MembershipPlanResponseDto?> UpdateAsync(int id, MembershipPlanUpdateDto dto)
     {
-        var plan = await _db.MembershipPlans.FindAsync(id)
-            ?? throw new NotFoundException($"Membership plan with ID {id} not found.");
+        var plan = await _db.MembershipPlans.FindAsync(id);
+        if (plan is null) return null;
 
         if (await _db.MembershipPlans.AnyAsync(p => p.Name == dto.Name && p.Id != id))
-            throw new ConflictException($"A membership plan with name '{dto.Name}' already exists.");
+            throw new BusinessRuleException($"A plan with name '{dto.Name}' already exists.");
 
         plan.Name = dto.Name;
         plan.Description = dto.Description;
@@ -62,21 +68,35 @@ public class MembershipPlanService : IMembershipPlanService
         plan.AllowsPremiumClasses = dto.AllowsPremiumClasses;
         plan.IsActive = dto.IsActive;
         plan.UpdatedAt = DateTime.UtcNow;
+
         await _db.SaveChangesAsync();
-        return ToDto(plan);
+        _logger.LogInformation("Updated membership plan {PlanId}", id);
+        return MapToDto(plan);
     }
 
-    public async Task DeactivateAsync(int id)
+    public async Task<bool> DeactivateAsync(int id)
     {
-        var plan = await _db.MembershipPlans.FindAsync(id)
-            ?? throw new NotFoundException($"Membership plan with ID {id} not found.");
+        var plan = await _db.MembershipPlans.FindAsync(id);
+        if (plan is null) return false;
+
         plan.IsActive = false;
         plan.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        _logger.LogInformation("Deactivated membership plan {PlanId}", id);
+        return true;
     }
 
-    private static MembershipPlanDto ToDto(MembershipPlan p) => new(
-        p.Id, p.Name, p.Description, p.DurationMonths, p.Price,
-        p.MaxClassBookingsPerWeek, p.AllowsPremiumClasses, p.IsActive,
-        p.CreatedAt, p.UpdatedAt);
+    private static MembershipPlanResponseDto MapToDto(MembershipPlan p) => new()
+    {
+        Id = p.Id,
+        Name = p.Name,
+        Description = p.Description,
+        DurationMonths = p.DurationMonths,
+        Price = p.Price,
+        MaxClassBookingsPerWeek = p.MaxClassBookingsPerWeek,
+        AllowsPremiumClasses = p.AllowsPremiumClasses,
+        IsActive = p.IsActive,
+        CreatedAt = p.CreatedAt,
+        UpdatedAt = p.UpdatedAt
+    };
 }

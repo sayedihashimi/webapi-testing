@@ -15,7 +15,7 @@ public sealed class MembershipPlan
     [Range(1, 24)]
     public int DurationMonths { get; set; }
 
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be positive.")]
+    [Range(0.01, double.MaxValue)]
     public decimal Price { get; set; }
 
     public int MaxClassBookingsPerWeek { get; set; }
@@ -27,4 +27,6 @@ public sealed class MembershipPlan
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<Membership> Memberships { get; set; } = [];
 }

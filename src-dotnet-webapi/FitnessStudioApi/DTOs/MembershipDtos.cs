@@ -3,35 +3,46 @@ using FitnessStudioApi.Models;
 
 namespace FitnessStudioApi.DTOs;
 
-public class CreateMembershipRequest
+public sealed record MembershipResponse(
+    int Id,
+    int MemberId,
+    string MemberName,
+    int MembershipPlanId,
+    string PlanName,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    string Status,
+    string PaymentStatus,
+    DateOnly? FreezeStartDate,
+    DateOnly? FreezeEndDate,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public sealed record CreateMembershipRequest
 {
-    public int MemberId { get; set; }
-    public int MembershipPlanId { get; set; }
-    public DateOnly StartDate { get; set; }
+    [Required]
+    public required int MemberId { get; init; }
 
     [Required]
-    public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Paid;
+    public required int MembershipPlanId { get; init; }
+
+    [Required]
+    public required DateOnly StartDate { get; init; }
+
+    [Required]
+    public required PaymentStatus PaymentStatus { get; init; }
 }
 
-public class FreezeMembershipRequest
+public sealed record FreezeMembershipRequest
 {
-    public DateOnly FreezeStartDate { get; set; }
-    public DateOnly FreezeEndDate { get; set; }
+    [Required]
+    public required DateOnly FreezeStartDate { get; init; }
+
+    [Required]
+    public required DateOnly FreezeEndDate { get; init; }
 }
 
-public class MembershipResponse
+public sealed record CancelMembershipRequest
 {
-    public int Id { get; set; }
-    public int MemberId { get; set; }
-    public string MemberName { get; set; } = string.Empty;
-    public int MembershipPlanId { get; set; }
-    public string PlanName { get; set; } = string.Empty;
-    public DateOnly StartDate { get; set; }
-    public DateOnly EndDate { get; set; }
-    public MembershipStatus Status { get; set; }
-    public PaymentStatus PaymentStatus { get; set; }
-    public DateOnly? FreezeStartDate { get; set; }
-    public DateOnly? FreezeEndDate { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public string? Reason { get; init; }
 }

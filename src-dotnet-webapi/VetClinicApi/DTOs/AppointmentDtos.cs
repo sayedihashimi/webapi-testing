@@ -3,27 +3,57 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.DTOs;
 
-public record CreateAppointmentRequest(
-    [property: Required] int PetId,
-    [property: Required] int VeterinarianId,
-    [property: Required] DateTime AppointmentDate,
-    [property: Range(15, 120)] int DurationMinutes = 30,
-    [property: Required, MaxLength(500)] string Reason = "",
-    [property: MaxLength(2000)] string? Notes = null);
+// --- Appointment DTOs ---
 
-public record UpdateAppointmentRequest(
-    [property: Required] int PetId,
-    [property: Required] int VeterinarianId,
-    [property: Required] DateTime AppointmentDate,
-    [property: Range(15, 120)] int DurationMinutes = 30,
-    [property: Required, MaxLength(500)] string Reason = "",
-    [property: MaxLength(2000)] string? Notes = null);
+public sealed record CreateAppointmentRequest
+{
+    [Required]
+    public required int PetId { get; init; }
 
-public record UpdateAppointmentStatusRequest(
-    [property: Required] AppointmentStatus Status,
-    string? CancellationReason);
+    [Required]
+    public required int VeterinarianId { get; init; }
 
-public record AppointmentResponse(
+    [Required]
+    public required DateTime AppointmentDate { get; init; }
+
+    [Range(15, 120)]
+    public int DurationMinutes { get; init; } = 30;
+
+    [Required, MaxLength(500)]
+    public required string Reason { get; init; }
+
+    [MaxLength(2000)]
+    public string? Notes { get; init; }
+}
+
+public sealed record UpdateAppointmentRequest
+{
+    [Required]
+    public required DateTime AppointmentDate { get; init; }
+
+    [Range(15, 120)]
+    public int DurationMinutes { get; init; } = 30;
+
+    [Required]
+    public required int VeterinarianId { get; init; }
+
+    [Required, MaxLength(500)]
+    public required string Reason { get; init; }
+
+    [MaxLength(2000)]
+    public string? Notes { get; init; }
+}
+
+public sealed record UpdateAppointmentStatusRequest
+{
+    [Required]
+    public required AppointmentStatus Status { get; init; }
+
+    [MaxLength(500)]
+    public string? CancellationReason { get; init; }
+}
+
+public sealed record AppointmentResponse(
     int Id,
     int PetId,
     string PetName,
@@ -38,7 +68,7 @@ public record AppointmentResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
-public record AppointmentDetailResponse(
+public sealed record AppointmentDetailResponse(
     int Id,
     int PetId,
     string PetName,
@@ -53,6 +83,6 @@ public record AppointmentDetailResponse(
     string Reason,
     string? Notes,
     string? CancellationReason,
+    MedicalRecordResponse? MedicalRecord,
     DateTime CreatedAt,
-    DateTime UpdatedAt,
-    MedicalRecordResponse? MedicalRecord);
+    DateTime UpdatedAt);

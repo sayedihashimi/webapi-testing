@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using VetClinicApi.DTOs;
 using VetClinicApi.Services;
 
@@ -5,110 +6,103 @@ namespace VetClinicApi.Endpoints;
 
 public static class PetEndpoints
 {
-    public static void MapPetEndpoints(this IEndpointRouteBuilder app)
+    public static RouteGroupBuilder MapPetEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/pets").WithTags("Pets");
 
-        group.MapGet("/", async (string? search, string? species, bool? includeInactive, int page, int pageSize, IPetService service, CancellationToken ct) =>
+        group.MapGet("/", async Task<Results<Ok<PaginatedResponse<PetResponse>>, BadRequest>> (
+            string? search, string? species, bool? includeInactive, int? page, int? pageSize,
+            IPetService service, CancellationToken ct) =>
         {
-            page = page < 1 ? 1 : page;
-            pageSize = pageSize < 1 ? 20 : pageSize > 100 ? 100 : pageSize;
-            return Results.Ok(await service.GetAllAsync(search, species, includeInactive ?? false, page, pageSize, ct));
+            var p = Math.Clamp(page ?? 1, 1, int.MaxValue);
+            var ps = Math.Clamp(pageSize ?? 20, 1, 100);
+            var result = await service.GetAllAsync(search, species, includeInactive ?? false, p, ps, ct);
+            return TypedResults.Ok(result);
         })
         .WithName("GetPets")
-        .WithSummary("List pets")
-        .WithDescription("Returns a paginated list of active pets. Use includeInactive=true to include deactivated pets.")
-        .Produces<PaginatedResponse<PetResponse>>();
+        .WithSummary("List all active pets")
+        .WithDescription("Returns a paginated list of pets. Filter by name, species. Set includeInactive=true to see soft-deleted pets.");
 
-        group.MapGet("/{id:int}", async (int id, IPetService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}", async Task<Results<Ok<PetResponse>, NotFound>> (
+            int id, IPetService service, CancellationToken ct) =>
         {
             var pet = await service.GetByIdAsync(id, ct);
-            return pet is null ? Results.NotFound() : Results.Ok(pet);
+            return pet is null ? TypedResults.NotFound() : TypedResults.Ok(pet);
         })
         .WithName("GetPetById")
-        .WithSummary("Get pet details")
-        .WithDescription("Returns pet details including owner information.")
-        .Produces<PetDetailResponse>()
-        .Produces(StatusCodes.Status404NotFound);
+        .WithSummary("Get pet by ID")
+        .WithDescription("Returns pet details including owner information.");
 
-        group.MapPost("/", async (CreatePetRequest request, IPetService service, CancellationToken ct) =>
+        group.MapPost("/", async Task<Results<Created<PetResponse>, BadRequest>> (
+            CreatePetRequest request, IPetService service, CancellationToken ct) =>
         {
             var pet = await service.CreateAsync(request, ct);
-            return Results.Created($"/api/pets/{pet.Id}", pet);
+            return TypedResults.Created($"/api/pets/{pet.Id}", pet);
         })
         .WithName("CreatePet")
-        .WithSummary("Register a new pet")
-        .WithDescription("Registers a new pet. Must specify a valid owner ID.")
-        .Produces<PetResponse>(StatusCodes.Status201Created)
-        .Produces(StatusCodes.Status400BadRequest);
+        .WithSummary("Create a new pet")
+        .WithDescription("Registers a new pet. Owner must exist. Microchip number must be unique.");
 
-        group.MapPut("/{id:int}", async (int id, UpdatePetRequest request, IPetService service, CancellationToken ct) =>
+        group.MapPut("/{id:int}", async Task<Results<Ok<PetResponse>, NotFound>> (
+            int id, UpdatePetRequest request, IPetService service, CancellationToken ct) =>
         {
             var pet = await service.UpdateAsync(id, request, ct);
-            return pet is null ? Results.NotFound() : Results.Ok(pet);
+            return pet is null ? TypedResults.NotFound() : TypedResults.Ok(pet);
         })
         .WithName("UpdatePet")
         .WithSummary("Update a pet")
-        .WithDescription("Updates pet details. Changing OwnerId transfers ownership.")
-        .Produces<PetResponse>()
-        .Produces(StatusCodes.Status400BadRequest)
-        .Produces(StatusCodes.Status404NotFound);
+        .WithDescription("Updates pet information. Changing OwnerId transfers ownership.");
 
-        group.MapDelete("/{id:int}", async (int id, IPetService service, CancellationToken ct) =>
+        group.MapDelete("/{id:int}", async Task<Results<NoContent, NotFound>> (
+            int id, IPetService service, CancellationToken ct) =>
         {
-            await service.DeleteAsync(id, ct);
-            return Results.NoContent();
+            var deleted = await service.SoftDeleteAsync(id, ct);
+            return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
         })
         .WithName("DeletePet")
-        .WithSummary("Deactivate a pet")
-        .WithDescription("Soft-deletes a pet by setting IsActive to false.")
-        .Produces(StatusCodes.Status204NoContent)
-        .Produces(StatusCodes.Status404NotFound);
+        .WithSummary("Soft delete a pet")
+        .WithDescription("Marks the pet as inactive (soft delete).");
 
-        group.MapGet("/{id:int}/medical-records", async (int id, int page, int pageSize, IPetService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}/medical-records", async Task<Results<Ok<IReadOnlyList<MedicalRecordResponse>>, NotFound>> (
+            int id, IPetService service, CancellationToken ct) =>
         {
-            page = page < 1 ? 1 : page;
-            pageSize = pageSize < 1 ? 20 : pageSize > 100 ? 100 : pageSize;
-            var result = await service.GetMedicalRecordsAsync(id, page, pageSize, ct);
-            return result is null ? Results.NotFound() : Results.Ok(result);
+            var records = await service.GetMedicalRecordsAsync(id, ct);
+            return TypedResults.Ok(records);
         })
         .WithName("GetPetMedicalRecords")
         .WithSummary("Get pet's medical records")
-        .WithDescription("Returns paginated medical records for the specified pet.")
-        .Produces<PaginatedResponse<MedicalRecordResponse>>()
-        .Produces(StatusCodes.Status404NotFound);
+        .WithDescription("Returns all medical records for the specified pet.");
 
-        group.MapGet("/{id:int}/vaccinations", async (int id, IPetService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}/vaccinations", async Task<Results<Ok<IReadOnlyList<VaccinationResponse>>, NotFound>> (
+            int id, IPetService service, CancellationToken ct) =>
         {
-            var result = await service.GetVaccinationsAsync(id, ct);
-            return result is null ? Results.NotFound() : Results.Ok(result);
+            var vaccinations = await service.GetVaccinationsAsync(id, ct);
+            return TypedResults.Ok(vaccinations);
         })
         .WithName("GetPetVaccinations")
         .WithSummary("Get pet's vaccinations")
-        .WithDescription("Returns all vaccination records for the specified pet.")
-        .Produces<List<VaccinationResponse>>()
-        .Produces(StatusCodes.Status404NotFound);
+        .WithDescription("Returns all vaccination records for the specified pet.");
 
-        group.MapGet("/{id:int}/vaccinations/upcoming", async (int id, IPetService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}/vaccinations/upcoming", async Task<Results<Ok<IReadOnlyList<VaccinationResponse>>, NotFound>> (
+            int id, IPetService service, CancellationToken ct) =>
         {
-            var result = await service.GetUpcomingVaccinationsAsync(id, ct);
-            return result is null ? Results.NotFound() : Results.Ok(result);
+            var vaccinations = await service.GetUpcomingVaccinationsAsync(id, ct);
+            return TypedResults.Ok(vaccinations);
         })
         .WithName("GetPetUpcomingVaccinations")
-        .WithSummary("Get due/overdue vaccinations")
-        .WithDescription("Returns vaccinations that are expired or expiring within 30 days.")
-        .Produces<List<VaccinationResponse>>()
-        .Produces(StatusCodes.Status404NotFound);
+        .WithSummary("Get pet's upcoming or overdue vaccinations")
+        .WithDescription("Returns vaccinations that are due soon (within 30 days) or already expired.");
 
-        group.MapGet("/{id:int}/prescriptions/active", async (int id, IPetService service, CancellationToken ct) =>
+        group.MapGet("/{id:int}/prescriptions/active", async Task<Results<Ok<IReadOnlyList<PrescriptionResponse>>, NotFound>> (
+            int id, IPetService service, CancellationToken ct) =>
         {
-            var result = await service.GetActivePrescriptionsAsync(id, ct);
-            return result is null ? Results.NotFound() : Results.Ok(result);
+            var prescriptions = await service.GetActivePrescriptionsAsync(id, ct);
+            return TypedResults.Ok(prescriptions);
         })
         .WithName("GetPetActivePrescriptions")
-        .WithSummary("Get active prescriptions")
-        .WithDescription("Returns currently active prescriptions for the specified pet.")
-        .Produces<List<PrescriptionResponse>>()
-        .Produces(StatusCodes.Status404NotFound);
+        .WithSummary("Get pet's active prescriptions")
+        .WithDescription("Returns currently active prescriptions (EndDate >= today) for the specified pet.");
+
+        return group;
     }
 }

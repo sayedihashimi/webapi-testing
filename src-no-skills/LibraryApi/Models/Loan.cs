@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using LibraryApi.Models.Enums;
+
 namespace LibraryApi.Models;
 
 public class Loan
@@ -18,9 +21,11 @@ public class Loan
 
     public LoanStatus Status { get; set; } = LoanStatus.Active;
 
-    public int RenewalCount { get; set; } = 0;
+    [Range(0, 2)]
+    public int RenewalCount { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<Fine> Fines { get; set; } = new List<Fine>();
+    // Navigation
+    public ICollection<Fine> Fines { get; set; } = [];
 }

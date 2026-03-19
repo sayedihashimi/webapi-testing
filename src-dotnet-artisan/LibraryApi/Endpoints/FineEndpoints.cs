@@ -1,57 +1,71 @@
-using LibraryApi.DTOs;
-using LibraryApi.Models;
 using LibraryApi.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LibraryApi.Endpoints;
 
 public static class FineEndpoints
 {
-    public static RouteGroupBuilder MapFineEndpoints(this WebApplication app)
+    public static RouteGroupBuilder MapFineEndpoints(this IEndpointRouteBuilder routes)
     {
-        var group = app.MapGroup("/api/fines").WithTags("Fines");
+        var group = routes.MapGroup("/api/fines")
+            .WithTags("Fines");
 
-        group.MapGet("/", GetFines).WithName("GetFines");
-        group.MapGet("/{id:int}", GetFine).WithName("GetFine");
-        group.MapPost("/{id:int}/pay", PayFine).WithName("PayFine");
-        group.MapPost("/{id:int}/waive", WaiveFine).WithName("WaiveFine");
+        group.MapGet("/", GetFinesAsync);
+        group.MapGet("/{id:int}", GetFineByIdAsync);
+        group.MapPost("/{id:int}/pay", PayFineAsync);
+        group.MapPost("/{id:int}/waive", WaiveFineAsync);
 
         return group;
     }
 
-    private static async Task<Ok<PaginatedResponse<FineResponse>>> GetFines(
-        LibraryService service, FineStatus? status = null, int page = 1, int pageSize = 10)
+    private static async Task<IResult> GetFinesAsync(
+        IFineService service,
+        string? status = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
     {
-        var result = await service.GetFinesAsync(status, page, pageSize);
+        var result = await service.GetFinesAsync(status, page, pageSize, ct);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<Results<Ok<FineResponse>, NotFound>> GetFine(
-        LibraryService service, int id)
+    private static async Task<IResult> GetFineByIdAsync(
+        int id,
+        IFineService service,
+        CancellationToken ct = default)
     {
-        var result = await service.GetFineByIdAsync(id);
-        return result is not null
-            ? TypedResults.Ok(result)
+        var fine = await service.GetFineByIdAsync(id, ct);
+        return fine is not null
+            ? TypedResults.Ok(fine)
             : TypedResults.NotFound();
     }
 
-    private static async Task<Results<Ok<FineResponse>, NotFound, BadRequest<string>>> PayFine(
-        LibraryService service, int id)
+    private static async Task<IResult> PayFineAsync(
+        int id,
+        IFineService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.PayFineAsync(id);
-        if (error == "Fine not found") { return TypedResults.NotFound(); }
-        return result is not null
-            ? TypedResults.Ok(result)
-            : TypedResults.BadRequest(error!);
+        var (fine, error) = await service.PayFineAsync(id, ct);
+
+        if (error is not null)
+        {
+            return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return TypedResults.Ok(fine);
     }
 
-    private static async Task<Results<Ok<FineResponse>, NotFound, BadRequest<string>>> WaiveFine(
-        LibraryService service, int id)
+    private static async Task<IResult> WaiveFineAsync(
+        int id,
+        IFineService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.WaiveFineAsync(id);
-        if (error == "Fine not found") { return TypedResults.NotFound(); }
-        return result is not null
-            ? TypedResults.Ok(result)
-            : TypedResults.BadRequest(error!);
+        var (fine, error) = await service.WaiveFineAsync(id, ct);
+
+        if (error is not null)
+        {
+            return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return TypedResults.Ok(fine);
     }
 }

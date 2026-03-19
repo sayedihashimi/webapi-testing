@@ -1,89 +1,68 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs;
-using VetClinicApi.Services;
+using VetClinicApi.DTOs.Appointment;
+using VetClinicApi.DTOs.Common;
+using VetClinicApi.Models.Enums;
+using VetClinicApi.Services.Interfaces;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class AppointmentsController : ControllerBase
 {
-    private readonly IAppointmentService _service;
+    private readonly IAppointmentService _appointmentService;
 
-    public AppointmentsController(IAppointmentService service) => _service = service;
+    public AppointmentsController(IAppointmentService appointmentService) => _appointmentService = appointmentService;
 
-    /// <summary>List appointments with filters and pagination</summary>
+    /// <summary>List appointments (filter by date, status, vet, pet; pagination)</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<AppointmentResponseDto>), 200)]
+    [ProducesResponseType(typeof(PagedResult<AppointmentDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
-        [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to,
-        [FromQuery] string? status,
+        [FromQuery] DateOnly? date,
+        [FromQuery] AppointmentStatus? status,
         [FromQuery] int? vetId,
         [FromQuery] int? petId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAllAsync(from, to, status, vetId, petId, new PaginationParams { Page = page, PageSize = pageSize }));
+        [FromQuery] PaginationParams? pagination = null)
+        => Ok(await _appointmentService.GetAllAsync(date, status, vetId, petId, pagination ?? new PaginationParams()));
 
-    /// <summary>Get appointment details including pet, vet, and medical record</summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(AppointmentDetailDto), 200)]
-    [ProducesResponseType(404)]
+    /// <summary>Get appointment details with pet, vet, and medical record</summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(AppointmentDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
-    {
-        var appt = await _service.GetByIdAsync(id);
-        return appt is null ? NotFound() : Ok(appt);
-    }
+        => Ok(await _appointmentService.GetByIdAsync(id));
 
-    /// <summary>Schedule a new appointment with conflict detection</summary>
+    /// <summary>Schedule a new appointment (enforces conflicts)</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(AppointmentResponseDto), 201)]
-    [ProducesResponseType(typeof(ProblemDetails), 400)]
-    [ProducesResponseType(typeof(ProblemDetails), 409)]
-    public async Task<IActionResult> Create([FromBody] AppointmentCreateDto dto)
+    [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Create([FromBody] CreateAppointmentDto dto)
     {
-        var (result, error) = await _service.CreateAsync(dto);
-        if (error is not null)
-        {
-            var statusCode = error.Contains("conflict", StringComparison.OrdinalIgnoreCase) ? 409 : 400;
-            return StatusCode(statusCode, new ProblemDetails { Title = "Appointment creation failed", Detail = error, Status = statusCode });
-        }
-        return CreatedAtAction(nameof(GetById), new { id = result!.Id }, result);
+        var result = await _appointmentService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update appointment details (re-checks conflicts)</summary>
-    [HttpPut("{id}")]
-    [ProducesResponseType(typeof(AppointmentResponseDto), 200)]
-    [ProducesResponseType(typeof(ProblemDetails), 400)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(int id, [FromBody] AppointmentUpdateDto dto)
-    {
-        var (result, error) = await _service.UpdateAsync(id, dto);
-        if (error == "Appointment not found.") return NotFound();
-        if (error is not null)
-        {
-            var statusCode = error.Contains("conflict", StringComparison.OrdinalIgnoreCase) ? 409 : 400;
-            return StatusCode(statusCode, new ProblemDetails { Title = "Appointment update failed", Detail = error, Status = statusCode });
-        }
-        return Ok(result);
-    }
+    /// <summary>Update an appointment (re-check conflicts)</summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateAppointmentDto dto)
+        => Ok(await _appointmentService.UpdateAsync(id, dto));
 
-    /// <summary>Update appointment status with workflow enforcement</summary>
-    [HttpPatch("{id}/status")]
-    [ProducesResponseType(typeof(AppointmentResponseDto), 200)]
-    [ProducesResponseType(typeof(ProblemDetails), 400)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> UpdateStatus(int id, [FromBody] AppointmentStatusUpdateDto dto)
-    {
-        var (result, error) = await _service.UpdateStatusAsync(id, dto);
-        if (error == "Appointment not found.") return NotFound();
-        if (error is not null) return BadRequest(new ProblemDetails { Title = "Status update failed", Detail = error, Status = 400 });
-        return Ok(result);
-    }
+    /// <summary>Update appointment status (enforce workflow transitions)</summary>
+    [HttpPatch("{id:int}/status")]
+    [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateAppointmentStatusDto dto)
+        => Ok(await _appointmentService.UpdateStatusAsync(id, dto));
 
-    /// <summary>Get all of today's appointments</summary>
+    /// <summary>Get today's appointments</summary>
     [HttpGet("today")]
-    [ProducesResponseType(typeof(IEnumerable<AppointmentResponseDto>), 200)]
+    [ProducesResponseType(typeof(List<AppointmentDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetToday()
-        => Ok(await _service.GetTodayAsync());
+        => Ok(await _appointmentService.GetTodayAsync());
 }

@@ -1,84 +1,84 @@
 using Microsoft.AspNetCore.Mvc;
-using VetClinicApi.DTOs;
-using VetClinicApi.Services;
+using VetClinicApi.DTOs.Common;
+using VetClinicApi.DTOs.Pet;
+using VetClinicApi.Services.Interfaces;
 
 namespace VetClinicApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class PetsController : ControllerBase
 {
-    private readonly IPetService _service;
+    private readonly IPetService _petService;
 
-    public PetsController(IPetService service) => _service = service;
+    public PetsController(IPetService petService) => _petService = petService;
 
-    /// <summary>List all active pets with optional search, species filter, and pagination</summary>
+    /// <summary>List active pets (optionally include inactive)</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<PetResponseDto>), 200)]
-    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? species, [FromQuery] bool includeInactive = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        => Ok(await _service.GetAllAsync(search, species, includeInactive, new PaginationParams { Page = page, PageSize = pageSize }));
+    [ProducesResponseType(typeof(PagedResult<PetDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] bool includeInactive = false, [FromQuery] PaginationParams? pagination = null)
+        => Ok(await _petService.GetAllAsync(search, includeInactive, pagination ?? new PaginationParams()));
 
-    /// <summary>Get pet by ID with owner info</summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(PetDetailDto), 200)]
-    [ProducesResponseType(404)]
+    /// <summary>Get pet details with owner</summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(PetDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
-    {
-        var pet = await _service.GetByIdAsync(id);
-        return pet is null ? NotFound() : Ok(pet);
-    }
+        => Ok(await _petService.GetByIdAsync(id));
 
     /// <summary>Create a new pet</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(PetResponseDto), 201)]
-    [ProducesResponseType(typeof(ValidationProblemDetails), 400)]
-    public async Task<IActionResult> Create([FromBody] PetCreateDto dto)
+    [ProducesResponseType(typeof(PetDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreatePetDto dto)
     {
-        var result = await _service.CreateAsync(dto);
+        var result = await _petService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update pet (including owner transfer)</summary>
-    [HttpPut("{id}")]
-    [ProducesResponseType(typeof(PetResponseDto), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(int id, [FromBody] PetUpdateDto dto)
-    {
-        var result = await _service.UpdateAsync(id, dto);
-        return result is null ? NotFound() : Ok(result);
-    }
+    /// <summary>Update a pet (including owner transfer)</summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(PetDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdatePetDto dto)
+        => Ok(await _petService.UpdateAsync(id, dto));
 
-    /// <summary>Soft-delete a pet (sets IsActive = false)</summary>
-    [HttpDelete("{id}")]
-    [ProducesResponseType(204)]
-    [ProducesResponseType(404)]
+    /// <summary>Soft-delete a pet</summary>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
-        var success = await _service.SoftDeleteAsync(id);
-        return success ? NoContent() : NotFound();
+        await _petService.DeleteAsync(id);
+        return NoContent();
     }
 
-    /// <summary>Get all medical records for a pet</summary>
-    [HttpGet("{id}/medical-records")]
-    [ProducesResponseType(typeof(IEnumerable<MedicalRecordResponseDto>), 200)]
+    /// <summary>Get pet's medical records</summary>
+    [HttpGet("{id:int}/medical-records")]
+    [ProducesResponseType(typeof(List<DTOs.MedicalRecord.MedicalRecordDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMedicalRecords(int id)
-        => Ok(await _service.GetMedicalRecordsAsync(id));
+        => Ok(await _petService.GetMedicalRecordsAsync(id));
 
-    /// <summary>Get all vaccinations for a pet</summary>
-    [HttpGet("{id}/vaccinations")]
-    [ProducesResponseType(typeof(IEnumerable<VaccinationResponseDto>), 200)]
+    /// <summary>Get pet's vaccinations</summary>
+    [HttpGet("{id:int}/vaccinations")]
+    [ProducesResponseType(typeof(List<DTOs.Vaccination.VaccinationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetVaccinations(int id)
-        => Ok(await _service.GetVaccinationsAsync(id));
+        => Ok(await _petService.GetVaccinationsAsync(id));
 
-    /// <summary>Get vaccinations that are due soon or overdue for a pet</summary>
-    [HttpGet("{id}/vaccinations/upcoming")]
-    [ProducesResponseType(typeof(IEnumerable<VaccinationResponseDto>), 200)]
+    /// <summary>Get pet's upcoming/overdue vaccinations</summary>
+    [HttpGet("{id:int}/vaccinations/upcoming")]
+    [ProducesResponseType(typeof(List<DTOs.Vaccination.VaccinationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUpcomingVaccinations(int id)
-        => Ok(await _service.GetUpcomingVaccinationsAsync(id));
+        => Ok(await _petService.GetUpcomingVaccinationsAsync(id));
 
-    /// <summary>Get active prescriptions for a pet</summary>
-    [HttpGet("{id}/prescriptions/active")]
-    [ProducesResponseType(typeof(IEnumerable<PrescriptionResponseDto>), 200)]
+    /// <summary>Get pet's active prescriptions</summary>
+    [HttpGet("{id:int}/prescriptions/active")]
+    [ProducesResponseType(typeof(List<DTOs.Prescription.PrescriptionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetActivePrescriptions(int id)
-        => Ok(await _service.GetActivePrescriptionsAsync(id));
+        => Ok(await _petService.GetActivePrescriptionsAsync(id));
 }

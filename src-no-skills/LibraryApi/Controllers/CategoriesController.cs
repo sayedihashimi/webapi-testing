@@ -1,5 +1,5 @@
-using LibraryApi.DTOs;
-using LibraryApi.Services;
+using LibraryApi.DTOs.Category;
+using LibraryApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryApi.Controllers;
@@ -9,65 +9,47 @@ namespace LibraryApi.Controllers;
 [Produces("application/json")]
 public class CategoriesController : ControllerBase
 {
-    private readonly ICategoryService _categoryService;
+    private readonly ICategoryService _service;
 
-    public CategoriesController(ICategoryService categoryService)
-    {
-        _categoryService = categoryService;
-    }
+    public CategoriesController(ICategoryService service) => _service = service;
 
-    /// <summary>List all categories with pagination</summary>
+    /// <summary>List all categories.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<CategoryDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<CategoryDto>>> GetCategories(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        var result = await _categoryService.GetCategoriesAsync(new PaginationParams { Page = page, PageSize = pageSize });
-        return Ok(result);
-    }
+    [ProducesResponseType(typeof(List<CategoryListDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll()
+        => Ok(await _service.GetAllAsync());
 
-    /// <summary>Get category details with book count</summary>
+    /// <summary>Get category details with book count.</summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(CategoryDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CategoryDetailDto>> GetCategory(int id)
-    {
-        var result = await _categoryService.GetCategoryByIdAsync(id);
-        return Ok(result);
-    }
+    public async Task<IActionResult> GetById(int id)
+        => Ok(await _service.GetByIdAsync(id));
 
-    /// <summary>Create a new category</summary>
+    /// <summary>Create a new category.</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(CategoryDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CategoryDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<CategoryDto>> CreateCategory([FromBody] CreateCategoryDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateCategoryDto dto)
     {
-        var result = await _categoryService.CreateCategoryAsync(dto);
-        return CreatedAtAction(nameof(GetCategory), new { id = result.Id }, result);
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>Update an existing category</summary>
+    /// <summary>Update a category.</summary>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(CategoryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CategoryDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<CategoryDto>> UpdateCategory(int id, [FromBody] UpdateCategoryDto dto)
-    {
-        var result = await _categoryService.UpdateCategoryAsync(id, dto);
-        return Ok(result);
-    }
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateCategoryDto dto)
+        => Ok(await _service.UpdateAsync(id, dto));
 
-    /// <summary>Delete a category (fails if category has any books)</summary>
+    /// <summary>Delete a category (fails if has books).</summary>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DeleteCategory(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        await _categoryService.DeleteCategoryAsync(id);
+        await _service.DeleteAsync(id);
         return NoContent();
     }
 }

@@ -7,49 +7,43 @@ using VetClinicApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// EF Core with SQLite
+// Database
 builder.Services.AddDbContext<VetClinicDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Data Source=vetclinic.db"));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Services
-builder.Services.AddScoped<OwnerService>();
-builder.Services.AddScoped<PetService>();
-builder.Services.AddScoped<VeterinarianService>();
-builder.Services.AddScoped<AppointmentService>();
-builder.Services.AddScoped<MedicalRecordService>();
-builder.Services.AddScoped<PrescriptionService>();
-builder.Services.AddScoped<VaccinationService>();
+builder.Services.AddScoped<IOwnerService, OwnerService>();
+builder.Services.AddScoped<IPetService, PetService>();
+builder.Services.AddScoped<IVeterinarianService, VeterinarianService>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
+builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
+builder.Services.AddScoped<IVaccinationService, VaccinationService>();
+
+// JSON serialization
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 // OpenAPI
 builder.Services.AddOpenApi();
 
-// JSON enum serialization as strings
-builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
-// Global error handling
+// Exception handling
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// Error handling middleware
+// Configure the HTTP request pipeline
 app.UseExceptionHandler();
 
-// OpenAPI
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-// Seed database
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<VetClinicDbContext>();
-    await db.Database.EnsureCreatedAsync();
-    await SeedData.InitializeAsync(db);
-}
+app.UseHttpsRedirection();
 
 // Map endpoints
 app.MapOwnerEndpoints();
@@ -60,4 +54,12 @@ app.MapMedicalRecordEndpoints();
 app.MapPrescriptionEndpoints();
 app.MapVaccinationEndpoints();
 
-await app.RunAsync();
+// Initialize database and seed data
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<VetClinicDbContext>();
+    context.Database.EnsureCreated();
+    SeedData.Initialize(context);
+}
+
+app.Run();

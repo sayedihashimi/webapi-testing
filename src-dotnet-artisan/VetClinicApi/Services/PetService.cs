@@ -5,14 +5,11 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public sealed class PetService(VetClinicDbContext db, ILogger<PetService> logger)
+public sealed class PetService(VetClinicDbContext db, ILogger<PetService> logger) : IPetService
 {
-    private static readonly string[] ValidSpecies = ["Dog", "Cat", "Bird", "Rabbit"];
-
-    public async Task<PagedResponse<PetResponse>> GetAllAsync(
-        string? search, string? species, bool includeInactive, int page, int pageSize, CancellationToken ct)
+    public async Task<PagedResult<PetDto>> GetAllAsync(string? search, int page, int pageSize, bool includeInactive, CancellationToken ct = default)
     {
-        var query = db.Pets.AsNoTracking().AsQueryable();
+        var query = db.Pets.AsQueryable();
 
         if (!includeInactive)
         {
@@ -21,118 +18,91 @@ public sealed class PetService(VetClinicDbContext db, ILogger<PetService> logger
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim().ToLower();
-            query = query.Where(p => p.Name.ToLower().Contains(term));
-        }
-
-        if (!string.IsNullOrWhiteSpace(species))
-        {
-            query = query.Where(p => p.Species == species);
+            var term = search.ToLower();
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(term) ||
+                p.Species.ToLower().Contains(term));
         }
 
         var totalCount = await query.CountAsync(ct);
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
         var items = await query
             .OrderBy(p => p.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p => new PetResponse(
-                p.Id, p.Name, p.Species, p.Breed, p.DateOfBirth,
-                p.Weight, p.Color, p.MicrochipNumber, p.IsActive,
-                p.OwnerId, p.CreatedAt, p.UpdatedAt))
+            .Select(p => MapToDto(p))
             .ToListAsync(ct);
 
-        return new PagedResponse<PetResponse>(
-            items, page, pageSize, totalCount, totalPages,
-            page < totalPages, page > 1);
+        return new PagedResult<PetDto>(items, totalCount, page, pageSize);
     }
 
-    public async Task<PetDetailResponse?> GetByIdAsync(int id, CancellationToken ct)
+    public async Task<PetDetailDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        return await db.Pets
-            .AsNoTracking()
+        var pet = await db.Pets
             .Include(p => p.Owner)
-            .Where(p => p.Id == id)
-            .Select(p => new PetDetailResponse(
-                p.Id, p.Name, p.Species, p.Breed, p.DateOfBirth,
-                p.Weight, p.Color, p.MicrochipNumber, p.IsActive,
-                p.OwnerId, p.Owner.FirstName + " " + p.Owner.LastName,
-                p.CreatedAt, p.UpdatedAt))
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(p => p.Id == id, ct);
+
+        if (pet is null)
+        {
+            return null;
+        }
+
+        var ownerDto = new OwnerDto(
+            pet.Owner.Id, pet.Owner.FirstName, pet.Owner.LastName, pet.Owner.Email, pet.Owner.Phone,
+            pet.Owner.Address, pet.Owner.City, pet.Owner.State, pet.Owner.ZipCode,
+            pet.Owner.CreatedAt, pet.Owner.UpdatedAt);
+
+        return new PetDetailDto(
+            pet.Id, pet.Name, pet.Species, pet.Breed, pet.DateOfBirth,
+            pet.Weight, pet.Color, pet.MicrochipNumber, pet.IsActive,
+            pet.OwnerId, ownerDto, pet.CreatedAt, pet.UpdatedAt);
     }
 
-    public async Task<PetResponse> CreateAsync(CreatePetRequest request, CancellationToken ct)
+    public async Task<PetDto> CreateAsync(CreatePetDto dto, CancellationToken ct = default)
     {
-        ValidateSpecies(request.Species);
-
-        if (!await db.Owners.AnyAsync(o => o.Id == request.OwnerId, ct))
-        {
-            throw new KeyNotFoundException($"Owner with ID {request.OwnerId} not found.");
-        }
-
-        if (request.MicrochipNumber is not null &&
-            await db.Pets.AnyAsync(p => p.MicrochipNumber == request.MicrochipNumber, ct))
-        {
-            throw new InvalidOperationException($"A pet with microchip number '{request.MicrochipNumber}' already exists.");
-        }
-
         var pet = new Pet
         {
-            Name = request.Name,
-            Species = request.Species,
-            Breed = request.Breed,
-            DateOfBirth = request.DateOfBirth,
-            Weight = request.Weight,
-            Color = request.Color,
-            MicrochipNumber = request.MicrochipNumber,
-            OwnerId = request.OwnerId
+            Name = dto.Name,
+            Species = dto.Species,
+            Breed = dto.Breed,
+            DateOfBirth = dto.DateOfBirth,
+            Weight = dto.Weight,
+            Color = dto.Color,
+            MicrochipNumber = dto.MicrochipNumber,
+            OwnerId = dto.OwnerId
         };
 
         db.Pets.Add(pet);
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("Created pet {PetId}: {PetName} ({Species})", pet.Id, pet.Name, pet.Species);
-        return MapToResponse(pet);
+        logger.LogInformation("Created pet {PetId}: {PetName} for owner {OwnerId}", pet.Id, pet.Name, pet.OwnerId);
+        return MapToDto(pet);
     }
 
-    public async Task<PetResponse?> UpdateAsync(int id, UpdatePetRequest request, CancellationToken ct)
+    public async Task<PetDto?> UpdateAsync(int id, UpdatePetDto dto, CancellationToken ct = default)
     {
-        ValidateSpecies(request.Species);
-
         var pet = await db.Pets.FindAsync([id], ct);
         if (pet is null)
         {
             return null;
         }
 
-        if (!await db.Owners.AnyAsync(o => o.Id == request.OwnerId, ct))
-        {
-            throw new KeyNotFoundException($"Owner with ID {request.OwnerId} not found.");
-        }
-
-        if (request.MicrochipNumber is not null &&
-            await db.Pets.AnyAsync(p => p.MicrochipNumber == request.MicrochipNumber && p.Id != id, ct))
-        {
-            throw new InvalidOperationException($"A pet with microchip number '{request.MicrochipNumber}' already exists.");
-        }
-
-        pet.Name = request.Name;
-        pet.Species = request.Species;
-        pet.Breed = request.Breed;
-        pet.DateOfBirth = request.DateOfBirth;
-        pet.Weight = request.Weight;
-        pet.Color = request.Color;
-        pet.MicrochipNumber = request.MicrochipNumber;
-        pet.OwnerId = request.OwnerId;
+        pet.Name = dto.Name;
+        pet.Species = dto.Species;
+        pet.Breed = dto.Breed;
+        pet.DateOfBirth = dto.DateOfBirth;
+        pet.Weight = dto.Weight;
+        pet.Color = dto.Color;
+        pet.MicrochipNumber = dto.MicrochipNumber;
+        pet.OwnerId = dto.OwnerId;
         pet.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
+
         logger.LogInformation("Updated pet {PetId}", pet.Id);
-        return MapToResponse(pet);
+        return MapToDto(pet);
     }
 
-    public async Task<bool> SoftDeleteAsync(int id, CancellationToken ct)
+    public async Task<bool> SoftDeleteAsync(int id, CancellationToken ct = default)
     {
         var pet = await db.Pets.FindAsync([id], ct);
         if (pet is null)
@@ -143,115 +113,73 @@ public sealed class PetService(VetClinicDbContext db, ILogger<PetService> logger
         pet.IsActive = false;
         pet.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
+
         logger.LogInformation("Soft-deleted pet {PetId}", id);
         return true;
     }
 
-    public async Task<List<MedicalRecordResponse>> GetMedicalRecordsAsync(int petId, CancellationToken ct)
-    {
-        if (!await db.Pets.AnyAsync(p => p.Id == petId, ct))
-        {
-            throw new KeyNotFoundException($"Pet with ID {petId} not found.");
-        }
-
-        return await db.MedicalRecords
-            .AsNoTracking()
-            .Include(m => m.Veterinarian)
-            .Include(m => m.Prescriptions)
+    public async Task<IReadOnlyList<MedicalRecordDto>> GetMedicalRecordsAsync(int petId, CancellationToken ct = default) =>
+        await db.MedicalRecords
             .Where(m => m.PetId == petId)
             .OrderByDescending(m => m.CreatedAt)
-            .Select(m => MapToMedicalRecordResponse(m))
+            .Select(m => new MedicalRecordDto(
+                m.Id, m.AppointmentId, m.PetId, m.VeterinarianId,
+                m.Diagnosis, m.Treatment, m.Notes, m.FollowUpDate, m.CreatedAt))
             .ToListAsync(ct);
-    }
 
-    public async Task<List<VaccinationResponse>> GetVaccinationsAsync(int petId, CancellationToken ct)
-    {
-        if (!await db.Pets.AnyAsync(p => p.Id == petId, ct))
-        {
-            throw new KeyNotFoundException($"Pet with ID {petId} not found.");
-        }
-
-        return await db.Vaccinations
-            .AsNoTracking()
-            .Include(v => v.Pet)
+    public async Task<IReadOnlyList<VaccinationDto>> GetVaccinationsAsync(int petId, CancellationToken ct = default) =>
+        await db.Vaccinations
             .Include(v => v.AdministeredByVet)
             .Where(v => v.PetId == petId)
             .OrderByDescending(v => v.DateAdministered)
-            .ToListAsync(ct)
-            .ContinueWith(t => t.Result.Select(MapToVaccinationResponse).ToList(), ct);
-    }
+            .Select(v => new VaccinationDto(
+                v.Id, v.PetId, v.VaccineName, v.DateAdministered, v.ExpirationDate,
+                v.BatchNumber, v.AdministeredByVetId,
+                v.AdministeredByVet.FirstName + " " + v.AdministeredByVet.LastName,
+                v.Notes, v.CreatedAt, v.IsExpired, v.IsDueSoon))
+            .ToListAsync(ct);
 
-    public async Task<List<VaccinationResponse>> GetUpcomingVaccinationsAsync(int petId, CancellationToken ct)
+    public async Task<IReadOnlyList<VaccinationDto>> GetUpcomingVaccinationsAsync(int petId, CancellationToken ct = default)
     {
-        if (!await db.Pets.AnyAsync(p => p.Id == petId, ct))
-        {
-            throw new KeyNotFoundException($"Pet with ID {petId} not found.");
-        }
-
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var dueSoonDate = today.AddDays(30);
+        var soon = today.AddDays(30);
 
         var vaccinations = await db.Vaccinations
-            .AsNoTracking()
-            .Include(v => v.Pet)
             .Include(v => v.AdministeredByVet)
-            .Where(v => v.PetId == petId && v.ExpirationDate <= dueSoonDate)
+            .Where(v => v.PetId == petId && v.ExpirationDate <= soon)
             .OrderBy(v => v.ExpirationDate)
             .ToListAsync(ct);
 
-        return vaccinations.Select(MapToVaccinationResponse).ToList();
+        return vaccinations.Select(v => new VaccinationDto(
+            v.Id, v.PetId, v.VaccineName, v.DateAdministered, v.ExpirationDate,
+            v.BatchNumber, v.AdministeredByVetId,
+            $"{v.AdministeredByVet.FirstName} {v.AdministeredByVet.LastName}",
+            v.Notes, v.CreatedAt, v.IsExpired, v.IsDueSoon)).ToList();
     }
 
-    public async Task<List<PrescriptionResponse>> GetActivePrescriptionsAsync(int petId, CancellationToken ct)
+    public async Task<IReadOnlyList<PrescriptionDto>> GetActivePrescriptionsAsync(int petId, CancellationToken ct = default)
     {
-        if (!await db.Pets.AnyAsync(p => p.Id == petId, ct))
-        {
-            throw new KeyNotFoundException($"Pet with ID {petId} not found.");
-        }
-
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var prescriptions = await db.Prescriptions
-            .AsNoTracking()
             .Include(p => p.MedicalRecord)
             .Where(p => p.MedicalRecord.PetId == petId)
             .ToListAsync(ct);
 
         return prescriptions
             .Where(p => p.IsActive)
-            .Select(p => new PrescriptionResponse(
+            .Select(p => new PrescriptionDto(
                 p.Id, p.MedicalRecordId, p.MedicationName, p.Dosage,
                 p.DurationDays, p.StartDate, p.EndDate, p.IsActive,
                 p.Instructions, p.CreatedAt))
             .ToList();
     }
 
-    private static void ValidateSpecies(string species)
-    {
-        if (!ValidSpecies.Contains(species))
-        {
-            throw new ArgumentException($"Invalid species '{species}'. Must be one of: {string.Join(", ", ValidSpecies)}");
-        }
-    }
+    public async Task<bool> ExistsAsync(int id, CancellationToken ct = default) =>
+        await db.Pets.AnyAsync(p => p.Id == id, ct);
 
-    private static PetResponse MapToResponse(Pet p) =>
+    private static PetDto MapToDto(Pet p) =>
         new(p.Id, p.Name, p.Species, p.Breed, p.DateOfBirth,
             p.Weight, p.Color, p.MicrochipNumber, p.IsActive,
             p.OwnerId, p.CreatedAt, p.UpdatedAt);
-
-    internal static MedicalRecordResponse MapToMedicalRecordResponse(MedicalRecord m) =>
-        new(m.Id, m.AppointmentId, m.PetId, m.Pet?.Name ?? "",
-            m.VeterinarianId, m.Veterinarian is not null ? m.Veterinarian.FirstName + " " + m.Veterinarian.LastName : "",
-            m.Diagnosis, m.Treatment, m.Notes, m.FollowUpDate, m.CreatedAt,
-            m.Prescriptions?.Select(p => new PrescriptionResponse(
-                p.Id, p.MedicalRecordId, p.MedicationName, p.Dosage,
-                p.DurationDays, p.StartDate, p.EndDate, p.IsActive,
-                p.Instructions, p.CreatedAt)).ToList());
-
-    internal static VaccinationResponse MapToVaccinationResponse(Vaccination v) =>
-        new(v.Id, v.PetId, v.Pet?.Name ?? "", v.VaccineName,
-            v.DateAdministered, v.ExpirationDate, v.BatchNumber,
-            v.AdministeredByVetId,
-            v.AdministeredByVet is not null ? v.AdministeredByVet.FirstName + " " + v.AdministeredByVet.LastName : "",
-            v.Notes, v.IsExpired, v.IsDueSoon, v.CreatedAt);
 }

@@ -5,58 +5,48 @@ using VetClinicApi.Models;
 
 namespace VetClinicApi.Services;
 
-public sealed class VaccinationService(VetClinicDbContext db, ILogger<VaccinationService> logger)
+public sealed class VaccinationService(VetClinicDbContext db, ILogger<VaccinationService> logger) : IVaccinationService
 {
-    public async Task<VaccinationResponse?> GetByIdAsync(int id, CancellationToken ct)
+    public async Task<VaccinationDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var vax = await db.Vaccinations
-            .AsNoTracking()
-            .Include(v => v.Pet)
+        var vaccination = await db.Vaccinations
             .Include(v => v.AdministeredByVet)
             .FirstOrDefaultAsync(v => v.Id == id, ct);
 
-        return vax is null ? null : PetService.MapToVaccinationResponse(vax);
+        if (vaccination is null)
+        {
+            return null;
+        }
+
+        return MapToDto(vaccination);
     }
 
-    public async Task<VaccinationResponse> CreateAsync(CreateVaccinationRequest request, CancellationToken ct)
+    public async Task<VaccinationDto> CreateAsync(CreateVaccinationDto dto, CancellationToken ct = default)
     {
-        if (!await db.Pets.AnyAsync(p => p.Id == request.PetId, ct))
+        var vaccination = new Vaccination
         {
-            throw new KeyNotFoundException($"Pet with ID {request.PetId} not found.");
-        }
-
-        if (!await db.Veterinarians.AnyAsync(v => v.Id == request.AdministeredByVetId, ct))
-        {
-            throw new KeyNotFoundException($"Veterinarian with ID {request.AdministeredByVetId} not found.");
-        }
-
-        if (request.ExpirationDate <= request.DateAdministered)
-        {
-            throw new ArgumentException("Expiration date must be after date administered.");
-        }
-
-        var vax = new Vaccination
-        {
-            PetId = request.PetId,
-            VaccineName = request.VaccineName,
-            DateAdministered = request.DateAdministered,
-            ExpirationDate = request.ExpirationDate,
-            BatchNumber = request.BatchNumber,
-            AdministeredByVetId = request.AdministeredByVetId,
-            Notes = request.Notes
+            PetId = dto.PetId,
+            VaccineName = dto.VaccineName,
+            DateAdministered = dto.DateAdministered,
+            ExpirationDate = dto.ExpirationDate,
+            BatchNumber = dto.BatchNumber,
+            AdministeredByVetId = dto.AdministeredByVetId,
+            Notes = dto.Notes
         };
 
-        db.Vaccinations.Add(vax);
+        db.Vaccinations.Add(vaccination);
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("Created vaccination {VaccinationId} for pet {PetId}", vax.Id, request.PetId);
+        await db.Entry(vaccination).Reference(v => v.AdministeredByVet).LoadAsync(ct);
 
-        var created = await db.Vaccinations
-            .AsNoTracking()
-            .Include(v => v.Pet)
-            .Include(v => v.AdministeredByVet)
-            .FirstAsync(v => v.Id == vax.Id, ct);
+        logger.LogInformation("Created vaccination {VaccinationId} for pet {PetId}", vaccination.Id, vaccination.PetId);
 
-        return PetService.MapToVaccinationResponse(created);
+        return MapToDto(vaccination);
     }
+
+    private static VaccinationDto MapToDto(Vaccination v) =>
+        new(v.Id, v.PetId, v.VaccineName, v.DateAdministered, v.ExpirationDate,
+            v.BatchNumber, v.AdministeredByVetId,
+            $"{v.AdministeredByVet.FirstName} {v.AdministeredByVet.LastName}",
+            v.Notes, v.CreatedAt, v.IsExpired, v.IsDueSoon);
 }

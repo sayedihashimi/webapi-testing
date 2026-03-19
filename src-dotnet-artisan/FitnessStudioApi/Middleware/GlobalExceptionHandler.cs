@@ -1,4 +1,3 @@
-using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,16 +14,15 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
 
         var problemDetails = new ProblemDetails
         {
-            Status = (int)HttpStatusCode.InternalServerError,
+            Status = StatusCodes.Status500InternalServerError,
             Title = "An unexpected error occurred",
-            Detail = httpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment()
-                ? exception.Message
-                : "An internal error occurred. Please try again later.",
+            Detail = exception.Message,
             Instance = httpContext.Request.Path
         };
 
-        httpContext.Response.StatusCode = problemDetails.Status.Value;
+        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+
         return true;
     }
 }

@@ -2,9 +2,7 @@ using FitnessStudioApi.Data;
 using FitnessStudioApi.Middleware;
 using FitnessStudioApi.Services;
 using FitnessStudioApi.Services.Interfaces;
-using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,40 +19,41 @@ builder.Services.AddScoped<IClassTypeService, ClassTypeService>();
 builder.Services.AddScoped<IClassScheduleService, ClassScheduleService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
-// Validators
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+// Controllers
+builder.Services.AddControllers();
 
-// Controllers + JSON options
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+// Swagger / OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        Title = "Zenith Fitness Studio API",
+        Version = "v1",
+        Description = "API for managing members, memberships, instructors, class schedules, and bookings at Zenith Fitness Studio."
     });
-
-// OpenAPI / Swagger
-builder.Services.AddOpenApi();
+});
 
 var app = builder.Build();
-
-// Global error handling
-app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // Seed database
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FitnessDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    db.Database.EnsureCreated();
     await DataSeeder.SeedAsync(db);
 }
 
-app.MapOpenApi();
+// Middleware
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+
+app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/openapi/v1.json", "Fitness Studio API v1");
-    options.RoutePrefix = "swagger";
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Zenith Fitness Studio API v1");
+    options.RoutePrefix = string.Empty;
 });
 
+app.UseHttpsRedirection();
 app.MapControllers();
-
 app.Run();

@@ -2,61 +2,60 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FitnessStudioApi.DTOs;
 
-public class CreateInstructorRequest
+public sealed record InstructorResponse(
+    int Id,
+    string FirstName,
+    string LastName,
+    string Email,
+    string Phone,
+    string? Bio,
+    string? Specializations,
+    DateOnly HireDate,
+    bool IsActive,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public sealed record CreateInstructorRequest
 {
     [Required, MaxLength(100)]
-    public string FirstName { get; set; } = string.Empty;
+    public required string FirstName { get; init; }
 
     [Required, MaxLength(100)]
-    public string LastName { get; set; } = string.Empty;
+    public required string LastName { get; init; }
 
     [Required, EmailAddress]
-    public string Email { get; set; } = string.Empty;
+    public required string Email { get; init; }
 
     [Required]
-    public string Phone { get; set; } = string.Empty;
+    public required string Phone { get; init; }
 
     [MaxLength(1000)]
-    public string? Bio { get; set; }
+    public string? Bio { get; init; }
 
-    public string? Specializations { get; set; }
+    public string? Specializations { get; init; }
 
-    public DateOnly HireDate { get; set; }
+    [Required]
+    public required DateOnly HireDate { get; init; }
 }
 
-public class UpdateInstructorRequest
+public sealed record UpdateInstructorRequest
 {
     [Required, MaxLength(100)]
-    public string FirstName { get; set; } = string.Empty;
+    public required string FirstName { get; init; }
 
     [Required, MaxLength(100)]
-    public string LastName { get; set; } = string.Empty;
+    public required string LastName { get; init; }
 
     [Required, EmailAddress]
-    public string Email { get; set; } = string.Empty;
+    public required string Email { get; init; }
 
     [Required]
-    public string Phone { get; set; } = string.Empty;
+    public required string Phone { get; init; }
 
     [MaxLength(1000)]
-    public string? Bio { get; set; }
+    public string? Bio { get; init; }
 
-    public string? Specializations { get; set; }
+    public string? Specializations { get; init; }
 
-    public bool IsActive { get; set; }
-}
-
-public class InstructorResponse
-{
-    public int Id { get; set; }
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
-    public string? Bio { get; set; }
-    public string? Specializations { get; set; }
-    public DateOnly HireDate { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public required bool IsActive { get; init; }
 }

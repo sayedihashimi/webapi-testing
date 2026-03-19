@@ -1,4 +1,3 @@
-using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,18 +10,19 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         Exception exception,
         CancellationToken cancellationToken)
     {
-        logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
+        logger.LogError(exception, "Unhandled exception occurred: {Message}", exception.Message);
 
         var problemDetails = new ProblemDetails
         {
-            Status = (int)HttpStatusCode.InternalServerError,
+            Status = StatusCodes.Status500InternalServerError,
             Title = "An unexpected error occurred",
             Detail = exception.Message,
-            Instance = httpContext.Request.Path
+            Type = "https://tools.ietf.org/html/rfc7807"
         };
 
-        httpContext.Response.StatusCode = problemDetails.Status.Value;
+        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+
         return true;
     }
 }

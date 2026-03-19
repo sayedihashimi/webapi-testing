@@ -1,77 +1,100 @@
 using LibraryApi.DTOs;
-using LibraryApi.Models;
 using LibraryApi.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace LibraryApi.Endpoints;
 
 public static class LoanEndpoints
 {
-    public static RouteGroupBuilder MapLoanEndpoints(this WebApplication app)
+    public static RouteGroupBuilder MapLoanEndpoints(this IEndpointRouteBuilder routes)
     {
-        var group = app.MapGroup("/api/loans").WithTags("Loans");
+        var group = routes.MapGroup("/api/loans")
+            .WithTags("Loans");
 
-        group.MapGet("/", GetLoans).WithName("GetLoans");
-        group.MapGet("/overdue", GetOverdueLoans).WithName("GetOverdueLoans");
-        group.MapGet("/{id:int}", GetLoan).WithName("GetLoan");
-        group.MapPost("/", CheckoutBook).WithName("CheckoutBook");
-        group.MapPost("/{id:int}/return", ReturnBook).WithName("ReturnBook");
-        group.MapPost("/{id:int}/renew", RenewLoan).WithName("RenewLoan");
+        group.MapGet("/", GetLoansAsync);
+        group.MapGet("/overdue", GetOverdueLoansAsync);
+        group.MapGet("/{id:int}", GetLoanByIdAsync);
+        group.MapPost("/", CheckoutBookAsync);
+        group.MapPost("/{id:int}/return", ReturnBookAsync);
+        group.MapPost("/{id:int}/renew", RenewLoanAsync);
 
         return group;
     }
 
-    private static async Task<Ok<PaginatedResponse<LoanResponse>>> GetLoans(
-        LibraryService service,
-        LoanStatus? status = null, bool? overdue = null,
-        DateTime? fromDate = null, DateTime? toDate = null,
-        int page = 1, int pageSize = 10)
+    private static async Task<IResult> GetLoansAsync(
+        ILoanService service,
+        string? status = null,
+        bool? overdue = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
     {
-        var result = await service.GetLoansAsync(status, overdue, fromDate, toDate, page, pageSize);
+        var result = await service.GetLoansAsync(status, overdue, fromDate, toDate, page, pageSize, ct);
         return TypedResults.Ok(result);
     }
 
-    private static async Task<Ok<List<LoanResponse>>> GetOverdueLoans(LibraryService service)
+    private static async Task<IResult> GetOverdueLoansAsync(
+        ILoanService service,
+        CancellationToken ct = default)
     {
-        var result = await service.GetOverdueLoansAsync();
-        return TypedResults.Ok(result);
+        var loans = await service.GetOverdueLoansAsync(ct);
+        return TypedResults.Ok(loans);
     }
 
-    private static async Task<Results<Ok<LoanResponse>, NotFound>> GetLoan(
-        LibraryService service, int id)
+    private static async Task<IResult> GetLoanByIdAsync(
+        int id,
+        ILoanService service,
+        CancellationToken ct = default)
     {
-        var result = await service.GetLoanByIdAsync(id);
-        return result is not null
-            ? TypedResults.Ok(result)
+        var loan = await service.GetLoanByIdAsync(id, ct);
+        return loan is not null
+            ? TypedResults.Ok(loan)
             : TypedResults.NotFound();
     }
 
-    private static async Task<Results<Created<LoanResponse>, BadRequest<string>>> CheckoutBook(
-        LibraryService service, CreateLoanRequest request)
+    private static async Task<IResult> CheckoutBookAsync(
+        CreateLoanDto dto,
+        ILoanService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.CheckoutBookAsync(request);
-        return result is not null
-            ? TypedResults.Created($"/api/loans/{result.Id}", result)
-            : TypedResults.BadRequest(error!);
+        var (loan, error) = await service.CheckoutBookAsync(dto, ct);
+
+        if (error is not null)
+        {
+            return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return TypedResults.Created($"/api/loans/{loan!.Id}", loan);
     }
 
-    private static async Task<Results<Ok<LoanResponse>, NotFound, BadRequest<string>>> ReturnBook(
-        LibraryService service, int id)
+    private static async Task<IResult> ReturnBookAsync(
+        int id,
+        ILoanService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.ReturnBookAsync(id);
-        if (error == "Loan not found") { return TypedResults.NotFound(); }
-        return result is not null
-            ? TypedResults.Ok(result)
-            : TypedResults.BadRequest(error!);
+        var (loan, error) = await service.ReturnBookAsync(id, ct);
+
+        if (error is not null)
+        {
+            return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return TypedResults.Ok(loan);
     }
 
-    private static async Task<Results<Ok<LoanResponse>, NotFound, BadRequest<string>>> RenewLoan(
-        LibraryService service, int id)
+    private static async Task<IResult> RenewLoanAsync(
+        int id,
+        ILoanService service,
+        CancellationToken ct = default)
     {
-        var (result, error) = await service.RenewLoanAsync(id);
-        if (error == "Loan not found") { return TypedResults.NotFound(); }
-        return result is not null
-            ? TypedResults.Ok(result)
-            : TypedResults.BadRequest(error!);
+        var (loan, error) = await service.RenewLoanAsync(id, ct);
+
+        if (error is not null)
+        {
+            return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return TypedResults.Ok(loan);
     }
 }

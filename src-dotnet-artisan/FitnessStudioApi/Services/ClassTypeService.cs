@@ -5,43 +5,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessStudioApi.Services;
 
-public sealed class ClassTypeService(StudioDbContext db)
+public sealed class ClassTypeService(FitnessDbContext db, ILogger<ClassTypeService> logger) : IClassTypeService
 {
     public async Task<List<ClassTypeResponse>> GetAllAsync(
-        string? difficulty, bool? isPremium, CancellationToken ct = default)
+        DifficultyLevel? difficulty, bool? isPremium, CancellationToken ct = default)
     {
-        var query = db.ClassTypes.Where(c => c.IsActive).AsQueryable();
+        var query = db.ClassTypes.Where(ct2 => ct2.IsActive);
 
-        if (!string.IsNullOrWhiteSpace(difficulty) && Enum.TryParse<DifficultyLevel>(difficulty, true, out var dl))
+        if (difficulty.HasValue)
         {
-            query = query.Where(c => c.DifficultyLevel == dl);
+            query = query.Where(ct2 => ct2.DifficultyLevel == difficulty.Value);
         }
 
         if (isPremium.HasValue)
         {
-            query = query.Where(c => c.IsPremium == isPremium.Value);
+            query = query.Where(ct2 => ct2.IsPremium == isPremium.Value);
         }
 
-        var types = await query.OrderBy(c => c.Name).ToListAsync(ct);
-        return types.Select(ToResponse).ToList();
+        var types = await query.OrderBy(ct2 => ct2.Name).ToListAsync(ct);
+        return types.Select(MapToResponse).ToList();
     }
 
     public async Task<ClassTypeResponse?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var classType = await db.ClassTypes.FindAsync([id], ct);
-        return classType is null ? null : ToResponse(classType);
+        return classType is null ? null : MapToResponse(classType);
     }
 
     public async Task<ClassTypeResponse> CreateAsync(CreateClassTypeRequest request, CancellationToken ct = default)
     {
-        if (await db.ClassTypes.AnyAsync(c => c.Name == request.Name, ct))
+        if (await db.ClassTypes.AnyAsync(ct2 => ct2.Name == request.Name, ct))
         {
             throw new InvalidOperationException($"A class type with name '{request.Name}' already exists.");
-        }
-
-        if (!Enum.TryParse<DifficultyLevel>(request.DifficultyLevel, true, out var dl))
-        {
-            throw new InvalidOperationException($"Invalid difficulty level: '{request.DifficultyLevel}'.");
         }
 
         var classType = new ClassType
@@ -52,12 +47,15 @@ public sealed class ClassTypeService(StudioDbContext db)
             DefaultCapacity = request.DefaultCapacity,
             IsPremium = request.IsPremium,
             CaloriesPerSession = request.CaloriesPerSession,
-            DifficultyLevel = dl
+            DifficultyLevel = request.DifficultyLevel
         };
 
         db.ClassTypes.Add(classType);
         await db.SaveChangesAsync(ct);
-        return ToResponse(classType);
+
+        logger.LogInformation("Created class type {Name} with ID {Id}", classType.Name, classType.Id);
+
+        return MapToResponse(classType);
     }
 
     public async Task<ClassTypeResponse?> UpdateAsync(int id, UpdateClassTypeRequest request, CancellationToken ct = default)
@@ -68,14 +66,9 @@ public sealed class ClassTypeService(StudioDbContext db)
             return null;
         }
 
-        if (await db.ClassTypes.AnyAsync(c => c.Name == request.Name && c.Id != id, ct))
+        if (await db.ClassTypes.AnyAsync(ct2 => ct2.Name == request.Name && ct2.Id != id, ct))
         {
             throw new InvalidOperationException($"A class type with name '{request.Name}' already exists.");
-        }
-
-        if (!Enum.TryParse<DifficultyLevel>(request.DifficultyLevel, true, out var dl))
-        {
-            throw new InvalidOperationException($"Invalid difficulty level: '{request.DifficultyLevel}'.");
         }
 
         classType.Name = request.Name;
@@ -84,14 +77,19 @@ public sealed class ClassTypeService(StudioDbContext db)
         classType.DefaultCapacity = request.DefaultCapacity;
         classType.IsPremium = request.IsPremium;
         classType.CaloriesPerSession = request.CaloriesPerSession;
-        classType.DifficultyLevel = dl;
+        classType.DifficultyLevel = request.DifficultyLevel;
+        classType.IsActive = request.IsActive;
         classType.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-        return ToResponse(classType);
+
+        logger.LogInformation("Updated class type {Id}", id);
+
+        return MapToResponse(classType);
     }
 
-    private static ClassTypeResponse ToResponse(ClassType c) => new(
-        c.Id, c.Name, c.Description, c.DefaultDurationMinutes, c.DefaultCapacity,
-        c.IsPremium, c.CaloriesPerSession, c.DifficultyLevel.ToString(), c.IsActive);
+    private static ClassTypeResponse MapToResponse(ClassType ct) => new(
+        ct.Id, ct.Name, ct.Description, ct.DefaultDurationMinutes, ct.DefaultCapacity,
+        ct.IsPremium, ct.CaloriesPerSession, ct.DifficultyLevel, ct.IsActive,
+        ct.CreatedAt, ct.UpdatedAt);
 }

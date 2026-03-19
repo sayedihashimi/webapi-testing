@@ -1,3 +1,5 @@
+using LibraryApi.Models.Enums;
+
 namespace LibraryApi.Models;
 
 public class Reservation

@@ -1,45 +1,45 @@
-# Generate All Apps — Summary Report
+# Generation Summary — All Variants
 
-## Script Execution
+**Date**: 2026-03-18
+**SDK**: .NET 10.0.200
+**Generator**: Copilot CLI (`copilot -p ... --yolo`) via `generate-apps.ps1`
 
-The `generate-apps.ps1` script was run successfully. It invoked the Copilot CLI three times with different skill configurations, generating 9 ASP.NET Core Web API projects total (3 apps × 3 skill configurations).
+## Results Overview
 
-## Results Summary
+| Directory | App | Build | Run | Swashbuckle | OpenAPI Approach |
+|-----------|-----|-------|-----|-------------|-----------------|
+| src-no-skills | FitnessStudioApi | ✅ | ✅ | `Swashbuckle.AspNetCore` 7.* | `AddSwaggerGen` + `UseSwaggerUI` (old) |
+| src-no-skills | LibraryApi | ✅ | ✅ | `Swashbuckle.AspNetCore` 10.1.5 | `AddSwaggerGen` + `UseSwaggerUI` (old) |
+| src-no-skills | VetClinicApi | ✅ | ✅ | `Swashbuckle.AspNetCore` 7.*-* | `AddSwaggerGen` + `UseSwaggerUI` (old) |
+| src-dotnet-webapi | FitnessStudioApi | ✅ | ✅ | ❌ None | Built-in `AddOpenApi` + `MapOpenApi` |
+| src-dotnet-webapi | LibraryApi | ✅ | ✅ | ❌ None | Built-in `AddOpenApi` + `MapOpenApi` |
+| src-dotnet-webapi | VetClinicApi | ✅ | ✅ | ❌ None | Built-in `AddOpenApi` + `MapOpenApi` |
+| src-dotnet-artisan | FitnessStudioApi | ✅ | ✅ | `Swashbuckle.AspNetCore` 10.1.5 | Built-in `AddOpenApi` + `MapOpenApi` + `UseSwaggerUI` |
+| src-dotnet-artisan | LibraryApi | ✅ | ✅ | ❌ None | Built-in `AddOpenApi` + `MapOpenApi` |
+| src-dotnet-artisan | VetClinicApi | ✅ | ✅ | ❌ None | Built-in `AddOpenApi` + `MapOpenApi` |
 
-| Folder | App | Build | Run | Skill Config |
-|--------|-----|-------|-----|--------------|
-| `src-no-skills` | FitnessStudioApi | ✅ Pass | ✅ Pass | None |
-| `src-no-skills` | LibraryApi | ✅ Pass | ✅ Pass | None |
-| `src-no-skills` | VetClinicApi | ✅ Pass | ✅ Pass | None |
-| `src-dotnet-webapi` | FitnessStudioApi | ✅ Pass | ✅ Pass | `dotnet-webapi` |
-| `src-dotnet-webapi` | LibraryApi | ✅ Pass | ✅ Pass | `dotnet-webapi` |
-| `src-dotnet-webapi` | VetClinicApi | ✅ Pass | ✅ Pass | `dotnet-webapi` |
-| `src-dotnet-artisan` | FitnessStudioApi | ✅ Pass | ✅ Pass | `dotnet-artisan` (`using-dotnet`, `dotnet-advisor`, `dotnet-api`, `dotnet-csharp`) |
-| `src-dotnet-artisan` | LibraryApi | ✅ Pass | ✅ Pass | `dotnet-artisan` (`using-dotnet`, `dotnet-advisor`, `dotnet-api`, `dotnet-csharp`) |
-| `src-dotnet-artisan` | VetClinicApi | ✅ Pass | ✅ Pass | `dotnet-artisan` (`using-dotnet`, `dotnet-advisor`, `dotnet-api`, `dotnet-csharp`) |
+**All 9 projects build and run successfully.** ✅
+**All 9 apps are fully implemented** (39-46 .cs files each, with Controllers/Endpoints, Services, DTOs, Models, Middleware, Data).
 
-**All 9 projects build and run successfully with 0 errors and 0 warnings.**
+## Skill Configuration Per Variant
 
-## Skill Configuration Details
+| Directory | Skills Used | Notes |
+|-----------|------------|-------|
+| `src-no-skills` | None | Baseline — no skill guidance. `gen-notes.md` present ✅ |
+| `src-dotnet-webapi` | `dotnet-webapi` (custom skill) | Single skill for Web API patterns. `gen-notes.md` **missing** ❌ |
+| `src-dotnet-artisan` | `using-dotnet` → `dotnet-advisor` → `dotnet-csharp` + `dotnet-api` | Full skill chain. `gen-notes.md` **missing** ❌ |
 
-### 1. `src-no-skills` — No Skills
-- No Copilot skills were invoked during generation.
-- Apps were built by general-purpose agents using only baseline model knowledge.
-- `gen-notes.md` ✅ present and confirms no skills were used.
+## Swashbuckle Observations
 
-### 2. `src-dotnet-webapi` — dotnet-webapi Skill Only
-- The `dotnet-webapi` custom skill was invoked (confirmed in script output).
-- No other skills (e.g., `dotnet-artisan`, `using-dotnet`) were used.
-- `gen-notes.md` ❌ **missing** — the Copilot session completed before generating this file.
+- **`src-dotnet-webapi`: 0/3 apps have any Swashbuckle package** ✅ — The updated SKILL.md successfully prevented all Swashbuckle installation. All 3 use only the built-in `AddOpenApi()` + `MapOpenApi()`.
+- **`src-no-skills`**: 3/3 apps use the old `AddSwaggerGen` + `UseSwaggerUI` pattern with the full `Swashbuckle.AspNetCore` package. Version inconsistency: two apps use 7.* wildcards, one uses 10.1.5.
+- **`src-dotnet-artisan`**: 1/3 apps (FitnessStudioApi) added `Swashbuckle.AspNetCore` 10.1.5 for `UseSwaggerUI`, but still uses built-in `AddOpenApi` + `MapOpenApi` for document generation (not `AddSwaggerGen`). The other 2 have no Swashbuckle.
+- No `AddSwaggerGen()` calls exist in any dotnet-webapi or dotnet-artisan app.
 
-### 3. `src-dotnet-artisan` — dotnet-artisan Skills (no dotnet-webapi)
-- Multiple dotnet-artisan skills were loaded: `using-dotnet`, `dotnet-advisor`, `dotnet-api`, `dotnet-csharp`.
-- Reference materials loaded included: `dotnet-releases.md`, `minimal-apis.md`, `coding-standards.md`, `agent-gotchas.md`.
-- The `dotnet-webapi` custom skill was **not** used (as instructed).
-- `gen-notes.md` ❌ **missing** — the Copilot session completed before generating this file.
+## API Style
 
-## Notes
-
-- The `src-dotnet-webapi` and `src-dotnet-artisan` runs did not produce their `gen-notes.md` files. The Copilot sessions ended after the background agents finished generating code but before the wrap-up step that creates gen-notes.md.
-- All apps target .NET 10 with EF Core + SQLite in-memory/file databases.
-- Each app within a skill configuration run was generated by an isolated agent (no knowledge sharing between apps).
+| Directory | Pattern | Evidence |
+|-----------|---------|----------|
+| `src-no-skills` | Controllers | `Controllers/` directory, `[ApiController]` attributes |
+| `src-dotnet-webapi` | Minimal APIs | `Endpoints/` directory, `MapGroup()` + extension methods |
+| `src-dotnet-artisan` | Minimal APIs | `Endpoints/` directory, `MapGroup()` + extension methods |

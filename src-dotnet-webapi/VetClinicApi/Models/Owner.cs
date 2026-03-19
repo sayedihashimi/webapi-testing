@@ -1,6 +1,6 @@
 namespace VetClinicApi.Models;
 
-public class Owner
+public sealed class Owner
 {
     public int Id { get; set; }
     public required string FirstName { get; set; }
@@ -14,5 +14,5 @@ public class Owner
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    public List<Pet> Pets { get; set; } = [];
+    public ICollection<Pet> Pets { get; set; } = [];
 }

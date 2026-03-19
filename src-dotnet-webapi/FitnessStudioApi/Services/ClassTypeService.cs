@@ -5,33 +5,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessStudioApi.Services;
 
-public class ClassTypeService(FitnessDbContext db, ILogger<ClassTypeService> logger) : IClassTypeService
+public sealed class ClassTypeService(StudioDbContext db, ILogger<ClassTypeService> logger) : IClassTypeService
 {
-    public async Task<PaginatedResponse<ClassTypeResponse>> GetAllAsync(string? difficulty, bool? isPremium, int page, int pageSize, CancellationToken ct)
+    public async Task<IReadOnlyList<ClassTypeResponse>> GetAllAsync(string? difficulty, bool? isPremium, CancellationToken ct)
     {
         var query = db.ClassTypes.AsNoTracking().Where(c => c.IsActive);
 
-        if (!string.IsNullOrWhiteSpace(difficulty) && Enum.TryParse<DifficultyLevel>(difficulty, true, out var dl))
-            query = query.Where(c => c.DifficultyLevel == dl);
+        if (!string.IsNullOrWhiteSpace(difficulty) && Enum.TryParse<DifficultyLevel>(difficulty, true, out var level))
+            query = query.Where(c => c.DifficultyLevel == level);
 
         if (isPremium.HasValue)
             query = query.Where(c => c.IsPremium == isPremium.Value);
 
-        var totalCount = await query.CountAsync(ct);
-        var items = await query
-            .OrderBy(c => c.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+        return await query.OrderBy(c => c.Name)
             .Select(c => MapToResponse(c))
             .ToListAsync(ct);
-
-        return PaginatedResponse<ClassTypeResponse>.Create(items, page, pageSize, totalCount);
     }
 
     public async Task<ClassTypeResponse?> GetByIdAsync(int id, CancellationToken ct)
     {
-        var ct2 = await db.ClassTypes.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
-        return ct2 is null ? null : MapToResponse(ct2);
+        var classType = await db.ClassTypes.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
+        return classType is null ? null : MapToResponse(classType);
     }
 
     public async Task<ClassTypeResponse> CreateAsync(CreateClassTypeRequest request, CancellationToken ct)
@@ -47,20 +41,21 @@ public class ClassTypeService(FitnessDbContext db, ILogger<ClassTypeService> log
             DefaultCapacity = request.DefaultCapacity,
             IsPremium = request.IsPremium,
             CaloriesPerSession = request.CaloriesPerSession,
-            DifficultyLevel = request.DifficultyLevel
+            DifficultyLevel = request.DifficultyLevel,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         db.ClassTypes.Add(classType);
         await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Created class type {ClassTypeName} with ID {ClassTypeId}", classType.Name, classType.Id);
+        logger.LogInformation("Created class type {ClassTypeId}: {Name}", classType.Id, classType.Name);
         return MapToResponse(classType);
     }
 
-    public async Task<ClassTypeResponse?> UpdateAsync(int id, UpdateClassTypeRequest request, CancellationToken ct)
+    public async Task<ClassTypeResponse> UpdateAsync(int id, UpdateClassTypeRequest request, CancellationToken ct)
     {
-        var classType = await db.ClassTypes.FindAsync([id], ct);
-        if (classType is null) return null;
+        var classType = await db.ClassTypes.FindAsync([id], ct)
+            ?? throw new KeyNotFoundException($"Class type {id} not found.");
 
         if (await db.ClassTypes.AnyAsync(c => c.Name == request.Name && c.Id != id, ct))
             throw new InvalidOperationException($"A class type with name '{request.Name}' already exists.");
@@ -76,23 +71,12 @@ public class ClassTypeService(FitnessDbContext db, ILogger<ClassTypeService> log
         classType.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Updated class type {ClassTypeId}", classType.Id);
+        logger.LogInformation("Updated class type {ClassTypeId}", id);
         return MapToResponse(classType);
     }
 
-    private static ClassTypeResponse MapToResponse(ClassType c) => new()
-    {
-        Id = c.Id,
-        Name = c.Name,
-        Description = c.Description,
-        DefaultDurationMinutes = c.DefaultDurationMinutes,
-        DefaultCapacity = c.DefaultCapacity,
-        IsPremium = c.IsPremium,
-        CaloriesPerSession = c.CaloriesPerSession,
-        DifficultyLevel = c.DifficultyLevel,
-        IsActive = c.IsActive,
-        CreatedAt = c.CreatedAt,
-        UpdatedAt = c.UpdatedAt
-    };
+    private static ClassTypeResponse MapToResponse(ClassType c) =>
+        new(c.Id, c.Name, c.Description, c.DefaultDurationMinutes, c.DefaultCapacity,
+            c.IsPremium, c.CaloriesPerSession, c.DifficultyLevel.ToString(), c.IsActive,
+            c.CreatedAt, c.UpdatedAt);
 }

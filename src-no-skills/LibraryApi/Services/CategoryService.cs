@@ -1,6 +1,7 @@
 using LibraryApi.Data;
-using LibraryApi.DTOs;
+using LibraryApi.DTOs.Category;
 using LibraryApi.Models;
+using LibraryApi.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApi.Services;
@@ -16,105 +17,65 @@ public class CategoryService : ICategoryService
         _logger = logger;
     }
 
-    public async Task<PagedResult<CategoryDto>> GetCategoriesAsync(PaginationParams pagination)
+    public async Task<List<CategoryListDto>> GetAllAsync()
     {
-        var totalCount = await _db.Categories.CountAsync();
-
-        var items = await _db.Categories
+        return await _db.Categories
             .OrderBy(c => c.Name)
-            .Skip((pagination.Page - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
-            .Select(c => new CategoryDto
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Description = c.Description
-            })
+            .Select(c => new CategoryListDto(c.Id, c.Name, c.Description, c.BookCategories.Count))
             .ToListAsync();
-
-        return new PagedResult<CategoryDto>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize
-        };
     }
 
-    public async Task<CategoryDetailDto> GetCategoryByIdAsync(int id)
+    public async Task<CategoryDetailDto> GetByIdAsync(int id)
     {
-        var category = await _db.Categories
-            .Include(c => c.BookCategories)
-            .FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Category with ID {id} not found");
-
-        return new CategoryDetailDto
-        {
-            Id = category.Id,
-            Name = category.Name,
-            Description = category.Description,
-            BookCount = category.BookCategories.Count
-        };
+        var cat = await _db.Categories
+            .Where(c => c.Id == id)
+            .Select(c => new CategoryDetailDto(c.Id, c.Name, c.Description, c.BookCategories.Count))
+            .FirstOrDefaultAsync()
+            ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
+        return cat;
     }
 
-    public async Task<CategoryDto> CreateCategoryAsync(CreateCategoryDto dto)
+    public async Task<CategoryDetailDto> CreateAsync(CreateCategoryDto dto)
     {
         if (await _db.Categories.AnyAsync(c => c.Name == dto.Name))
-            throw new BusinessRuleException($"A category with the name '{dto.Name}' already exists.", 409);
+            throw new ArgumentException($"A category with name '{dto.Name}' already exists.");
 
-        var category = new Category
-        {
-            Name = dto.Name,
-            Description = dto.Description
-        };
-
+        var category = new Category { Name = dto.Name, Description = dto.Description };
         _db.Categories.Add(category);
         await _db.SaveChangesAsync();
+        _logger.LogInformation("Created category {CategoryId}: {Name}", category.Id, category.Name);
 
-        _logger.LogInformation("Created category: {Name} (ID: {Id})", category.Name, category.Id);
-
-        return new CategoryDto
-        {
-            Id = category.Id,
-            Name = category.Name,
-            Description = category.Description
-        };
+        return await GetByIdAsync(category.Id);
     }
 
-    public async Task<CategoryDto> UpdateCategoryAsync(int id, UpdateCategoryDto dto)
+    public async Task<CategoryDetailDto> UpdateAsync(int id, UpdateCategoryDto dto)
     {
         var category = await _db.Categories.FindAsync(id)
-            ?? throw new NotFoundException($"Category with ID {id} not found");
+            ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
 
         if (await _db.Categories.AnyAsync(c => c.Name == dto.Name && c.Id != id))
-            throw new BusinessRuleException($"A category with the name '{dto.Name}' already exists.", 409);
+            throw new ArgumentException($"A category with name '{dto.Name}' already exists.");
 
         category.Name = dto.Name;
         category.Description = dto.Description;
-
         await _db.SaveChangesAsync();
+        _logger.LogInformation("Updated category {CategoryId}", id);
 
-        return new CategoryDto
-        {
-            Id = category.Id,
-            Name = category.Name,
-            Description = category.Description
-        };
+        return await GetByIdAsync(id);
     }
 
-    public async Task DeleteCategoryAsync(int id)
+    public async Task DeleteAsync(int id)
     {
         var category = await _db.Categories
             .Include(c => c.BookCategories)
             .FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Category with ID {id} not found");
+            ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
 
-        if (category.BookCategories.Any())
-            throw new BusinessRuleException("Cannot delete category with associated books. Remove the books first.", 409);
+        if (category.BookCategories.Count != 0)
+            throw new InvalidOperationException($"Cannot delete category with ID {id} because it has {category.BookCategories.Count} associated book(s).");
 
         _db.Categories.Remove(category);
         await _db.SaveChangesAsync();
-
-        _logger.LogInformation("Deleted category: {Name} (ID: {Id})", category.Name, category.Id);
+        _logger.LogInformation("Deleted category {CategoryId}", id);
     }
 }

@@ -12,7 +12,6 @@ public sealed class Appointment
     public int VeterinarianId { get; set; }
     public Veterinarian Veterinarian { get; set; } = null!;
 
-    [Required]
     public DateTime AppointmentDate { get; set; }
 
     [Range(15, 120)]
@@ -26,6 +25,7 @@ public sealed class Appointment
     [MaxLength(2000)]
     public string? Notes { get; set; }
 
+    [MaxLength(500)]
     public string? CancellationReason { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -1,6 +1,5 @@
 using FitnessStudioApi.DTOs;
 using FitnessStudioApi.Services.Interfaces;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessStudioApi.Controllers;
@@ -12,18 +11,23 @@ public class InstructorsController : ControllerBase
 {
     private readonly IInstructorService _service;
 
-    public InstructorsController(IInstructorService service) => _service = service;
+    public InstructorsController(IInstructorService service)
+    {
+        _service = service;
+    }
 
-    /// <summary>List instructors with optional filters</summary>
+    /// <summary>List instructors with optional filtering</summary>
     [HttpGet]
-    [ProducesResponseType<IReadOnlyList<InstructorDto>>(200)]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] string? specialization, [FromQuery] bool? isActive)
-        => Ok(await _service.GetAllAsync(specialization, isActive));
+    [ProducesResponseType(typeof(List<InstructorResponseDto>), 200)]
+    public async Task<IActionResult> GetAll([FromQuery] string? specialization, [FromQuery] bool? isActive)
+    {
+        var result = await _service.GetAllAsync(specialization, isActive);
+        return Ok(result);
+    }
 
     /// <summary>Get instructor details</summary>
     [HttpGet("{id:int}")]
-    [ProducesResponseType<InstructorDto>(200)]
+    [ProducesResponseType(typeof(InstructorResponseDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetById(int id)
     {
@@ -31,35 +35,33 @@ public class InstructorsController : ControllerBase
         return instructor is null ? NotFound() : Ok(instructor);
     }
 
-    /// <summary>Create an instructor</summary>
+    /// <summary>Create a new instructor</summary>
     [HttpPost]
-    [ProducesResponseType<InstructorDto>(201)]
+    [ProducesResponseType(typeof(InstructorResponseDto), 201)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> Create(
-        [FromBody] CreateInstructorDto dto,
-        [FromServices] IValidator<CreateInstructorDto> validator)
+    public async Task<IActionResult> Create([FromBody] InstructorCreateDto dto)
     {
-        var validation = await validator.ValidateAsync(dto);
-        if (!validation.IsValid)
-            return ValidationProblem(new ValidationProblemDetails(
-                validation.Errors.GroupBy(e => e.PropertyName)
-                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray())));
-
         var instructor = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = instructor.Id }, instructor);
     }
 
     /// <summary>Update an instructor</summary>
     [HttpPut("{id:int}")]
-    [ProducesResponseType<InstructorDto>(200)]
+    [ProducesResponseType(typeof(InstructorResponseDto), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateInstructorDto dto)
-        => Ok(await _service.UpdateAsync(id, dto));
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> Update(int id, [FromBody] InstructorUpdateDto dto)
+    {
+        var instructor = await _service.UpdateAsync(id, dto);
+        return instructor is null ? NotFound() : Ok(instructor);
+    }
 
     /// <summary>Get instructor's class schedule</summary>
     [HttpGet("{id:int}/schedule")]
-    [ProducesResponseType<IReadOnlyList<ClassScheduleDto>>(200)]
-    public async Task<IActionResult> GetSchedule(
-        int id, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
-        => Ok(await _service.GetScheduleAsync(id, from, to));
+    [ProducesResponseType(typeof(List<ClassScheduleResponseDto>), 200)]
+    public async Task<IActionResult> GetSchedule(int id, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+    {
+        var result = await _service.GetScheduleAsync(id, fromDate, toDate);
+        return Ok(result);
+    }
 }

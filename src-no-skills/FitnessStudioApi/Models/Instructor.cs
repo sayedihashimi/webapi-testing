@@ -30,6 +30,5 @@ public class Instructor
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation properties
     public ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
 }

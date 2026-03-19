@@ -3,25 +3,23 @@ using LibraryApi.Models;
 
 namespace LibraryApi.DTOs;
 
-public class CreateReservationRequest
+public sealed record ReservationResponse(
+    int Id,
+    int BookId,
+    string BookTitle,
+    int PatronId,
+    string PatronName,
+    DateTime ReservationDate,
+    DateTime? ExpirationDate,
+    ReservationStatus Status,
+    int QueuePosition,
+    DateTime CreatedAt);
+
+public sealed record CreateReservationRequest
 {
     [Required]
-    public int BookId { get; set; }
+    public required int BookId { get; init; }
 
     [Required]
-    public int PatronId { get; set; }
-}
-
-public class ReservationResponse
-{
-    public int Id { get; set; }
-    public int BookId { get; set; }
-    public string BookTitle { get; set; } = string.Empty;
-    public int PatronId { get; set; }
-    public string PatronName { get; set; } = string.Empty;
-    public DateTime ReservationDate { get; set; }
-    public DateTime? ExpirationDate { get; set; }
-    public ReservationStatus Status { get; set; }
-    public int QueuePosition { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public required int PatronId { get; init; }
 }
