@@ -16,6 +16,32 @@ import click
 from skill_eval.config import EvalConfig
 
 
+def _find_build_directory(project_dir: Path, working_directory: str) -> Path:
+    """Find the best directory to run the build command from.
+
+    If the configured working_directory contains a project/solution file, use it.
+    Otherwise, search for a .sln or .csproj file and use its parent directory.
+    """
+    cwd = project_dir / working_directory
+
+    # Check if configured directory already has buildable files
+    if cwd.exists():
+        if list(cwd.glob("*.sln")) or list(cwd.glob("*.csproj")):
+            return cwd
+
+    # Search for .sln first (preferred), then .csproj
+    sln_files = list(project_dir.rglob("*.sln"))
+    if sln_files:
+        return sln_files[0].parent
+
+    csproj_files = list(project_dir.rglob("*.csproj"))
+    if csproj_files:
+        return csproj_files[0].parent
+
+    # Fall back to configured directory
+    return cwd
+
+
 def _run_build(
     command: str,
     project_dir: Path,
@@ -23,7 +49,7 @@ def _run_build(
     success_pattern: str | None,
 ) -> tuple[bool, str]:
     """Run the build command and return (success, output)."""
-    cwd = project_dir / working_directory
+    cwd = _find_build_directory(project_dir, working_directory)
     try:
         result = subprocess.run(
             command,
@@ -58,10 +84,11 @@ def _run_app(
 ) -> tuple[bool, str]:
     """Start the app, optionally check health, then stop it."""
     try:
+        run_dir = _find_build_directory(project_dir, ".")
         proc = subprocess.Popen(
             command,
             shell=True,
-            cwd=project_dir,
+            cwd=run_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -164,9 +191,7 @@ def run_verify(config: EvalConfig, project_root: Path) -> None:
                 "scenario": scenario.name,
                 "build": build_status,
                 "run": run_status,
-                "notes": run_notes if not build_ok else (
-                    build_output[:200] if not build_ok else ""
-                ),
+                "notes": build_output[:200] if not build_ok else run_notes,
             })
 
     # Write build-notes.md
