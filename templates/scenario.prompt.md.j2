@@ -1,0 +1,67 @@
+# {{ scenario_name }}
+
+> This is a starter template for a scenario prompt. Fill in each section to describe
+> the app you want Copilot to generate. The more specific you are, the better the
+> generated code will be — and the more meaningful the skill comparison.
+
+## Overview
+
+Describe the application in 2–3 sentences. What does it do? Who uses it?
+
+<!-- Example: A REST API for managing a community library. Librarians use it to track
+     books, loans, reservations, and overdue fines. -->
+
+## Technology Stack
+
+Specify the target technology. Be explicit about versions and frameworks.
+
+<!-- Example: ASP.NET Core 10 Web API with Entity Framework Core and SQLite -->
+<!-- Example: Next.js 15 with TypeScript, Prisma ORM, and PostgreSQL -->
+<!-- Example: Go 1.23 with Chi router and GORM -->
+
+## Entities
+
+List the core domain entities with their fields and relationships.
+
+<!-- Example:
+- **Book**: Id, Title, Author, ISBN, Category, TotalCopies, AvailableCopies
+- **Member**: Id, Name, Email, MembershipTier (Basic/Premium), JoinDate
+- **Loan**: Id, BookId → Book, MemberId → Member, BorrowDate, DueDate, ReturnDate, Status
+-->
+
+## Business Rules
+
+List the domain-specific rules and constraints that make this app non-trivial.
+
+<!-- Example:
+- Basic members can borrow up to 3 books; Premium members up to 10
+- Overdue fine is $0.50 per day, capped at $25.00
+- A book cannot be loaned if AvailableCopies is 0
+- Reservations are served in FIFO order when a book becomes available
+-->
+
+## Endpoints
+
+List the API endpoints the app should expose.
+
+<!-- Example:
+- GET /api/books — list all books (with pagination)
+- GET /api/books/{id} — get a single book
+- POST /api/books — add a new book
+- POST /api/loans — borrow a book
+- PUT /api/loans/{id}/return — return a book
+- GET /api/members/{id}/loans — get a member's active loans
+-->
+
+## Seed Data
+
+Describe what sample data should be included for development/testing.
+
+<!-- Example: At least 10 books across 3 categories, 5 members (mix of Basic and
+     Premium), and 3 active loans -->
+
+## Additional Requirements
+
+Any other requirements (authentication, logging, error handling patterns, etc.)
+
+<!-- Example: Include an .http test file for all endpoints. Use SQLite for the database. -->

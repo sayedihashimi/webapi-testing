@@ -1,0 +1,162 @@
+name: "ASP.NET Core Web API Skill Evaluation"
+description: >
+  Evaluate how custom Copilot skills impact the quality of generated
+  ASP.NET Core Web API code across three realistic application scenarios.
+
+scenarios:
+  - name: FitnessStudioApi
+    prompt: prompts/scenarios/fitness-studio.prompt.md
+    description: "Booking/membership system with class scheduling, waitlists, and instructor management"
+  - name: LibraryApi
+    prompt: prompts/scenarios/library.prompt.md
+    description: "Book loans, reservations, overdue fines, and availability tracking"
+  - name: VetClinicApi
+    prompt: prompts/scenarios/vet-clinic.prompt.md
+    description: "Pet healthcare with appointments, vaccinations, and medical records"
+
+configurations:
+  - name: no-skills
+    label: "Baseline (no skills)"
+    skills: []
+    plugins: []
+  - name: dotnet-webapi
+    label: "dotnet-webapi skill"
+    skills:
+      - skills/dotnet-webapi
+    plugins: []
+  - name: dotnet-artisan
+    label: "dotnet-artisan plugin chain"
+    skills: []
+    plugins:
+      - plugins/dotnet-artisan
+  - name: managedcode-dotnet-skills
+    label: "Community managed-code skills"
+    skills:
+      - skills/managedcode-dotnet-skills
+    plugins: []
+
+verification:
+  build:
+    command: "dotnet build"
+    success_pattern: "Build succeeded"
+  run:
+    command: "dotnet run"
+    timeout_seconds: 15
+
+dimensions:
+  - name: "API Style"
+    description: "Controllers (MVC pattern) vs Minimal APIs (lambda-based)"
+    what_to_look_for: |
+      Check Program.cs and endpoint files. Look for MapGet/MapPost (minimal)
+      vs [ApiController] decorated classes (controllers).
+    why_it_matters: "Minimal APIs have lower overhead, are the modern .NET default, and produce more concise code"
+
+  - name: "Sealed Types"
+    description: "Whether classes and records are declared sealed"
+    what_to_look_for: |
+      Check all class and record declarations for the 'sealed' modifier.
+      Count sealed vs non-sealed across models, DTOs, services, and middleware.
+    why_it_matters: "Sealed types enable JIT devirtualization optimizations and signal design intent"
+
+  - name: "Primary Constructors"
+    description: "C# 12 primary constructors vs traditional constructor injection"
+    what_to_look_for: |
+      Look for class/record declarations with parameter lists: class MyService(IRepo repo)
+      vs traditional private readonly IRepo _repo; public MyService(IRepo repo) { _repo = repo; }
+    why_it_matters: "Primary constructors reduce boilerplate and improve code clarity"
+
+  - name: "DTO Design"
+    description: "Records vs classes, immutability, naming conventions"
+    what_to_look_for: |
+      Check DTO types: are they records or classes? Sealed or not?
+      Look at naming: *Request/*Response vs *Dto.
+      Check immutability: positional records, init properties, or mutable setters.
+    why_it_matters: "Immutable record DTOs are safer, more expressive, and produce cleaner API contracts"
+
+  - name: "Service Abstraction"
+    description: "Interface + implementation vs concrete-only registration"
+    what_to_look_for: |
+      Check DI registration: AddScoped<IService, Service>() vs AddScoped<Service>().
+      Look for interface files and their organization.
+    why_it_matters: "Interface-based registration enables testability and follows dependency inversion"
+
+  - name: "CancellationToken Propagation"
+    description: "Whether cancellation tokens are forwarded through all layers"
+    what_to_look_for: |
+      Check endpoint handlers for CancellationToken parameters.
+      Trace the token through service methods to EF Core calls (ToListAsync, SaveChangesAsync).
+      Look for breaks in the chain.
+    why_it_matters: "Critical for production — prevents wasted server resources on cancelled requests"
+
+  - name: "AsNoTracking Usage"
+    description: "Whether read-only queries use AsNoTracking()"
+    what_to_look_for: |
+      Search for .AsNoTracking() in service/repository files.
+      Check if read-only queries (GET endpoints) consistently use it.
+    why_it_matters: "Major performance impact — tracking doubles memory usage and slows queries under load"
+
+  - name: "Return Type Precision"
+    description: "IReadOnlyList<T> vs List<T> vs IEnumerable<T>"
+    what_to_look_for: |
+      Check service method return types and collection properties on DTOs.
+      Look for IReadOnlyList<T>, List<T>, IEnumerable<T>, or ICollection<T>.
+    why_it_matters: "IReadOnlyList<T> prevents accidental mutation by consumers while maintaining indexing"
+
+  - name: "Data Seeder Design"
+    description: "Static methods vs injectable services vs HasData()"
+    what_to_look_for: |
+      Check how seed data is created: HasData() in OnModelCreating, static seeder methods
+      called from Program.cs, or injectable seeder services.
+    why_it_matters: "HasData() integrates with migrations; runtime seeders offer more flexibility"
+
+  - name: "Middleware Style"
+    description: "Convention-based RequestDelegate vs IMiddleware vs IExceptionHandler"
+    what_to_look_for: |
+      Check for global exception handling: IExceptionHandler (modern), convention-based middleware
+      with RequestDelegate, or try/catch in individual endpoints.
+    why_it_matters: "IExceptionHandler is composable, DI-aware, and the modern .NET recommended approach"
+
+  - name: "Exception Handling Strategy"
+    description: "Custom exceptions vs built-in types vs result patterns"
+    what_to_look_for: |
+      Look for custom exception classes (e.g., BusinessRuleException, NotFoundException).
+      Check how HTTP status codes map to exception types.
+      Look for result/option patterns as alternatives to exceptions.
+    why_it_matters: "Well-designed exception hierarchies make error handling consistent and semantic"
+
+  - name: "File Organization"
+    description: "Per-entity file layout, middleware placement, interface location"
+    what_to_look_for: |
+      Check folder structure: per-entity folders vs per-concern folders.
+      Look at where interfaces, DTOs, and middleware files are placed.
+      Check for dedicated Endpoints/ or Controllers/ directories.
+    why_it_matters: "Consistent file organization improves discoverability and maintainability"
+
+  - name: "Pagination"
+    description: "Pagination type design and defaults"
+    what_to_look_for: |
+      Check how pagination is implemented: sealed record vs mutable class.
+      Look at computed properties (HasPrevious, HasNext) vs manual calculation.
+      Check default page sizes and whether they're configurable.
+    why_it_matters: "Immutable pagination types with computed properties are safer and more consistent"
+
+  - name: "OpenAPI Metadata"
+    description: "Richness of endpoint documentation"
+    what_to_look_for: |
+      Check for .WithName(), .WithSummary(), .WithDescription(), .Produces<T>(),
+      .ProducesValidationProblem(), etc. on endpoint definitions.
+      Check whether AddOpenApi()/MapOpenApi() or Swashbuckle is used.
+    why_it_matters: "Rich OpenAPI metadata produces better API documentation and client generation"
+
+  - name: "Collection Initialization"
+    description: "Modern [] syntax vs new List<T>()"
+    what_to_look_for: |
+      Search for collection initialization patterns: modern [] (C# 12) vs
+      new List<T>() or new List<T> { ... }.
+    why_it_matters: "Modern collection expressions are more concise and signal C# version awareness"
+
+output:
+  directory: output
+  reports_directory: reports
+  analysis_file: analysis.md
+  notes_file: build-notes.md

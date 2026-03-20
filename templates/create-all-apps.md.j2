@@ -1,0 +1,12 @@
+Build the following apps using the specification files listed below. Make sure to use the skills that are available.
+
+{% for scenario in scenarios %}
+## {{ scenario.name }}
+
+Build the app described in @{{ scenario.prompt }}. Put the output in the `{{ output_directory }}/{{ scenario.name }}` directory.
+
+{% endfor %}
+
+I want you to output what skills you are using during the code generation. When you are done building the apps, create a file in `{{ output_directory }}` named "gen-notes.md" which includes details of the skills that were used during the generation of these apps.
+
+When building these apps I want you to run them in a separate context and isolated from each other. I don't want any knowledge shared between the agents creating these apps.
