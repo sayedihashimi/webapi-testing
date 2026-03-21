@@ -1,0 +1,159 @@
+name: "ASP.NET Core Razor Pages Skill Evaluation"
+description: >
+  Evaluate how custom Copilot skills impact the quality of generated
+  ASP.NET Core Razor Pages code across three realistic application scenarios.
+
+scenarios:
+  - name: SparkEvents
+    prompt: prompts/scenarios/event-registration.prompt.md
+    description: "Event registration portal with ticket types, capacity management, waitlists, and check-in"
+  - name: KeystoneProperties
+    prompt: prompts/scenarios/property-management.prompt.md
+    description: "Property management with leases, tenants, maintenance requests, and rent tracking"
+  - name: HorizonHR
+    prompt: prompts/scenarios/employee-directory.prompt.md
+    description: "Employee directory and HR portal with leave management, reviews, and skills"
+
+configurations:
+  - name: no-skills
+    label: "Baseline (no skills)"
+    skills: []
+    plugins: []
+  - name: dotnet-webapi
+    label: "dotnet-webapi skill"
+    skills:
+      - skills/dotnet-webapi
+    plugins: []
+
+verification:
+  build:
+    command: "dotnet build"
+    success_pattern: "Build succeeded"
+  run:
+    command: "dotnet run"
+    timeout_seconds: 15
+
+dimensions:
+  - name: "Page Model Design"
+    description: "How page models are structured — thin vs fat, separation of concerns"
+    what_to_look_for: |
+      Check page model classes (*.cshtml.cs). Are they thin (delegating to services)
+      or fat (containing business logic directly)? Look for injected services vs
+      inline DbContext queries. Check for clear OnGet/OnPost handler separation.
+    why_it_matters: "Thin page models with injected services are more testable and maintainable"
+
+  - name: "Form Handling & Validation"
+    description: "BindProperty usage, anti-forgery, validation display, PRG pattern"
+    what_to_look_for: |
+      Check for [BindProperty] attributes, asp-validation-for and asp-validation-summary
+      tag helpers, AntiForgeryToken in forms. Verify Post-Redirect-Get pattern is used
+      (OnPost should return RedirectToPage, not Page()).
+    why_it_matters: "Proper form handling prevents duplicate submissions, CSRF attacks, and provides good UX"
+
+  - name: "Tag Helper Usage"
+    description: "Modern tag helpers vs raw HTML helpers vs plain HTML"
+    what_to_look_for: |
+      Check .cshtml files for asp-for, asp-items, asp-page, asp-route-* tag helpers
+      vs @Html.TextBoxFor(), @Html.ActionLink(), or hand-written HTML attributes.
+    why_it_matters: "Tag helpers produce cleaner, more readable Razor markup and integrate with model binding"
+
+  - name: "Layout & Partial Views"
+    description: "Use of _Layout, partial views, view components, and sections"
+    what_to_look_for: |
+      Check for _Layout.cshtml, _ViewStart.cshtml, _ViewImports.cshtml.
+      Look for partial views (<partial name="..." />) for reusable UI fragments.
+      Check for @section declarations for page-specific scripts or styles.
+    why_it_matters: "Proper layout hierarchy reduces duplication and improves maintainability"
+
+  - name: "Bootstrap Integration"
+    description: "Quality of Bootstrap CSS class usage in generated markup"
+    what_to_look_for: |
+      Check for proper Bootstrap 5 grid (container, row, col-*), form classes
+      (form-control, form-label, form-select), table classes (table, table-striped),
+      button classes (btn, btn-primary), badge usage, alert usage.
+    why_it_matters: "Correct Bootstrap usage produces professional, responsive UI without custom CSS"
+
+  - name: "Sealed Types"
+    description: "Whether classes and records are declared sealed"
+    what_to_look_for: |
+      Check all class and record declarations for the 'sealed' modifier.
+      Count sealed vs non-sealed across models, services, and page models.
+    why_it_matters: "Sealed types enable JIT devirtualization optimizations and signal design intent"
+
+  - name: "Primary Constructors"
+    description: "C# 12 primary constructors vs traditional constructor injection"
+    what_to_look_for: |
+      Look for class declarations with parameter lists: class MyService(IRepo repo)
+      vs traditional private readonly IRepo _repo; public MyService(IRepo repo) { _repo = repo; }
+    why_it_matters: "Primary constructors reduce boilerplate and improve code clarity"
+
+  - name: "Service Abstraction"
+    description: "Interface + implementation vs concrete-only registration"
+    what_to_look_for: |
+      Check DI registration: AddScoped<IService, Service>() vs AddScoped<Service>().
+      Look for interface files and their organization.
+    why_it_matters: "Interface-based registration enables testability and follows dependency inversion"
+
+  - name: "CancellationToken Propagation"
+    description: "Whether cancellation tokens are forwarded through all layers"
+    what_to_look_for: |
+      Check page model handlers for CancellationToken parameters.
+      Trace the token through service methods to EF Core calls.
+    why_it_matters: "Critical for production — prevents wasted server resources on cancelled requests"
+
+  - name: "AsNoTracking Usage"
+    description: "Whether read-only queries use AsNoTracking()"
+    what_to_look_for: |
+      Search for .AsNoTracking() in service files.
+      Check if read-only queries (OnGet handlers) consistently use it.
+    why_it_matters: "Major performance impact — tracking doubles memory usage and slows queries"
+
+  - name: "TempData & Flash Messages"
+    description: "How success/error messages are communicated after form submissions"
+    what_to_look_for: |
+      Check for TempData["Success"], TempData["Error"] patterns in page models.
+      Look for Bootstrap alert rendering in _Layout or individual pages.
+      Check for consistent message display across all forms.
+    why_it_matters: "Consistent flash messaging provides clear user feedback and improves UX"
+
+  - name: "Data Seeder Design"
+    description: "Static methods vs injectable services vs HasData()"
+    what_to_look_for: |
+      Check how seed data is created: HasData() in OnModelCreating, static seeder methods
+      called from Program.cs, or injectable seeder services.
+    why_it_matters: "HasData() integrates with migrations; runtime seeders offer more flexibility"
+
+  - name: "Exception Handling Strategy"
+    description: "Custom exceptions vs built-in types vs result patterns"
+    what_to_look_for: |
+      Look for custom exception classes. Check how business rule violations
+      are communicated from services to page models.
+    why_it_matters: "Well-designed exception hierarchies make error handling consistent"
+
+  - name: "File Organization"
+    description: "Page grouping, service placement, model organization"
+    what_to_look_for: |
+      Check folder structure: are pages organized by feature area (Pages/Events/,
+      Pages/Attendees/) or flat? Where are services, models, and DTOs placed?
+    why_it_matters: "Feature-based organization improves discoverability in Razor Pages apps"
+
+  - name: "Pagination"
+    description: "Pagination implementation and UI rendering"
+    what_to_look_for: |
+      Check how pagination is implemented in services and rendered in pages.
+      Look for reusable pagination partial views or tag helpers.
+      Check for Bootstrap pagination CSS classes.
+    why_it_matters: "Reusable pagination components reduce duplication across list pages"
+
+  - name: "Collection Initialization"
+    description: "Modern [] syntax vs new List<T>()"
+    what_to_look_for: |
+      Search for collection initialization patterns: modern [] (C# 12) vs
+      new List<T>() or new List<T> { ... }.
+    why_it_matters: "Modern collection expressions are more concise and signal C# version awareness"
+
+output:
+  directory: output
+  reports_directory: reports
+  analysis_file: analysis.md
+  notes_file: build-notes.md

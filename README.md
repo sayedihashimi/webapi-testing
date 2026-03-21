@@ -198,11 +198,14 @@ copilot-skill-eval/
 ├── output/                          # Generated code (gitignored)
 ├── reports/                         # Analysis reports (gitignored)
 ├── examples/
-│   └── aspnet-webapi/               # Complete working example
+│   ├── aspnet-webapi/               # Web API example (3 scenarios)
+│   └── aspnet-razor-pages/          # Razor Pages example (3 scenarios)
 └── pyproject.toml                   # Python dependencies
 ```
 
-## Example: ASP.NET Core Web API
+## Examples
+
+### ASP.NET Core Web API
 
 The `examples/aspnet-webapi/` directory contains a complete working evaluation that tests four Copilot skill configurations across three realistic .NET Web API apps:
 
@@ -221,6 +224,20 @@ The `examples/aspnet-webapi/` directory contains a complete working evaluation t
 To run it:
 ```bash
 cd examples/aspnet-webapi
+python -m skill_eval --config eval.yaml run
+```
+
+### ASP.NET Core Razor Pages
+
+The `examples/aspnet-razor-pages/` directory evaluates skill impact on server-rendered Razor Pages apps with forms, tables, and multi-page workflows:
+
+**Scenarios:** Event Registration Portal, Property Management, Employee Directory & HR Portal
+
+**16 dimensions:** Page model design, form handling & validation, tag helper usage, Bootstrap integration, layout & partials, TempData messaging, and more.
+
+To run it:
+```bash
+cd examples/aspnet-razor-pages
 python -m skill_eval --config eval.yaml run
 ```
 

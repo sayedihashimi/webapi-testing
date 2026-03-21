@@ -343,9 +343,34 @@ Use this checklist before finalizing a scenario prompt:
 
 ---
 
+## Adapting for Server-Rendered Web Apps (Razor Pages)
+
+The structure documented above is oriented toward API projects (with endpoints and HTTP files). For **server-rendered web apps** like ASP.NET Core Razor Pages, adapt these sections:
+
+| API Prompt Section | Razor Pages Equivalent | What Changes |
+|--------------------|----------------------|--------------|
+| **API Endpoints** | **Pages** | Replace endpoint tables (Method, Route, Description) with page tables (Page Name, Route, Description). Describe what each page shows and what forms/actions it contains. |
+| **HTTP File** | *(Omit)* | No HTTP file needed — the app is exercised in a browser. Instead, ensure seed data makes the app demo-ready immediately. |
+| **Cross-Cutting: OpenAPI/Swagger** | **Cross-Cutting: Layout & Navigation** | Replace Swagger/OpenAPI instructions with layout requirements: shared `_Layout.cshtml`, navbar links, CSS framework (Bootstrap), footer. |
+| **Cross-Cutting: Pagination** | **Cross-Cutting: Pagination** | Same concept, but specify UI rendering (Bootstrap pagination controls) in addition to query parameter patterns. |
+
+**Additional sections for Razor Pages prompts:**
+
+- **CSS Framework** — Specify Bootstrap 5 (or other) in Technical Requirements and require consistent class usage for forms, tables, buttons, badges, and alerts
+- **Form Handling** — Mention PRG pattern, TempData for flash messages, `asp-validation-for` / `asp-validation-summary` tag helpers, client-side validation
+- **Dashboard Page** — Most Razor Pages apps benefit from a `/` dashboard page with summary stats and quick links
+
+**The core principles still apply**: describe WHAT (pages and their purpose), not HOW (page model structure, handler patterns). Don't prescribe whether to use `[BindProperty]` on individual properties vs a nested input model — let the skill influence that.
+
+See `examples/aspnet-razor-pages/prompts/scenarios/` for three complete Razor Pages examples.
+
+---
+
 ## Reference Examples
 
-The three prompts in `examples/aspnet-webapi/prompts/scenarios/` are the canonical examples:
+### Web API Examples
+
+The three prompts in `examples/aspnet-webapi/prompts/scenarios/` are the canonical API examples:
 
 - **[fitness-studio.prompt.md](../examples/aspnet-webapi/prompts/scenarios/fitness-studio.prompt.md)** — 7 entities, 12 business rules, 30+ endpoints. Best example of complex interactions (waitlist promotion, membership freeze, weekly booking limits, premium tier access).
 
@@ -353,4 +378,14 @@ The three prompts in `examples/aspnet-webapi/prompts/scenarios/` are the canonic
 
 - **[vet-clinic.prompt.md](../examples/aspnet-webapi/prompts/scenarios/vet-clinic.prompt.md)** — 7 entities, 8 business rules, 25+ endpoints. Best example of appointment state machine workflows and one-to-one relationships (appointment → medical record).
 
-Each follows the exact structure documented in this guide.
+### Razor Pages Examples
+
+The three prompts in `examples/aspnet-razor-pages/prompts/scenarios/` demonstrate adapting the pattern for server-rendered apps:
+
+- **[event-registration.prompt.md](../examples/aspnet-razor-pages/prompts/scenarios/event-registration.prompt.md)** — 7 entities, 11 business rules, 20+ pages. Best example of multi-step workflows (registration flow, check-in dashboard) and capacity management with early-bird pricing.
+
+- **[property-management.prompt.md](../examples/aspnet-razor-pages/prompts/scenarios/property-management.prompt.md)** — 7 entities, 10 business rules, 25+ pages. Best example of CRUD-heavy apps with complex forms (lease creation), financial tracking (late fees), and maintenance request workflows.
+
+- **[employee-directory.prompt.md](../examples/aspnet-razor-pages/prompts/scenarios/employee-directory.prompt.md)** — 8 entities, 11 business rules, 25+ pages. Best example of self-referencing hierarchies (department → parent department, employee → manager), approval workflows (leave requests), and many-to-many relationships (employee skills).
+
+Each set follows the structure documented in this guide, adapted for its project type.
