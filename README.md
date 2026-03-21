@@ -147,6 +147,10 @@ Scenario prompts describe the apps Copilot should generate. The more specific, t
 | **Business Rules** | Non-trivial constraints and logic |
 | **Endpoints** | API routes or pages to generate |
 | **Seed Data** | Sample data for testing |
+| **HTTP File** | Test file instructions for exercising the API |
+| **Cross-Cutting Concerns** | Error handling, validation, logging, OpenAPI, pagination |
+
+**📖 For the full authoring guide** — including core principles, section-by-section reference, anti-patterns, and a pre-submission checklist — see **[docs/authoring-guide.md](docs/authoring-guide.md)**.
 
 See `templates/scenario.prompt.md.j2` for a starter template, or browse `examples/aspnet-webapi/prompts/scenarios/` for real-world examples.
 
