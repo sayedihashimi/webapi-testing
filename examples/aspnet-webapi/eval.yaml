@@ -34,6 +34,21 @@ configurations:
     skills:
       - skills/managedcode-dotnet-skills
     plugins: []
+  - name: dotnet-skills
+    label: "Official .NET Skills (dotnet/skills)"
+    skills: []
+    plugins:
+      - plugins/dotnet-skills/dotnet
+      - plugins/dotnet-skills/dotnet-ai
+      - plugins/dotnet-skills/dotnet-data
+      - plugins/dotnet-skills/dotnet-diag
+      - plugins/dotnet-skills/dotnet-experimental
+      - plugins/dotnet-skills/dotnet-maui
+      - plugins/dotnet-skills/dotnet-msbuild
+      - plugins/dotnet-skills/dotnet-nuget
+      - plugins/dotnet-skills/dotnet-template-engine
+      - plugins/dotnet-skills/dotnet-test
+      - plugins/dotnet-skills/dotnet-upgrade
 
 verification:
   build:

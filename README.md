@@ -207,7 +207,7 @@ copilot-skill-eval/
 
 ### ASP.NET Core Web API
 
-The `examples/aspnet-webapi/` directory contains a complete working evaluation that tests four Copilot skill configurations across three realistic .NET Web API apps:
+The `examples/aspnet-webapi/` directory contains a complete working evaluation that tests five Copilot skill configurations across three realistic .NET Web API apps:
 
 **Scenarios:** Fitness Studio Booking API, Community Library API, Veterinary Clinic API
 
@@ -218,6 +218,7 @@ The `examples/aspnet-webapi/` directory contains a complete working evaluation t
 | `dotnet-webapi` | A single custom skill for Web API patterns |
 | `dotnet-artisan` | A full plugin chain with 9 skills + agents |
 | `managedcode-dotnet-skills` | Community skills covering 6 .NET areas |
+| `dotnet-skills` | Official .NET skills from [dotnet/skills](https://github.com/dotnet/skills) — 11 plugins covering core .NET, data, testing, build, and more |
 
 **15 dimensions:** API style, sealed types, primary constructors, DTO design, CancellationToken propagation, AsNoTracking usage, and more.
 
