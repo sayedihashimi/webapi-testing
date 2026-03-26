@@ -53,9 +53,9 @@ def run_init(project_root: Path) -> None:
 
     # Configurations
     click.echo("\n⚙️  Configurations — skill sets to compare")
-    click.echo("  A 'no-skills' baseline will be created automatically.")
+    click.echo("  A baseline configuration will be created automatically.")
     configurations = [
-        {"name": "no-skills", "label": "Baseline (no skills)", "skills": [], "plugins": []},
+        {"name": "no-skills", "label": "Baseline (default Copilot)", "skills": [], "plugins": []},
     ]
     while True:
         config_name = click.prompt(

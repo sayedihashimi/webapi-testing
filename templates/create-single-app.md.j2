@@ -12,5 +12,5 @@ Build the app described in @{{ scenario.prompt }}. Put the output in the `{{ out
 {% if has_skills %}
 When you are done, create a file named "gen-notes.md" in the `{{ output_directory }}/{{ scenario.name }}` directory that documents which skills were used and how they influenced the generated code.
 {% else %}
-When you are done, create a file named "gen-notes.md" in the `{{ output_directory }}/{{ scenario.name }}` directory with a brief summary of what was generated. Do not reference any skills since none were provided.
+When you are done, create a file named "gen-notes.md" in the `{{ output_directory }}/{{ scenario.name }}` directory with a brief summary of what was generated.
 {% endif %}

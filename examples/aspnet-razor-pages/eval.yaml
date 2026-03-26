@@ -16,7 +16,7 @@ scenarios:
 
 configurations:
   - name: no-skills
-    label: "Baseline (no skills)"
+    label: "Baseline (default Copilot)"
     skills: []
     plugins: []
   - name: dotnet-webapi

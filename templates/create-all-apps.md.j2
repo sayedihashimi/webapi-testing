@@ -13,7 +13,7 @@ Build the app described in @{{ scenario.prompt }}. Put the output in the `{{ out
 {% if has_skills %}
 I want you to output what skills you are using during the code generation. When you are done building the apps, create a file in `{{ output_directory }}` named "gen-notes.md" which includes details of the skills that were used during the generation of these apps.
 {% else %}
-When you are done building the apps, create a file in `{{ output_directory }}` named "gen-notes.md" which includes a brief summary of what was generated. Do not reference any skills since none were provided.
+When you are done building the apps, create a file in `{{ output_directory }}` named "gen-notes.md" which includes a brief summary of what was generated.
 {% endif %}
 
 When building these apps I want you to run them in a separate context and isolated from each other. I don't want any knowledge shared between the agents creating these apps.
