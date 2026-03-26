@@ -1,0 +1,112 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.EmployeeModel
+@{
+    ViewData["Title"] = $"Leave - {Model.Employee.FullName}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>@Model.Employee.FullName</h1>
+        <p class="text-muted mb-0">@Model.Employee.JobTitle &middot; @Model.Employee.EmployeeNumber</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="/Leave/Create" asp-route-employeeId="@Model.Employee.Id" class="btn btn-primary">Submit Leave Request</a>
+        <a asp-page="/Leave/Index" class="btn btn-outline-secondary">Back to Leave Requests</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Leave Balances (@DateTime.UtcNow.Year)</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.LeaveBalances.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Leave Type</th>
+                                    <th>Total Days</th>
+                                    <th>Used Days</th>
+                                    <th>Carried Over</th>
+                                    <th>Remaining Days</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var balance in Model.LeaveBalances)
+                                {
+                                    <tr>
+                                        <td>@balance.LeaveType.Name</td>
+                                        <td>@balance.TotalDays</td>
+                                        <td>@balance.UsedDays</td>
+                                        <td>@balance.CarriedOverDays</td>
+                                        <td>
+                                            <span class="fw-bold @(balance.RemainingDays > 0 ? "text-success" : "text-danger")">
+                                                @balance.RemainingDays
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No leave balances found for the current year.</p>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Leave Request History</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.LeaveRequests.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Leave Type</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Days</th>
+                                    <th>Status</th>
+                                    <th>Submitted Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var request in Model.LeaveRequests)
+                                {
+                                    <tr>
+                                        <td>@request.LeaveType.Name</td>
+                                        <td>@request.StartDate.ToString("MMM dd, yyyy")</td>
+                                        <td>@request.EndDate.ToString("MMM dd, yyyy")</td>
+                                        <td>@request.TotalDays</td>
+                                        <td>
+                                            <partial name="_StatusBadge" model="@request.Status.ToString()" />
+                                        </td>
+                                        <td>@request.SubmittedDate.ToString("MMM dd, yyyy")</td>
+                                        <td>
+                                            <a asp-page="/Leave/Details" asp-route-id="@request.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No leave requests found for this employee.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

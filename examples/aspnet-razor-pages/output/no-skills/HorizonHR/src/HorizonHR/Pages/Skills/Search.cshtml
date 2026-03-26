@@ -1,0 +1,52 @@
+@page
+@model HorizonHR.Pages.Skills.SearchModel
+@{
+    ViewData["Title"] = "Search by Skill";
+}
+
+<section>
+    <h1>Search Employees by Skill</h1>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-4">
+            <label class="form-label">Skill</label>
+            <select name="skillId" class="form-select" asp-items="Model.SkillOptions">
+                <option value="">Select Skill</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Minimum Proficiency</label>
+            <select name="minLevel" class="form-select" asp-items="@(new SelectList(Enum.GetValues<ProficiencyLevel>()))">
+                <option value="">Any Level</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Search</button>
+        </div>
+    </form>
+
+    @if (Model.SkillId.HasValue)
+    {
+        @if (Model.Results.Any())
+        {
+            <h4>Results (@Model.Results.Count employees)</h4>
+            <table class="table">
+                <thead><tr><th>Name</th><th>Department</th><th>Title</th></tr></thead>
+                <tbody>
+                    @foreach (var emp in Model.Results)
+                    {
+                        <tr>
+                            <td><a asp-page="/Employees/Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                            <td>@emp.Department.Name</td>
+                            <td>@emp.JobTitle</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted">No employees found with the selected skill and proficiency level.</p>
+        }
+    }
+</section>

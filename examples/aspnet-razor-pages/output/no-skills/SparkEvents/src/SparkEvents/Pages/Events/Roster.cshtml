@@ -1,0 +1,60 @@
+@page "/Events/{eventId:int}/Roster"
+@model SparkEvents.Pages.Events.RosterModel
+@{
+    ViewData["Title"] = $"Roster — {Model.Event.Title}";
+}
+
+<section>
+    <h1>Event Roster</h1>
+    <p class="text-muted"><a asp-page="/Events/Details" asp-route-id="@Model.Event.Id">@Model.Event.Title</a></p>
+    <hr />
+
+    <form method="get" class="row g-3 mb-3">
+        <input type="hidden" name="eventId" value="@Model.Event.Id" />
+        <div class="col-md-4">
+            <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search by name, email, or confirmation #..." />
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-outline-secondary">Search</button>
+        </div>
+    </form>
+
+    @if (Model.Registrations.Any())
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Confirmation #</th>
+                    <th>Attendee</th>
+                    <th>Email</th>
+                    <th>Ticket</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Checked In</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Registrations)
+                {
+                    <tr>
+                        <td><a asp-page="/Registrations/Details" asp-route-id="@r.Id">@r.ConfirmationNumber</a></td>
+                        <td>@r.Attendee.FullName</td>
+                        <td>@r.Attendee.Email</td>
+                        <td>@r.TicketType.Name</td>
+                        <td>@r.AmountPaid.ToString("C")</td>
+                        <td><partial name="_RegistrationStatusBadge" model="r.Status" /></td>
+                        <td>@(r.CheckIn != null ? "✅ " + r.CheckIn.CheckInTime.ToString("h:mm tt") : "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <partial name="_Pagination" model="@(new { Model.Registrations.PageIndex, Model.Registrations.TotalPages, Model.Registrations.HasPreviousPage, Model.Registrations.HasNextPage, PageUrl = $"/Events/{Model.Event.Id}/Roster?search={Model.Search}" })" />
+    }
+    else
+    {
+        <p class="text-muted">No confirmed registrations for this event.</p>
+    }
+
+    <a asp-page="/Events/Details" asp-route-id="@Model.Event.Id" class="btn btn-secondary">Back to Event</a>
+</section>

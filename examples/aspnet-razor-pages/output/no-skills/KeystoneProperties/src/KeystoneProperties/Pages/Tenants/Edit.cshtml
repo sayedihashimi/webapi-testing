@@ -1,0 +1,56 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Tenants.EditModel
+@{
+    ViewData["Title"] = "Edit Tenant";
+}
+<h1>Edit Tenant</h1>
+<div class="row"><div class="col-md-8">
+    <form method="post">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.FirstName" class="form-label"></label>
+                <input asp-for="Input.FirstName" class="form-control" />
+                <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.LastName" class="form-label"></label>
+                <input asp-for="Input.LastName" class="form-control" />
+                <span asp-validation-for="Input.LastName" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.Email" class="form-label"></label>
+                <input asp-for="Input.Email" class="form-control" type="email" />
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.Phone" class="form-label"></label>
+                <input asp-for="Input.Phone" class="form-control" />
+                <span asp-validation-for="Input.Phone" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.DateOfBirth" class="form-label"></label>
+            <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
+            <span asp-validation-for="Input.DateOfBirth" class="text-danger"></span>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.EmergencyContactName" class="form-label"></label>
+                <input asp-for="Input.EmergencyContactName" class="form-control" />
+                <span asp-validation-for="Input.EmergencyContactName" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.EmergencyContactPhone" class="form-label"></label>
+                <input asp-for="Input.EmergencyContactPhone" class="form-control" />
+                <span asp-validation-for="Input.EmergencyContactPhone" class="text-danger"></span>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a asp-page="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

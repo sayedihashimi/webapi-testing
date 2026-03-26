@@ -1,0 +1,122 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Units.DetailsModel
+@{
+    ViewData["Title"] = $"Unit {Model.Unit.UnitNumber}";
+}
+
+<h1>Unit @Model.Unit.UnitNumber — @Model.Unit.Property.Name</h1>
+
+<section class="mb-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Property:</strong> <a asp-page="/Properties/Details" asp-route-id="@Model.Unit.PropertyId">@Model.Unit.Property.Name</a></p>
+                    <p><strong>Floor:</strong> @(Model.Unit.Floor?.ToString() ?? "N/A")</p>
+                    <p><strong>Bedrooms:</strong> @(Model.Unit.Bedrooms == 0 ? "Studio" : Model.Unit.Bedrooms.ToString())</p>
+                    <p><strong>Bathrooms:</strong> @Model.Unit.Bathrooms</p>
+                    <p><strong>Square Feet:</strong> @Model.Unit.SquareFeet.ToString("N0")</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Monthly Rent:</strong> @Model.Unit.MonthlyRent.ToString("C")</p>
+                    <p><strong>Deposit:</strong> @Model.Unit.DepositAmount.ToString("C")</p>
+                    <p><strong>Status:</strong> <partial name="_StatusBadge" model="@(Model.Unit.Status.ToString(), "unit")" /></p>
+                    <p><strong>Amenities:</strong> @(Model.Unit.Amenities ?? "None")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="d-flex gap-2 mb-4">
+    <a asp-page="Edit" asp-route-id="@Model.Unit.Id" class="btn btn-primary">Edit</a>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+</div>
+
+<section class="mb-4">
+    <h3>Lease History</h3>
+    @if (Model.Unit.Leases.Any())
+    {
+        <table class="table table-striped">
+            <thead><tr><th>Tenant</th><th>Start</th><th>End</th><th>Rent</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var lease in Model.Unit.Leases.OrderByDescending(l => l.StartDate))
+                {
+                    <tr>
+                        <td>@lease.Tenant.FullName</td>
+                        <td>@lease.StartDate.ToString("MMM dd, yyyy")</td>
+                        <td>@lease.EndDate.ToString("MMM dd, yyyy")</td>
+                        <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                        <td><partial name="_StatusBadge" model="@(lease.Status.ToString(), "lease")" /></td>
+                        <td><a asp-page="/Leases/Details" asp-route-id="@lease.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No leases for this unit.</p>
+    }
+</section>
+
+<section class="mb-4">
+    <h3>Maintenance History</h3>
+    @if (Model.Unit.MaintenanceRequests.Any())
+    {
+        <table class="table table-striped">
+            <thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var req in Model.Unit.MaintenanceRequests.OrderByDescending(m => m.SubmittedDate))
+                {
+                    <tr>
+                        <td>@req.Title</td>
+                        <td><partial name="_StatusBadge" model="@(req.Priority.ToString(), "priority")" /></td>
+                        <td><partial name="_StatusBadge" model="@(req.Status.ToString(), "maintenance")" /></td>
+                        <td>@req.SubmittedDate.ToString("MMM dd, yyyy")</td>
+                        <td><a asp-page="/Maintenance/Details" asp-route-id="@req.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No maintenance requests for this unit.</p>
+    }
+</section>
+
+<section>
+    <h3>Inspections</h3>
+    @if (Model.Unit.Inspections.Any())
+    {
+        <table class="table table-striped">
+            <thead><tr><th>Type</th><th>Scheduled</th><th>Completed</th><th>Condition</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var insp in Model.Unit.Inspections.OrderByDescending(i => i.ScheduledDate))
+                {
+                    <tr>
+                        <td>@insp.InspectionType</td>
+                        <td>@insp.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                        <td>@(insp.CompletedDate?.ToString("MMM dd, yyyy") ?? "Pending")</td>
+                        <td>
+                            @if (insp.OverallCondition.HasValue)
+                            {
+                                <partial name="_StatusBadge" model="@(insp.OverallCondition.Value.ToString(), "condition")" />
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td><a asp-page="/Inspections/Details" asp-route-id="@insp.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No inspections for this unit.</p>
+    }
+</section>

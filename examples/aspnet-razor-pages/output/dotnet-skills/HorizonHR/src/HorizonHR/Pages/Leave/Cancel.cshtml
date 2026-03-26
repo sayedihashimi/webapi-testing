@@ -1,0 +1,69 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.CancelModel
+@{
+    ViewData["Title"] = "Cancel Leave Request";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Cancel Leave Request</h1>
+    <a asp-page="/Leave/Details" asp-route-id="@Model.LeaveRequest.Id" class="btn btn-outline-secondary">Back to Details</a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="alert alert-warning" role="alert">
+            <h5 class="alert-heading">Are you sure you want to cancel this leave request?</h5>
+            <p class="mb-0">This action cannot be undone.</p>
+            @if (Model.WasPreviouslyApproved)
+            {
+                <hr />
+                <p class="mb-0">
+                    <strong>Note:</strong> This request was previously approved. Cancelling it will restore
+                    <strong>@Model.LeaveRequest.TotalDays day(s)</strong> to the employee's leave balance.
+                </p>
+            }
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Request Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Employee</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.Employee.FullName</dd>
+
+                    <dt class="col-sm-4">Leave Type</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.LeaveType.Name</dd>
+
+                    <dt class="col-sm-4">Start Date</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.StartDate.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-4">End Date</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.EndDate.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-4">Total Days</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.TotalDays</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <partial name="_StatusBadge" model="@Model.LeaveRequest.Status.ToString()" />
+                    </dd>
+
+                    <dt class="col-sm-4">Reason</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.Reason</dd>
+
+                    <dt class="col-sm-4">Submitted Date</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.SubmittedDate.ToString("MMM dd, yyyy HH:mm")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <form method="post">
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                <a asp-page="/Leave/Details" asp-route-id="@Model.LeaveRequest.Id" class="btn btn-outline-secondary">Go Back</a>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,104 @@
+@page
+@model KeystoneProperties.Pages.Maintenance.IndexModel
+@using KeystoneProperties.Models
+@{
+    ViewData["Title"] = "Maintenance Requests";
+}
+
+<h1>Maintenance Requests</h1>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <select class="form-select" asp-for="Status" asp-items="@Html.GetEnumSelectList<MaintenanceStatus>()">
+            <option value="">All Statuses</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" asp-for="Priority" asp-items="@Html.GetEnumSelectList<MaintenancePriority>()">
+            <option value="">All Priorities</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" asp-for="PropertyId">
+            <option value="">All Properties</option>
+            @foreach (var property in Model.AllProperties)
+            {
+                <option value="@property.Id">@property.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" asp-for="Category" asp-items="@Html.GetEnumSelectList<MaintenanceCategory>()">
+            <option value="">All Categories</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-page="/Maintenance/Index" class="btn btn-outline-secondary ms-2">Clear</a>
+    </div>
+</form>
+
+<div class="mb-3">
+    <a asp-page="/Maintenance/Create" class="btn btn-success">New Request</a>
+</div>
+
+@if (Model.Requests.Count == 0)
+{
+    <div class="alert alert-info">No maintenance requests found.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Unit</th>
+                <th>Tenant</th>
+                <th>Priority</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Submitted</th>
+                <th>Assigned To</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var request in Model.Requests)
+            {
+                <tr>
+                    <td>@request.Title</td>
+                    <td>@request.Unit.UnitNumber - @request.Unit.Property.Name</td>
+                    <td>@request.Tenant.FullName</td>
+                    <td>
+                        @if (request.Priority == MaintenancePriority.Emergency)
+                        {
+                            <span class="badge bg-danger"><strong>⚠ @request.Priority</strong></span>
+                        }
+                        else
+                        {
+                            @await Component.InvokeAsync("StatusBadge", new { status = request.Priority.ToString() })
+                        }
+                    </td>
+                    <td>@Html.DisplayFor(m => request.Category)</td>
+                    <td>@await Component.InvokeAsync("StatusBadge", new { status = request.Status.ToString() })</td>
+                    <td>@request.SubmittedDate.ToString("MMM dd, yyyy")</td>
+                    <td>@(request.AssignedTo ?? "—")</td>
+                    <td>
+                        <a asp-page="/Maintenance/Details" asp-route-id="@request.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                        @if (request.Status != MaintenanceStatus.Completed && request.Status != MaintenanceStatus.Cancelled)
+                        {
+                            <a asp-page="/Maintenance/UpdateStatus" asp-route-id="@request.Id" class="btn btn-sm btn-outline-secondary">Update Status</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@{
+    ViewData["PageIndex"] = Model.Requests.PageIndex;
+    ViewData["TotalPages"] = Model.Requests.TotalPages;
+    ViewData["PageUrl"] = $"?status={Model.Status}&priority={Model.Priority}&propertyId={Model.PropertyId}&category={Model.Category}";
+}
+@await Html.PartialAsync("_PaginationPartial")

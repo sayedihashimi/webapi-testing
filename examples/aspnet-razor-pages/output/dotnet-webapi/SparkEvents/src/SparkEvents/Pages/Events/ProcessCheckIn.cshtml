@@ -1,0 +1,63 @@
+@page "/Events/{eventId:int}/CheckIn/Process/{registrationId:int}"
+@model SparkEvents.Pages.Events.ProcessCheckInModel
+@{
+    ViewData["Title"] = "Process Check-In";
+}
+
+<h1>Process Check-In</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Attendee &amp; Ticket Details</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Attendee</dt>
+            <dd class="col-sm-9">@Model.Registration.Attendee?.FullName</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Registration.Attendee?.Email</dd>
+
+            <dt class="col-sm-3">Event</dt>
+            <dd class="col-sm-9">@Model.Event.Title</dd>
+
+            <dt class="col-sm-3">Ticket Type</dt>
+            <dd class="col-sm-9">@Model.Registration.TicketType?.Name</dd>
+
+            <dt class="col-sm-3">Confirmation #</dt>
+            <dd class="col-sm-9"><code>@Model.Registration.ConfirmationNumber</code></dd>
+
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">
+                <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Registration.Status.ToString() } })' />
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.CheckedInBy" class="form-label"></label>
+                <input asp-for="Input.CheckedInBy" class="form-control" placeholder="Name of person processing check-in" />
+                <span asp-validation-for="Input.CheckedInBy" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Notes" class="form-label"></label>
+                <textarea asp-for="Input.Notes" class="form-control" rows="3" placeholder="Optional notes about this check-in"></textarea>
+                <span asp-validation-for="Input.Notes" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-success">Confirm Check-In</button>
+            <a asp-page="CheckIn" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

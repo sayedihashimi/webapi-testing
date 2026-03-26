@@ -1,0 +1,84 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Registrations.DetailsModel
+@{
+    ViewData["Title"] = $"Registration {Model.Registration.ConfirmationNumber}";
+}
+
+<section>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+            <li class="breadcrumb-item">Registrations</li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Registration.ConfirmationNumber</li>
+        </ol>
+    </nav>
+
+    <h1>Registration Details</h1>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Confirmation Number: <strong>@Model.Registration.ConfirmationNumber</strong></h5>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Event</dt>
+                <dd class="col-sm-9">@Model.Registration.Event.Title</dd>
+
+                <dt class="col-sm-3">Event Date</dt>
+                <dd class="col-sm-9">@Model.Registration.Event.StartDate.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                <dt class="col-sm-3">Attendee</dt>
+                <dd class="col-sm-9">@Model.Registration.Attendee.FullName</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9">@Model.Registration.Attendee.Email</dd>
+
+                <dt class="col-sm-3">Ticket Type</dt>
+                <dd class="col-sm-9">@Model.Registration.TicketType.Name</dd>
+
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    <partial name="_StatusBadge" model="@Model.Registration.Status.ToString()" />
+                </dd>
+
+                <dt class="col-sm-3">Amount Paid</dt>
+                <dd class="col-sm-9">@Model.Registration.AmountPaid.ToString("C")</dd>
+
+                <dt class="col-sm-3">Registration Date</dt>
+                <dd class="col-sm-9">@Model.Registration.RegistrationDate.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                @if (!string.IsNullOrEmpty(Model.Registration.SpecialRequests))
+                {
+                    <dt class="col-sm-3">Special Requests</dt>
+                    <dd class="col-sm-9">@Model.Registration.SpecialRequests</dd>
+                }
+
+                @if (Model.Registration.Status == RegistrationStatus.Cancelled)
+                {
+                    <dt class="col-sm-3">Cancellation Date</dt>
+                    <dd class="col-sm-9">@Model.Registration.CancellationDate?.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                    <dt class="col-sm-3">Cancellation Reason</dt>
+                    <dd class="col-sm-9">@(Model.Registration.CancellationReason ?? "—")</dd>
+                }
+
+                @if (Model.Registration.Status == RegistrationStatus.CheckedIn)
+                {
+                    <dt class="col-sm-3">Check-in Time</dt>
+                    <dd class="col-sm-9">@Model.Registration.CheckInTime?.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                    <dt class="col-sm-3">Checked In By</dt>
+                    <dd class="col-sm-9">@(Model.Registration.CheckIn?.CheckedInBy ?? "—")</dd>
+                }
+            </dl>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        @if (Model.CanCancel)
+        {
+            <a asp-page="Cancel" asp-route-id="@Model.Registration.Id" class="btn btn-danger">Cancel Registration</a>
+        }
+        <a asp-page="/Events/Details" asp-route-id="@Model.Registration.EventId" class="btn btn-outline-secondary">Back to Event</a>
+    </div>
+</section>

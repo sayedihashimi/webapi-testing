@@ -1,0 +1,44 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.ManagerReviewModel
+@{
+    ViewData["Title"] = "Manager Review";
+}
+
+<h1>Manager Review — @Model.EmployeeName</h1>
+
+<p>Review Period: @Model.PeriodStart.ToString("MMM dd, yyyy") — @Model.PeriodEnd.ToString("MMM dd, yyyy")</p>
+
+@if (!string.IsNullOrEmpty(Model.SelfAssessment))
+{
+    <div class="card mb-4">
+        <div class="card-header"><strong>Employee's Self-Assessment</strong></div>
+        <div class="card-body">@Model.SelfAssessment</div>
+    </div>
+}
+
+<form method="post">
+    <div class="mb-3">
+        <label asp-for="Input.ManagerAssessment" class="form-label">Manager Assessment</label>
+        <textarea asp-for="Input.ManagerAssessment" class="form-control" rows="6" required></textarea>
+        <span asp-validation-for="Input.ManagerAssessment" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.Rating" class="form-label">Overall Rating</label>
+        <select asp-for="Input.Rating" asp-items="@(new SelectList(Enum.GetValues<OverallRating>()))" class="form-select"></select>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.Strengths" class="form-label">Strengths</label>
+        <textarea asp-for="Input.Strengths" class="form-control" rows="3"></textarea>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.AreasForImprovement" class="form-label">Areas for Improvement</label>
+        <textarea asp-for="Input.AreasForImprovement" class="form-control" rows="3"></textarea>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.Goals" class="form-label">Goals for Next Period</label>
+        <textarea asp-for="Input.Goals" class="form-control" rows="3"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-success">Complete Review</button>
+    <a asp-page="Details" asp-route-id="@Model.ReviewId" class="btn btn-secondary">Cancel</a>
+</form>

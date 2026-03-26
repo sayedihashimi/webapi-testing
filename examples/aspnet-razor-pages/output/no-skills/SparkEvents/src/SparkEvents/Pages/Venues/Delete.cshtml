@@ -1,0 +1,35 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Venues.DeleteModel
+@{
+    ViewData["Title"] = "Delete Venue";
+}
+
+<section>
+    <h1>Delete Venue</h1>
+    <hr />
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">@Model.Venue.Name</h5>
+            <p>@Model.Venue.Address, @Model.Venue.City, @Model.Venue.State @Model.Venue.ZipCode</p>
+            <p>Max Capacity: @Model.Venue.MaxCapacity</p>
+
+            @if (Model.HasFutureEvents)
+            {
+                <div class="alert alert-warning" role="alert">
+                    This venue cannot be deleted because it has future events scheduled.
+                </div>
+                <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+            }
+            else
+            {
+                <p class="text-danger">Are you sure you want to delete this venue? This action cannot be undone.</p>
+                <form method="post">
+                    <input type="hidden" asp-for="Venue.Id" />
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+                </form>
+            }
+        </div>
+    </div>
+</section>

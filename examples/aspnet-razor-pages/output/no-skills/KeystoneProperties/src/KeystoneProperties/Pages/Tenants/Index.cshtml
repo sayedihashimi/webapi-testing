@@ -1,0 +1,56 @@
+@page
+@model KeystoneProperties.Pages.Tenants.IndexModel
+@{
+    ViewData["Title"] = "Tenants";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Tenants</h1>
+    <a asp-page="Create" class="btn btn-primary">Add Tenant</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-5">
+        <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search by name or email..." />
+    </div>
+    <div class="col-md-4">
+        <select name="isActive" class="form-select">
+            <option value="">All</option>
+            <option value="true" selected="@(Model.IsActiveFilter == true)">Active</option>
+            <option value="false" selected="@(Model.IsActiveFilter == false)">Inactive</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+
+@if (Model.Tenants.Any())
+{
+    <table class="table table-striped">
+        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+            @foreach (var t in Model.Tenants)
+            {
+                <tr>
+                    <td><a asp-page="Details" asp-route-id="@t.Id">@t.FullName</a></td>
+                    <td>@t.Email</td>
+                    <td>@t.Phone</td>
+                    <td>@(t.IsActive ? Html.Raw("<span class='badge bg-success'>Active</span>") : Html.Raw("<span class='badge bg-secondary'>Inactive</span>"))</td>
+                    <td>
+                        <a asp-page="Edit" asp-route-id="@t.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        @if (t.IsActive)
+                        {
+                            <a asp-page="Deactivate" asp-route-id="@t.Id" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <partial name="_PaginationPartial" model="@(Model.CurrentPage, Model.TotalPages, $"?search={Model.Search}&isActive={Model.IsActiveFilter}")" />
+}
+else
+{
+    <p class="text-muted">No tenants found.</p>
+}

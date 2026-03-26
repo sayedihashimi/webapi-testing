@@ -1,0 +1,52 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.CompleteModel
+@{
+    ViewData["Title"] = "Complete Event";
+    var evt = Model.Event;
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Events</a></li>
+        <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@evt.Id">@evt.Title</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Complete</li>
+    </ol>
+</nav>
+
+<h1 class="mb-4">Complete Event</h1>
+
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Mark this event as completed?</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Title</dt>
+            <dd class="col-sm-9">@evt.Title</dd>
+
+            <dt class="col-sm-3">Date</dt>
+            <dd class="col-sm-9">@evt.StartDate.ToString("MMMM dd, yyyy h:mm tt") — @evt.EndDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+            <dt class="col-sm-3">Venue</dt>
+            <dd class="col-sm-9">@evt.Venue.Name</dd>
+
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">
+                <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", evt.Status.ToString() } })' />
+            </dd>
+
+            <dt class="col-sm-3">Registrations</dt>
+            <dd class="col-sm-9">@evt.CurrentRegistrations / @evt.TotalCapacity</dd>
+
+            <dt class="col-sm-3">Waitlist</dt>
+            <dd class="col-sm-9">@evt.WaitlistCount</dd>
+        </dl>
+    </div>
+</div>
+
+<form method="post" asp-route-id="@evt.Id">
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-info">Confirm Completion</button>
+        <a asp-page="Details" asp-route-id="@evt.Id" class="btn btn-outline-secondary">Go Back</a>
+    </div>
+</form>

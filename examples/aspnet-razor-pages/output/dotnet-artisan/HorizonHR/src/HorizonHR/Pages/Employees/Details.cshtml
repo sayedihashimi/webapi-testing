@@ -1,0 +1,132 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.DetailsModel
+@{ ViewData["Title"] = Model.Employee.FullName; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Employees</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@Model.Employee.FullName</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>@Model.Employee.FullName <partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Employee.Status.ToString() } })' /></h1>
+    <div>
+        <a asp-page="Edit" asp-route-id="@Model.Employee.Id" class="btn btn-outline-secondary">Edit</a>
+        @if (Model.Employee.Status != HorizonHR.Models.EmployeeStatus.Terminated)
+        {
+            <a asp-page="Terminate" asp-route-id="@Model.Employee.Id" class="btn btn-outline-danger">Terminate</a>
+        }
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <section class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Personal Information</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Employee #</dt><dd class="col-sm-8">@Model.Employee.EmployeeNumber</dd>
+                    <dt class="col-sm-4">Email</dt><dd class="col-sm-8">@Model.Employee.Email</dd>
+                    <dt class="col-sm-4">Phone</dt><dd class="col-sm-8">@(Model.Employee.Phone ?? "—")</dd>
+                    <dt class="col-sm-4">Date of Birth</dt><dd class="col-sm-8">@Model.Employee.DateOfBirth.ToString("MMM dd, yyyy")</dd>
+                    <dt class="col-sm-4">Address</dt><dd class="col-sm-8">@(Model.Employee.Address ?? "—") @Model.Employee.City @Model.Employee.State @Model.Employee.ZipCode</dd>
+                </dl>
+            </div>
+        </section>
+        <section class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Employment</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Department</dt><dd class="col-sm-8"><a asp-page="/Departments/Details" asp-route-id="@Model.Employee.DepartmentId">@Model.Employee.Department.Name</a></dd>
+                    <dt class="col-sm-4">Job Title</dt><dd class="col-sm-8">@Model.Employee.JobTitle</dd>
+                    <dt class="col-sm-4">Type</dt><dd class="col-sm-8"><partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Employee.EmploymentType.ToString() } })' /></dd>
+                    <dt class="col-sm-4">Hire Date</dt><dd class="col-sm-8">@Model.Employee.HireDate.ToString("MMM dd, yyyy")</dd>
+                    <dt class="col-sm-4">Salary</dt><dd class="col-sm-8">@Model.Employee.Salary.ToString("C")</dd>
+                    <dt class="col-sm-4">Manager</dt><dd class="col-sm-8">
+                        @if (Model.Employee.Manager is not null)
+                        {
+                            <a asp-page="Details" asp-route-id="@Model.Employee.Manager.Id">@Model.Employee.Manager.FullName</a>
+                        }
+                        else
+                        {
+                            <span>—</span>
+                        }
+                    </dd>
+                    @if (Model.Employee.TerminationDate.HasValue)
+                    {
+                        <dt class="col-sm-4">Termination Date</dt><dd class="col-sm-8">@Model.Employee.TerminationDate.Value.ToString("MMM dd, yyyy")</dd>
+                    }
+                </dl>
+            </div>
+        </section>
+    </div>
+    <div class="col-md-6">
+        <section class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Direct Reports</h5>
+                <a asp-page="DirectReports" asp-route-id="@Model.Employee.Id" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                @if (Model.Employee.DirectReports.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var report in Model.Employee.DirectReports)
+                        {
+                            <li class="list-group-item"><a asp-page="Details" asp-route-id="@report.Id">@report.FullName</a> — @report.JobTitle</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No direct reports.</p>
+                }
+            </div>
+        </section>
+        <section class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Skills</h5>
+                <a asp-page="/Employees/Skills" asp-route-id="@Model.Employee.Id" class="btn btn-sm btn-outline-primary">Manage</a>
+            </div>
+            <div class="card-body">
+                @if (Model.Employee.EmployeeSkills.Any())
+                {
+                    @foreach (var es in Model.Employee.EmployeeSkills)
+                    {
+                        <span class="badge bg-secondary me-1 mb-1">@es.Skill.Name — <partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", es.ProficiencyLevel.ToString() } })' /></span>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No skills recorded.</p>
+                }
+            </div>
+        </section>
+        <section class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Leave Balances</h5></div>
+            <div class="card-body">
+                @if (Model.Employee.LeaveBalances.Any())
+                {
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Type</th><th>Total</th><th>Used</th><th>Remaining</th></tr></thead>
+                        <tbody>
+                            @foreach (var lb in Model.Employee.LeaveBalances)
+                            {
+                                <tr>
+                                    <td>@lb.LeaveType.Name</td>
+                                    <td>@lb.TotalDays</td>
+                                    <td>@lb.UsedDays</td>
+                                    <td><strong>@lb.RemainingDays</strong></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No leave balances.</p>
+                }
+            </div>
+        </section>
+    </div>
+</div>

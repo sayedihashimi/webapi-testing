@@ -1,0 +1,99 @@
+@page
+@model KeystoneProperties.Pages.Payments.CreateModel
+@{
+    ViewData["Title"] = "Record Payment";
+}
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-plus-circle"></i> Record Payment</h1>
+        <a asp-page="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Payments
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.LeaseId" class="form-label"></label>
+                            <select asp-for="Input.LeaseId" asp-items="Model.LeaseList" class="form-select">
+                                <option value="">-- Select a Lease --</option>
+                            </select>
+                            <span asp-validation-for="Input.LeaseId" class="text-danger"></span>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Input.Amount" class="form-label"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input asp-for="Input.Amount" class="form-control" />
+                                </div>
+                                <span asp-validation-for="Input.Amount" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.Status" class="form-label"></label>
+                                <select asp-for="Input.Status" asp-items="Html.GetEnumSelectList<PaymentStatus>()" class="form-select"></select>
+                                <span asp-validation-for="Input.Status" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Input.PaymentDate" class="form-label"></label>
+                                <input asp-for="Input.PaymentDate" type="date" class="form-control" />
+                                <span asp-validation-for="Input.PaymentDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.DueDate" class="form-label"></label>
+                                <input asp-for="Input.DueDate" type="date" class="form-control" />
+                                <span asp-validation-for="Input.DueDate" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Input.PaymentMethod" class="form-label"></label>
+                                <select asp-for="Input.PaymentMethod" asp-items="Html.GetEnumSelectList<PaymentMethod>()" class="form-select"></select>
+                                <span asp-validation-for="Input.PaymentMethod" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.PaymentType" class="form-label"></label>
+                                <select asp-for="Input.PaymentType" asp-items="Html.GetEnumSelectList<PaymentType>()" class="form-select"></select>
+                                <span asp-validation-for="Input.PaymentType" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.ReferenceNumber" class="form-label"></label>
+                            <input asp-for="Input.ReferenceNumber" class="form-control" />
+                            <span asp-validation-for="Input.ReferenceNumber" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.Notes" class="form-label"></label>
+                            <textarea asp-for="Input.Notes" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Input.Notes" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Record Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

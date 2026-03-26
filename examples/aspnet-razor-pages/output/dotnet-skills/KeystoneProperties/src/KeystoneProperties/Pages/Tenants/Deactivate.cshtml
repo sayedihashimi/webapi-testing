@@ -1,0 +1,58 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Tenants.DeactivateModel
+@{
+    ViewData["Title"] = "Deactivate Tenant";
+}
+
+<h1><i class="bi bi-person-x"></i> Deactivate Tenant</h1>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="alert alert-warning" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            Are you sure you want to deactivate this tenant? This action will mark the tenant as inactive.
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-badge"></i> Tenant Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">@Model.Tenant.FullName</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">@Model.Tenant.Email</dd>
+
+                    <dt class="col-sm-4">Phone</dt>
+                    <dd class="col-sm-8">@Model.Tenant.Phone</dd>
+
+                    <dt class="col-sm-4">Date of Birth</dt>
+                    <dd class="col-sm-8">@Model.Tenant.DateOfBirth.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Tenant.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <form method="post" asp-route-id="@Model.Tenant.Id">
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-person-x"></i> Confirm Deactivation
+            </button>
+            <a asp-page="Details" asp-route-id="@Model.Tenant.Id" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Cancel
+            </a>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,95 @@
+@page
+@model KeystoneProperties.Pages.Properties.IndexModel
+@{
+    ViewData["Title"] = "Properties";
+}
+
+<h1>Properties</h1>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <input type="text" class="form-control" asp-for="SearchTerm" placeholder="Search by name or city..." />
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" asp-for="PropertyType" asp-items="@Html.GetEnumSelectList<PropertyType>()">
+            <option value="">All Types</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" asp-for="IsActive">
+            <option value="">All</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-page="/Properties/Index" class="btn btn-outline-secondary ms-2">Clear</a>
+    </div>
+</form>
+
+<div class="mb-3">
+    <a asp-page="/Properties/Create" class="btn btn-success">Create New Property</a>
+</div>
+
+@if (Model.Properties.Count == 0)
+{
+    <div class="alert alert-info">No properties found.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Type</th>
+                <th>Units</th>
+                <th>Occupancy</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var property in Model.Properties)
+            {
+                var totalUnits = property.Units.Count;
+                var occupiedUnits = property.Units.Count(u => u.Status == UnitStatus.Occupied);
+                var occupancyPercent = totalUnits > 0 ? (decimal)occupiedUnits / totalUnits * 100 : 0;
+                <tr>
+                    <td>@property.Name</td>
+                    <td>@property.Address</td>
+                    <td>@property.City</td>
+                    <td>@property.State</td>
+                    <td>@Html.DisplayFor(m => property.PropertyType)</td>
+                    <td>@totalUnits</td>
+                    <td>@occupiedUnits/@totalUnits occupied (@occupancyPercent.ToString("F0")%)</td>
+                    <td>
+                        @if (property.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-page="/Properties/Details" asp-route-id="@property.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                        <a asp-page="/Properties/Edit" asp-route-id="@property.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+}
+
+@{
+    ViewData["PageIndex"] = Model.Properties.PageIndex;
+    ViewData["TotalPages"] = Model.Properties.TotalPages;
+    ViewData["PageUrl"] = $"?searchTerm={Model.SearchTerm}&propertyType={Model.PropertyType}&isActive={Model.IsActive}";
+}
+@await Html.PartialAsync("_PaginationPartial")

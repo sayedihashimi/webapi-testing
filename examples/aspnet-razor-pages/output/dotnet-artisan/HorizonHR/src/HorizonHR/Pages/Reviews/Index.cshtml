@@ -1,0 +1,62 @@
+@page
+@model HorizonHR.Pages.Reviews.IndexModel
+@using HorizonHR.Models
+@{ ViewData["Title"] = "Performance Reviews"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Performance Reviews</h1>
+    <a asp-page="Create" class="btn btn-primary">Create Review</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <select asp-for="Status" asp-items="Html.GetEnumSelectList<ReviewStatus>()" class="form-select">
+            <option value="">All Statuses</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select asp-for="Rating" asp-items="Html.GetEnumSelectList<OverallRating>()" class="form-select">
+            <option value="">All Ratings</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select asp-for="DepartmentId" asp-items="Model.Departments" class="form-select">
+            <option value="">All Departments</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+@if (!Model.Reviews.Items.Any())
+{
+    <p class="text-muted">No reviews found.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead><tr><th>Employee</th><th>Reviewer</th><th>Period</th><th>Status</th><th>Rating</th><th>Actions</th></tr></thead>
+        <tbody>
+            @foreach (var review in Model.Reviews.Items)
+            {
+                <tr>
+                    <td><a asp-page="/Employees/Details" asp-route-id="@review.EmployeeId">@review.Employee.FullName</a></td>
+                    <td>@review.Reviewer.FullName</td>
+                    <td>@review.ReviewPeriodStart.ToString("MMM yyyy") — @review.ReviewPeriodEnd.ToString("MMM yyyy")</td>
+                    <td><partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", review.Status.ToString() } })' /></td>
+                    <td>
+                        @if (review.OverallRating.HasValue)
+                        {
+                            <partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", review.OverallRating.Value.ToString() } })' />
+                        }
+                        else { <span class="text-muted">—</span> }
+                    </td>
+                    <td><a asp-page="Details" asp-route-id="@review.Id" class="btn btn-sm btn-outline-primary">Details</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <partial name="/Pages/Shared/_Pagination" model='new { PageNumber = Model.Reviews.PageNumber, TotalPages = Model.Reviews.TotalPages, PageUrl = $"?Status={Model.Status}&Rating={Model.Rating}&DepartmentId={Model.DepartmentId}" }' />
+}

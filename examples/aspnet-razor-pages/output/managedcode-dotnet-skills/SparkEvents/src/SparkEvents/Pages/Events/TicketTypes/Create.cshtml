@@ -1,0 +1,81 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.Events.TicketTypes.CreateModel
+@{
+    ViewData["Title"] = $"Add Ticket Type - {Model.Event.Title}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Events/Index">Events</a></li>
+        <li class="breadcrumb-item"><a asp-page="/Events/Details" asp-route-id="@Model.Event.Id">@Model.Event.Title</a></li>
+        <li class="breadcrumb-item"><a asp-page="Index" asp-route-eventId="@Model.Event.Id">Ticket Types</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Add</li>
+    </ol>
+</nav>
+
+<h1>Add Ticket Type</h1>
+<p class="text-muted">For event: <strong>@Model.Event.Title</strong></p>
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="EventId" />
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Input.Name" class="form-label"></label>
+                        <input asp-for="Input.Name" class="form-control" />
+                        <span asp-validation-for="Input.Name" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Description" class="form-label"></label>
+                        <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Input.Description" class="text-danger"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.Price" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input asp-for="Input.Price" class="form-control" type="number" step="0.01" min="0" />
+                            </div>
+                            <span asp-validation-for="Input.Price" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.EarlyBirdPrice" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input asp-for="Input.EarlyBirdPrice" class="form-control" type="number" step="0.01" min="0" />
+                            </div>
+                            <span asp-validation-for="Input.EarlyBirdPrice" class="text-danger"></span>
+                            <div class="form-text">Optional.</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.Quantity" class="form-label"></label>
+                            <input asp-for="Input.Quantity" class="form-control" type="number" min="1" />
+                            <span asp-validation-for="Input.Quantity" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.SortOrder" class="form-label"></label>
+                            <input asp-for="Input.SortOrder" class="form-control" type="number" min="0" />
+                            <span asp-validation-for="Input.SortOrder" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">Create Ticket Type</button>
+                <a asp-page="Index" asp-route-eventId="@Model.EventId" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

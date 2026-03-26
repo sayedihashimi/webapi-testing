@@ -1,0 +1,83 @@
+@page
+@model HorizonHR.Pages.Employees.IndexModel
+@using HorizonHR.Models.Enums
+@{
+    ViewData["Title"] = "Employee Directory";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Employee Directory</h1>
+    <a href="/Employees/Create" class="btn btn-primary">+ New Employee</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <input type="text" name="searchTerm" value="@Model.SearchTerm" class="form-control" placeholder="Search name, email, or ID..." />
+    </div>
+    <div class="col-md-2">
+        <select name="departmentId" class="form-select" asp-items="Model.DepartmentOptions">
+            <option value="">All Departments</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="employmentType" class="form-select">
+            <option value="">All Types</option>
+            @foreach (var t in Enum.GetValues<EmploymentType>())
+            {
+                <option value="@t" selected="@(Model.EmploymentType == t)">@t</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="status" class="form-select">
+            <option value="">All Statuses</option>
+            @foreach (var s in Enum.GetValues<EmployeeStatus>())
+            {
+                <option value="@s" selected="@(Model.Status == s)">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+    </div>
+</form>
+
+@if (!Model.Employees.Any())
+{
+    <p class="text-muted">No employees found matching your criteria.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr><th>Employee #</th><th>Name</th><th>Email</th><th>Department</th><th>Job Title</th><th>Type</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in Model.Employees)
+            {
+                <tr>
+                    <td><code>@emp.EmployeeNumber</code></td>
+                    <td><a href="/Employees/Details/@emp.Id">@emp.FullName</a></td>
+                    <td>@emp.Email</td>
+                    <td>@emp.Department.Name</td>
+                    <td>@emp.JobTitle</td>
+                    <td>
+                        @{ViewData["Status"] = emp.EmploymentType.ToString();}
+                        <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                    </td>
+                    <td>
+                        @{ViewData["Status"] = emp.Status.ToString();}
+                        <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                    </td>
+                    <td><a href="/Employees/Details/@emp.Id" class="btn btn-sm btn-outline-secondary">View</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    var queryString = $"?searchTerm={Model.SearchTerm}&departmentId={Model.DepartmentId}&employmentType={Model.EmploymentType}&status={Model.Status}&";
+    ViewData["CurrentPage"] = Model.PageNumber;
+    ViewData["TotalPages"] = Model.TotalPages;
+    ViewData["PageUrl"] = $"/Employees{queryString}";
+    <partial name="Shared/_Pagination" view-data="ViewData" />
+}

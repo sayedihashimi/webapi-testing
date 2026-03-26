@@ -1,0 +1,62 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.EmployeeModel
+@{
+    ViewData["Title"] = $"Leave Summary - {Model.EmployeeName}";
+}
+
+<section>
+    <h1>Leave Summary — @Model.EmployeeName</h1>
+
+    <h4>Balances (@DateTime.UtcNow.Year)</h4>
+    @if (Model.Balances.Any())
+    {
+        <table class="table">
+            <thead><tr><th>Type</th><th>Total</th><th>Used</th><th>Carried Over</th><th>Remaining</th></tr></thead>
+            <tbody>
+                @foreach (var bal in Model.Balances)
+                {
+                    <tr>
+                        <td>@bal.LeaveType.Name</td>
+                        <td>@bal.TotalDays</td>
+                        <td>@bal.UsedDays</td>
+                        <td>@bal.CarriedOverDays</td>
+                        <td>@bal.RemainingDays</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No balances found.</p>
+    }
+
+    <h4 class="mt-4">Request History</h4>
+    @if (Model.Requests.Any())
+    {
+        <table class="table">
+            <thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var lr in Model.Requests)
+                {
+                    <tr>
+                        <td>@lr.LeaveType.Name</td>
+                        <td>@lr.StartDate.ToString("MMM dd") – @lr.EndDate.ToString("MMM dd, yyyy")</td>
+                        <td>@lr.TotalDays</td>
+                        <td>
+                            @{ ViewData["StatusText"] = lr.Status.ToString(); }
+                            <partial name="Shared/_StatusBadge" />
+                        </td>
+                        <td><a asp-page="Details" asp-route-id="@lr.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No leave requests found.</p>
+    }
+
+    <a asp-page="/Employees/Details" asp-route-id="@Model.EmployeeId" class="btn btn-outline-secondary mt-3">Back to Profile</a>
+</section>

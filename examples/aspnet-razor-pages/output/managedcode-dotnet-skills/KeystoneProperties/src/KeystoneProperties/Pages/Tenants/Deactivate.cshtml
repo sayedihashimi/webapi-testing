@@ -1,0 +1,35 @@
+@page "{id:int}"
+@model DeactivateModel
+@{
+    ViewData["Title"] = "Deactivate Tenant";
+}
+
+<h1>Deactivate Tenant</h1>
+
+<div class="alert alert-warning">
+    <h5 class="alert-heading">Are you sure you want to deactivate this tenant?</h5>
+    <p>Deactivating a tenant will prevent them from being assigned to new leases. Any active leases may also be affected.</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Tenant Information</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9">@Model.Tenant.FullName</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Tenant.Email</dd>
+
+            <dt class="col-sm-3">Phone</dt>
+            <dd class="col-sm-9">@Model.Tenant.Phone</dd>
+        </dl>
+    </div>
+</div>
+
+<form method="post" asp-route-id="@Model.Tenant.Id">
+    <button type="submit" class="btn btn-danger">Deactivate</button>
+    <a asp-page="/Tenants/Details" asp-route-id="@Model.Tenant.Id" class="btn btn-outline-secondary">Cancel</a>
+</form>

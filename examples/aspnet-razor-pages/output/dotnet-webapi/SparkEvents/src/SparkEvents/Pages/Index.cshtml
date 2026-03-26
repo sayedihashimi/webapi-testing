@@ -1,0 +1,159 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="mb-4">⚡ Spark Events Dashboard</h1>
+
+<section class="mb-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card text-bg-primary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Total Events</h5>
+                    <p class="card-text display-6">@Model.TotalEvents</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-success mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Total Registrations</h5>
+                    <p class="card-text display-6">@Model.TotalRegistrations</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-info mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Events This Month</h5>
+                    <p class="card-text display-6">@Model.EventsThisMonth</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-bg-warning mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Today's Events</h5>
+                    <p class="card-text display-6">@Model.TodaysEvents.Count</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (Model.TodaysEvents.Any())
+{
+    <section class="mb-4">
+        <h3>Today's Events</h3>
+        <div class="row">
+            @foreach (var evt in Model.TodaysEvents)
+            {
+                var checkedIn = Model.CheckInCounts.GetValueOrDefault(evt.Id);
+                var total = Model.ConfirmedCounts.GetValueOrDefault(evt.Id);
+                var pct = total > 0 ? (int)((double)checkedIn / total * 100) : 0;
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a asp-page="/Events/Details" asp-route-id="@evt.Id">@evt.Title</a>
+                            </h5>
+                            <p class="card-text text-muted">@evt.Venue.Name — @evt.StartDate.ToString("h:mm tt") to @evt.EndDate.ToString("h:mm tt")</p>
+                            <p class="mb-1">Check-in Progress: @checkedIn / @total</p>
+                            <div class="progress" role="progressbar" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-bar bg-success" style="width: @(pct)%">@pct%</div>
+                            </div>
+                            <a asp-page="/Events/CheckIn" asp-route-eventId="@evt.Id" class="btn btn-sm btn-primary mt-2">Check-In</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+<section class="mb-4">
+    <h3>Upcoming Events (Next 7 Days)</h3>
+    @if (!Model.UpcomingEvents.Any())
+    {
+        <p class="text-muted">No upcoming events in the next 7 days.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Date</th>
+                        <th>Venue</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Capacity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var evt in Model.UpcomingEvents)
+                    {
+                        <tr>
+                            <td><a asp-page="/Events/Details" asp-route-id="@evt.Id">@evt.Title</a></td>
+                            <td>@evt.StartDate.ToString("MMM dd, yyyy h:mm tt")</td>
+                            <td>@evt.Venue.Name</td>
+                            <td>
+                                @if (evt.EventCategory.ColorHex is not null)
+                                {
+                                    <span class="badge" style="background-color: @evt.EventCategory.ColorHex">@evt.EventCategory.Name</span>
+                                }
+                                else
+                                {
+                                    @evt.EventCategory.Name
+                                }
+                            </td>
+                            <td><partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", evt.Status.ToString() } })' /></td>
+                            <td>@evt.CurrentRegistrations / @evt.TotalCapacity</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<section>
+    <h3>Recent Registrations</h3>
+    @if (!Model.RecentRegistrations.Any())
+    {
+        <p class="text-muted">No recent registrations.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Confirmation</th>
+                        <th>Attendee</th>
+                        <th>Event</th>
+                        <th>Ticket</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var reg in Model.RecentRegistrations)
+                    {
+                        <tr>
+                            <td><a asp-page="/Registrations/Details" asp-route-id="@reg.Id">@reg.ConfirmationNumber</a></td>
+                            <td>@reg.Attendee.FullName</td>
+                            <td><a asp-page="/Events/Details" asp-route-id="@reg.EventId">@reg.Event.Title</a></td>
+                            <td>@reg.TicketType.Name</td>
+                            <td><partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", reg.Status.ToString() } })' /></td>
+                            <td>@reg.RegistrationDate.ToString("MMM dd, yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

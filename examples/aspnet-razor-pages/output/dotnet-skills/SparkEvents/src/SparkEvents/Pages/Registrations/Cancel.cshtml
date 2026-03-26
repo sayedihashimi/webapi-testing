@@ -1,0 +1,36 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Registrations.CancelModel
+@{ ViewData["Title"] = "Cancel Registration"; }
+
+<h1>Cancel Registration</h1>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Are you sure you want to cancel this registration?</h5>
+        <p><strong>Confirmation:</strong> @Model.Registration!.ConfirmationNumber</p>
+        <p><strong>Attendee:</strong> @Model.Registration.Attendee.FullName</p>
+        <p><strong>Event:</strong> @Model.Registration.Event.Title (@Model.Registration.Event.StartDate.ToString("MMM dd, yyyy"))</p>
+        <p><strong>Amount Paid:</strong> @Model.Registration.AmountPaid.ToString("C")</p>
+
+        @{
+            var hoursUntilEvent = (Model.Registration.Event.StartDate - DateTime.UtcNow).TotalHours;
+        }
+        @if (hoursUntilEvent < 24)
+        {
+            <div class="alert alert-danger" role="alert">
+                Cancellations are not allowed within 24 hours of the event start.
+            </div>
+        }
+        else
+        {
+            <form method="post">
+                <div class="mb-3">
+                    <label asp-for="Reason" class="form-label">Cancellation Reason (optional)</label>
+                    <textarea asp-for="Reason" class="form-control" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                <a asp-page="/Registrations/Details" asp-route-id="@Model.Registration.Id" class="btn btn-secondary">Go Back</a>
+            </form>
+        }
+    </div>
+</div>

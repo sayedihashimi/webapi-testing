@@ -1,0 +1,49 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.Events.WaitlistModel
+@{
+    ViewData["Title"] = $"Waitlist - {Model.Event.Title}";
+}
+
+<section>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-page="Index">Events</a></li>
+            <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Event.Id">@Model.Event.Title</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Waitlist</li>
+        </ol>
+    </nav>
+
+    <h1>Waitlist — @Model.Event.Title</h1>
+
+    @if (Model.WaitlistedRegistrations.Count == 0)
+    {
+        <p class="text-muted">No one on the waitlist.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Position</th>
+                    <th>Attendee Name</th>
+                    <th>Email</th>
+                    <th>Ticket Type</th>
+                    <th>Registration Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var reg in Model.WaitlistedRegistrations)
+                {
+                    <tr>
+                        <td>@reg.WaitlistPosition</td>
+                        <td>@reg.Attendee.FullName</td>
+                        <td>@reg.Attendee.Email</td>
+                        <td>@reg.TicketType.Name</td>
+                        <td>@reg.RegistrationDate.ToString("MMM dd, yyyy h:mm tt")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>

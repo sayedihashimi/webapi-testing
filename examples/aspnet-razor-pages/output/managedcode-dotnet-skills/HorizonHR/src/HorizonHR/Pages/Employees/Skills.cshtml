@@ -1,0 +1,70 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.SkillsModel
+@using HorizonHR.Models.Enums
+@{
+    ViewData["Title"] = $"Skills — {Model.EmployeeName}";
+}
+
+<h1>Manage Skills — @Model.EmployeeName</h1>
+
+<section class="mb-4">
+    <h4>Current Skills</h4>
+    @if (!Model.EmployeeSkills.Any())
+    {
+        <p class="text-muted">No skills recorded for this employee.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Skill</th><th>Category</th><th>Proficiency</th><th>Experience</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var es in Model.EmployeeSkills)
+                {
+                    <tr>
+                        <td>@es.Skill.Name</td>
+                        <td>@es.Skill.Category</td>
+                        <td>
+                            @{ViewData["Status"] = es.ProficiencyLevel.ToString();}
+                            <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                        </td>
+                        <td>@(es.YearsOfExperience.HasValue ? $"{es.YearsOfExperience} years" : "—")</td>
+                        <td>
+                            <form method="post" asp-page-handler="Remove" class="d-inline">
+                                <input type="hidden" name="id" value="@Model.EmployeeId" />
+                                <input type="hidden" name="skillId" value="@es.SkillId" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+<section>
+    <h4>Add Skill</h4>
+    <form method="post" asp-page-handler="Add" class="row g-3">
+        <input type="hidden" name="id" value="@Model.EmployeeId" />
+        <div class="col-md-3">
+            <label asp-for="Input.SkillId" class="form-label">Skill</label>
+            <select asp-for="Input.SkillId" class="form-select" asp-items="Model.AvailableSkills">
+                <option value="">Select Skill</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label asp-for="Input.ProficiencyLevel" class="form-label">Proficiency</label>
+            <select asp-for="Input.ProficiencyLevel" class="form-select"
+                    asp-items="@(new SelectList(Enum.GetValues<ProficiencyLevel>()))"></select>
+        </div>
+        <div class="col-md-2">
+            <label asp-for="Input.YearsOfExperience" class="form-label">Years</label>
+            <input asp-for="Input.YearsOfExperience" class="form-control" type="number" min="0" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+    </form>
+</section>
+
+<a href="/Employees/Details/@Model.EmployeeId" class="btn btn-link mt-3">&larr; Back to Employee Profile</a>

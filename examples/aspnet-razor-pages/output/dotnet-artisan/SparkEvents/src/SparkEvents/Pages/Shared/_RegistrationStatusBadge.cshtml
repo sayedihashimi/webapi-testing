@@ -1,0 +1,15 @@
+@model SparkEvents.Models.RegistrationStatus
+
+@{
+    var (badgeClass, label) = Model switch
+    {
+        SparkEvents.Models.RegistrationStatus.Confirmed => ("bg-success", "Confirmed"),
+        SparkEvents.Models.RegistrationStatus.Waitlisted => ("bg-warning text-dark", "Waitlisted"),
+        SparkEvents.Models.RegistrationStatus.Cancelled => ("bg-danger", "Cancelled"),
+        SparkEvents.Models.RegistrationStatus.CheckedIn => ("bg-primary", "Checked In"),
+        SparkEvents.Models.RegistrationStatus.NoShow => ("bg-dark", "No Show"),
+        _ => ("bg-secondary", Model.ToString())
+    };
+}
+
+<span class="badge @badgeClass">@label</span>

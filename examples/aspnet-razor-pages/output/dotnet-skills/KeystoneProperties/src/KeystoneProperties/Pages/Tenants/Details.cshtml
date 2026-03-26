@@ -1,0 +1,298 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Tenants.DetailsModel
+@{
+    ViewData["Title"] = $"Tenant - {Model.Tenant.FullName}";
+}
+
+<h1><i class="bi bi-person"></i> @Model.Tenant.FullName</h1>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-badge"></i> Tenant Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Name</dt>
+                    <dd class="col-sm-7">@Model.Tenant.FullName</dd>
+
+                    <dt class="col-sm-5">Email</dt>
+                    <dd class="col-sm-7">@Model.Tenant.Email</dd>
+
+                    <dt class="col-sm-5">Phone</dt>
+                    <dd class="col-sm-7">@Model.Tenant.Phone</dd>
+
+                    <dt class="col-sm-5">Date of Birth</dt>
+                    <dd class="col-sm-7">@Model.Tenant.DateOfBirth.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        @if (Model.Tenant.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-telephone"></i> Emergency Contact</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Contact Name</dt>
+                    <dd class="col-sm-7">@Model.Tenant.EmergencyContactName</dd>
+
+                    <dt class="col-sm-5">Contact Phone</dt>
+                    <dd class="col-sm-7">@Model.Tenant.EmergencyContactPhone</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mb-3">
+    <a asp-page="Edit" asp-route-id="@Model.Tenant.Id" class="btn btn-warning">
+        <i class="bi bi-pencil"></i> Edit
+    </a>
+    @if (Model.Tenant.IsActive)
+    {
+        <a asp-page="Deactivate" asp-route-id="@Model.Tenant.Id" class="btn btn-danger">
+            <i class="bi bi-person-x"></i> Deactivate
+        </a>
+    }
+    <a asp-page="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+@{
+    var currentLeases = Model.Tenant.Leases
+        .Where(l => l.Status == LeaseStatus.Active || l.Status == LeaseStatus.Pending)
+        .OrderByDescending(l => l.StartDate)
+        .ToList();
+    var pastLeases = Model.Tenant.Leases
+        .Where(l => l.Status != LeaseStatus.Active && l.Status != LeaseStatus.Pending)
+        .OrderByDescending(l => l.StartDate)
+        .ToList();
+    var allPayments = Model.Tenant.Leases
+        .SelectMany(l => l.Payments)
+        .OrderByDescending(p => p.PaymentDate)
+        .ToList();
+    var maintenanceRequests = Model.Tenant.MaintenanceRequests
+        .OrderByDescending(m => m.SubmittedDate)
+        .ToList();
+}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Current Leases</h5>
+    </div>
+    <div class="card-body">
+        @if (currentLeases.Count == 0)
+        {
+            <p class="text-muted mb-0">No current leases.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th>Unit</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Monthly Rent</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var lease in currentLeases)
+                        {
+                            <tr>
+                                <td>@lease.Unit.Property.Name</td>
+                                <td>@lease.Unit.UnitNumber</td>
+                                <td>@lease.StartDate.ToString("MMM dd, yyyy")</td>
+                                <td>@lease.EndDate.ToString("MMM dd, yyyy")</td>
+                                <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                                <td><span class="badge bg-success">@lease.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Past Leases</h5>
+    </div>
+    <div class="card-body">
+        @if (pastLeases.Count == 0)
+        {
+            <p class="text-muted mb-0">No past leases.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th>Unit</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Monthly Rent</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var lease in pastLeases)
+                        {
+                            <tr>
+                                <td>@lease.Unit.Property.Name</td>
+                                <td>@lease.Unit.UnitNumber</td>
+                                <td>@lease.StartDate.ToString("MMM dd, yyyy")</td>
+                                <td>@lease.EndDate.ToString("MMM dd, yyyy")</td>
+                                <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                                <td><span class="badge bg-secondary">@lease.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-credit-card"></i> Payment History</h5>
+    </div>
+    <div class="card-body">
+        @if (allPayments.Count == 0)
+        {
+            <p class="text-muted mb-0">No payment records.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var payment in allPayments)
+                        {
+                            <tr>
+                                <td>@payment.PaymentDate.ToString("MMM dd, yyyy")</td>
+                                <td>@payment.Amount.ToString("C")</td>
+                                <td>@payment.PaymentType</td>
+                                <td>@payment.PaymentMethod</td>
+                                <td>
+                                    @if (payment.Status == PaymentStatus.Completed)
+                                    {
+                                        <span class="badge bg-success">@payment.Status</span>
+                                    }
+                                    else if (payment.Status == PaymentStatus.Pending)
+                                    {
+                                        <span class="badge bg-warning text-dark">@payment.Status</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@payment.Status</span>
+                                    }
+                                </td>
+                                <td>@(payment.ReferenceNumber ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-wrench"></i> Maintenance Requests</h5>
+    </div>
+    <div class="card-body">
+        @if (maintenanceRequests.Count == 0)
+        {
+            <p class="text-muted mb-0">No maintenance requests.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Unit</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in maintenanceRequests)
+                        {
+                            <tr>
+                                <td>@request.Title</td>
+                                <td>@request.Unit.UnitNumber</td>
+                                <td>
+                                    @if (request.Priority == MaintenancePriority.Emergency)
+                                    {
+                                        <span class="badge bg-danger">@request.Priority</span>
+                                    }
+                                    else if (request.Priority == MaintenancePriority.High)
+                                    {
+                                        <span class="badge bg-warning text-dark">@request.Priority</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info text-dark">@request.Priority</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (request.Status == MaintenanceStatus.Completed)
+                                    {
+                                        <span class="badge bg-success">@request.Status</span>
+                                    }
+                                    else if (request.Status == MaintenanceStatus.InProgress)
+                                    {
+                                        <span class="badge bg-primary">@request.Status</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@request.Status</span>
+                                    }
+                                </td>
+                                <td>@request.SubmittedDate.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

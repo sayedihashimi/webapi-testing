@@ -1,0 +1,87 @@
+@page
+@model KeystoneProperties.Pages.Maintenance.CreateModel
+@{
+    ViewData["Title"] = "New Maintenance Request";
+}
+
+<h1 class="mb-4">New Maintenance Request</h1>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Request Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Input.UnitId" class="form-label"></label>
+                            <select asp-for="Input.UnitId" asp-items="Model.UnitList" class="form-select">
+                                <option value="">-- Select Unit --</option>
+                            </select>
+                            <span asp-validation-for="Input.UnitId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Input.TenantId" class="form-label"></label>
+                            <select asp-for="Input.TenantId" asp-items="Model.TenantList" class="form-select">
+                                <option value="">-- Select Tenant --</option>
+                            </select>
+                            <span asp-validation-for="Input.TenantId" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Input.Title" class="form-label"></label>
+                            <input asp-for="Input.Title" class="form-control" />
+                            <span asp-validation-for="Input.Title" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Input.Description" class="form-label"></label>
+                            <textarea asp-for="Input.Description" class="form-control" rows="4"></textarea>
+                            <span asp-validation-for="Input.Description" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Input.Priority" class="form-label"></label>
+                            <select asp-for="Input.Priority" asp-items="Html.GetEnumSelectList<MaintenancePriority>()" class="form-select" id="prioritySelect"></select>
+                            <span asp-validation-for="Input.Priority" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Input.Category" class="form-label"></label>
+                            <select asp-for="Input.Category" asp-items="Html.GetEnumSelectList<MaintenanceCategory>()" class="form-select"></select>
+                            <span asp-validation-for="Input.Category" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6" id="assignedToGroup" style="display: none;">
+                            <label asp-for="Input.AssignedTo" class="form-label"></label>
+                            <input asp-for="Input.AssignedTo" class="form-control" />
+                            <span asp-validation-for="Input.AssignedTo" class="text-danger"></span>
+                            <div class="form-text">Required for Emergency priority requests.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Create Request</button>
+                <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var prioritySelect = document.getElementById('prioritySelect');
+            var assignedToGroup = document.getElementById('assignedToGroup');
+
+            function toggleAssignedTo() {
+                assignedToGroup.style.display = prioritySelect.value === '@((int)MaintenancePriority.Emergency)' ? '' : 'none';
+            }
+
+            prioritySelect.addEventListener('change', toggleAssignedTo);
+            toggleAssignedTo();
+        });
+    </script>
+}

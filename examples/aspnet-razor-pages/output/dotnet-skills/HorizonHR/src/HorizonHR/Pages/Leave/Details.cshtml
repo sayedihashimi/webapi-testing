@@ -1,0 +1,152 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.DetailsModel
+@{
+    ViewData["Title"] = "Leave Request Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Leave Request Details</h1>
+    <a asp-page="/Leave/Index" class="btn btn-outline-secondary">Back to List</a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Request Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Leave Type</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.LeaveType.Name</dd>
+
+                    <dt class="col-sm-4">Start Date</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.StartDate.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-4">End Date</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.EndDate.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-4">Total Days</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.TotalDays</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <partial name="_StatusBadge" model="@Model.LeaveRequest.Status.ToString()" />
+                    </dd>
+
+                    <dt class="col-sm-4">Reason</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.Reason</dd>
+
+                    <dt class="col-sm-4">Submitted Date</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.SubmittedDate.ToString("MMM dd, yyyy HH:mm")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Employee Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Employee</dt>
+                    <dd class="col-sm-8">
+                        <a asp-page="/Leave/Employee" asp-route-id="@Model.LeaveRequest.EmployeeId">@Model.LeaveRequest.Employee.FullName</a>
+                    </dd>
+
+                    <dt class="col-sm-4">Employee Number</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.Employee.EmployeeNumber</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.Employee.Email</dd>
+
+                    <dt class="col-sm-4">Job Title</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.Employee.JobTitle</dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (Model.LeaveRequest.ReviewedBy != null)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Reviewer Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Reviewed By</dt>
+                        <dd class="col-sm-8">@Model.LeaveRequest.ReviewedBy.FullName</dd>
+
+                        <dt class="col-sm-4">Review Date</dt>
+                        <dd class="col-sm-8">@Model.LeaveRequest.ReviewDate?.ToString("MMM dd, yyyy HH:mm")</dd>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.LeaveRequest.ReviewNotes))
+                        {
+                            <dt class="col-sm-4">Review Notes</dt>
+                            <dd class="col-sm-8">@Model.LeaveRequest.ReviewNotes</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Leave Balance (@Model.LeaveRequest.StartDate.Year)</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.LeaveBalances.Any())
+                {
+                    @foreach (var balance in Model.LeaveBalances)
+                    {
+                        <div class="mb-3">
+                            <strong>@balance.LeaveType.Name</strong>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Remaining:</span>
+                                <span class="@(balance.RemainingDays > 0 ? "text-success" : "text-danger") fw-bold">
+                                    @balance.RemainingDays days
+                                </span>
+                            </div>
+                            <div class="progress mt-1" style="height: 6px;">
+                                @{
+                                    var total = balance.TotalDays + balance.CarriedOverDays;
+                                    var percentage = total > 0 ? (int)(balance.RemainingDays / total * 100) : 0;
+                                    percentage = Math.Max(0, Math.Min(100, percentage));
+                                }
+                                <div class="progress-bar @(percentage > 25 ? "bg-success" : "bg-danger")"
+                                     role="progressbar"
+                                     style="width: @(percentage)%"
+                                     aria-valuenow="@percentage"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No balance information available.</p>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                @if (Model.LeaveRequest.Status == LeaveRequestStatus.Submitted)
+                {
+                    <a asp-page="/Leave/Review" asp-route-id="@Model.LeaveRequest.Id" class="btn btn-primary">Review Request</a>
+                    <a asp-page="/Leave/Cancel" asp-route-id="@Model.LeaveRequest.Id" class="btn btn-outline-danger">Cancel Request</a>
+                }
+                @if (Model.LeaveRequest.Status == LeaveRequestStatus.Approved)
+                {
+                    <a asp-page="/Leave/Cancel" asp-route-id="@Model.LeaveRequest.Id" class="btn btn-outline-danger">Cancel Request</a>
+                }
+            </div>
+        </div>
+    </div>
+</div>

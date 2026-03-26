@@ -1,0 +1,77 @@
+@page
+@model HorizonHR.Pages.Reviews.IndexModel
+@using HorizonHR.Models.Enums
+@{
+    ViewData["Title"] = "Performance Reviews";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Performance Reviews</h1>
+    <a href="/Reviews/Create" class="btn btn-primary">+ New Review</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <select name="status" class="form-select">
+            <option value="">All Statuses</option>
+            @foreach (var s in Enum.GetValues<ReviewStatus>())
+            {
+                <option value="@s" selected="@(Model.StatusFilter == s)">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="departmentId" class="form-select" asp-items="Model.DepartmentOptions">
+            <option value="">All Departments</option>
+        </select>
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+    </div>
+</form>
+
+@if (!Model.Reviews.Any())
+{
+    <p class="text-muted">No performance reviews found.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr><th>Employee</th><th>Department</th><th>Reviewer</th><th>Period</th><th>Status</th><th>Rating</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var review in Model.Reviews)
+            {
+                <tr>
+                    <td><a href="/Employees/Details/@review.EmployeeId">@review.Employee.FullName</a></td>
+                    <td>@review.Employee.Department.Name</td>
+                    <td>@review.Reviewer.FullName</td>
+                    <td>@review.ReviewPeriodStart.ToString("MMM yyyy") — @review.ReviewPeriodEnd.ToString("MMM yyyy")</td>
+                    <td>
+                        @{ViewData["Status"] = review.Status.ToString();}
+                        <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                    </td>
+                    <td>
+                        @if (review.OverallRating.HasValue)
+                        {
+                            ViewData["Status"] = review.OverallRating.Value.ToString();
+                            <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                        }
+                        else
+                        {
+                            <span>—</span>
+                        }
+                    </td>
+                    <td><a href="/Reviews/Details/@review.Id" class="btn btn-sm btn-outline-secondary">View</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    var qs = $"?status={Model.StatusFilter}&departmentId={Model.DepartmentId}&";
+    ViewData["CurrentPage"] = Model.PageNumber;
+    ViewData["TotalPages"] = Model.TotalPages;
+    ViewData["PageUrl"] = $"/Reviews{qs}";
+    <partial name="Shared/_Pagination" view-data="ViewData" />
+}

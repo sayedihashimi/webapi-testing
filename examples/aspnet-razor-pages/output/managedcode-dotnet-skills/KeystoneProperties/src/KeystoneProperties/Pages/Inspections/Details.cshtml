@@ -1,0 +1,106 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Inspections.DetailsModel
+@using KeystoneProperties.Models
+@{
+    ViewData["Title"] = "Inspection Details";
+}
+
+<h1>Inspection Details</h1>
+
+<p><a asp-page="/Inspections/Index">&larr; Back to Inspections</a></p>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Inspection Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Unit</dt>
+                    <dd class="col-sm-8">
+                        <a asp-page="/Units/Details" asp-route-id="@Model.Inspection.UnitId">@Model.Inspection.Unit.UnitNumber</a>
+                        at @Model.Inspection.Unit.Property.Name
+                    </dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(m => m.Inspection.InspectionType)</dd>
+
+                    <dt class="col-sm-4">Scheduled Date</dt>
+                    <dd class="col-sm-8">@Model.Inspection.ScheduledDate.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-4">Inspector</dt>
+                    <dd class="col-sm-8">@Model.Inspection.InspectorName</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        @if (Model.Inspection.CompletedDate.HasValue)
+        {
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Completion Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Completed Date</dt>
+                        <dd class="col-sm-8">@Model.Inspection.CompletedDate.Value.ToString("MMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-4">Overall Condition</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.Inspection.OverallCondition.HasValue)
+                            {
+                                @await Component.InvokeAsync("StatusBadge", new { status = Model.Inspection.OverallCondition.Value.ToString() })
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Notes</dt>
+                        <dd class="col-sm-8">@(Model.Inspection.Notes ?? "—")</dd>
+
+                        <dt class="col-sm-4">Follow-up Required</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.Inspection.FollowUpRequired)
+                            {
+                                <span class="badge bg-warning text-dark">Yes</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">No</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        }
+
+        @if (Model.Inspection.Lease is not null)
+        {
+            <div class="card @(Model.Inspection.CompletedDate.HasValue ? "mt-3" : "")">
+                <div class="card-header">
+                    <h5 class="mb-0">Linked Lease</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Tenant</dt>
+                        <dd class="col-sm-8">@Model.Inspection.Lease.Tenant.FullName</dd>
+
+                        <dt class="col-sm-4">Lease Period</dt>
+                        <dd class="col-sm-8">@Model.Inspection.Lease.StartDate.ToString("MMM dd, yyyy") to @Model.Inspection.Lease.EndDate.ToString("MMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">@await Component.InvokeAsync("StatusBadge", new { status = Model.Inspection.Lease.Status.ToString() })</dd>
+                    </dl>
+                </div>
+            </div>
+        }
+
+        @if (!Model.Inspection.CompletedDate.HasValue)
+        {
+            <div class="mt-3">
+                <a asp-page="/Inspections/Complete" asp-route-id="@Model.Inspection.Id" class="btn btn-success">Complete Inspection</a>
+            </div>
+        }
+    </div>
+</div>

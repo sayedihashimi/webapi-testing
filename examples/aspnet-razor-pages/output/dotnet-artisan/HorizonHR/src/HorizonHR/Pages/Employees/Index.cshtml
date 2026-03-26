@@ -1,0 +1,65 @@
+@page
+@model HorizonHR.Pages.Employees.IndexModel
+@using HorizonHR.Models
+@{ ViewData["Title"] = "Employee Directory"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Employee Directory</h1>
+    <a asp-page="Create" class="btn btn-primary">Add Employee</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <input asp-for="Search" class="form-control" placeholder="Search name, email, ID..." />
+    </div>
+    <div class="col-md-2">
+        <select asp-for="DepartmentId" asp-items="Model.Departments" class="form-select">
+            <option value="">All Departments</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select asp-for="EmploymentType" asp-items="Html.GetEnumSelectList<EmploymentType>()" class="form-select">
+            <option value="">All Types</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select asp-for="Status" asp-items="Html.GetEnumSelectList<EmployeeStatus>()" class="form-select">
+            <option value="">All Statuses</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+@if (!Model.Employees.Items.Any())
+{
+    <p class="text-muted">No employees found matching your criteria.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr><th>Employee #</th><th>Name</th><th>Email</th><th>Department</th><th>Type</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in Model.Employees.Items)
+            {
+                <tr>
+                    <td>@emp.EmployeeNumber</td>
+                    <td><a asp-page="Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                    <td>@emp.Email</td>
+                    <td>@emp.Department.Name</td>
+                    <td><partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", emp.EmploymentType.ToString() } })' /></td>
+                    <td><partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", emp.Status.ToString() } })' /></td>
+                    <td>
+                        <a asp-page="Edit" asp-route-id="@emp.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <partial name="/Pages/Shared/_Pagination" model='new { PageNumber = Model.Employees.PageNumber, TotalPages = Model.Employees.TotalPages, PageUrl = $"?Search={Model.Search}&DepartmentId={Model.DepartmentId}&EmploymentType={Model.EmploymentType}&Status={Model.Status}" }' />
+}

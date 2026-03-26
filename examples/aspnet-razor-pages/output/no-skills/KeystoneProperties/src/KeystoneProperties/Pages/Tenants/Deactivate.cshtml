@@ -1,0 +1,16 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Tenants.DeactivateModel
+@{
+    ViewData["Title"] = "Deactivate Tenant";
+}
+<h1>Deactivate Tenant</h1>
+<div class="alert alert-warning" role="alert">Are you sure you want to deactivate <strong>@Model.Tenant.FullName</strong>?</div>
+<div class="card mb-3"><div class="card-body">
+    <p><strong>Email:</strong> @Model.Tenant.Email</p>
+    <p><strong>Phone:</strong> @Model.Tenant.Phone</p>
+</div></div>
+<form method="post">
+    <input type="hidden" name="id" value="@Model.Tenant.Id" />
+    <button type="submit" class="btn btn-danger">Confirm Deactivation</button>
+    <a asp-page="Details" asp-route-id="@Model.Tenant.Id" class="btn btn-outline-secondary">Cancel</a>
+</form>

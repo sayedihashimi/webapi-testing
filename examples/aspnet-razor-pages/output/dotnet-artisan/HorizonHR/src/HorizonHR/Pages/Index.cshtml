@@ -1,0 +1,111 @@
+@page
+@model HorizonHR.Pages.IndexModel
+@{ ViewData["Title"] = "Dashboard"; }
+
+<h1 class="mb-4">Dashboard</h1>
+
+<section class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Employees</h5>
+                <p class="card-text display-6">@Model.TotalEmployees</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Departments</h5>
+                <p class="card-text display-6">@Model.DepartmentCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Pending Leave</h5>
+                <p class="card-text display-6">@Model.PendingLeaveRequests</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Active Reviews</h5>
+                <p class="card-text display-6">@Model.UpcomingReviews</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="row">
+    <div class="col-md-6">
+        <section>
+            <h3>Headcount by Department</h3>
+            @if (Model.Departments.Any())
+            {
+                <table class="table table-striped">
+                    <thead><tr><th>Department</th><th>Employees</th></tr></thead>
+                    <tbody>
+                        @foreach (var dept in Model.Departments)
+                        {
+                            <tr><td>@dept.Name</td><td>@dept.Employees.Count</td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">No departments found.</p>
+            }
+        </section>
+    </div>
+    <div class="col-md-6">
+        <section>
+            <h3>Recent Hires (Last 30 Days)</h3>
+            @if (Model.RecentHires.Any())
+            {
+                <table class="table table-striped">
+                    <thead><tr><th>Name</th><th>Department</th><th>Hire Date</th></tr></thead>
+                    <tbody>
+                        @foreach (var emp in Model.RecentHires)
+                        {
+                            <tr>
+                                <td><a asp-page="/Employees/Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                                <td>@emp.Department.Name</td>
+                                <td>@emp.HireDate.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">No recent hires.</p>
+            }
+        </section>
+        <section class="mt-4">
+            <h3>Employees On Leave</h3>
+            @if (Model.OnLeaveToday.Any())
+            {
+                <table class="table table-striped">
+                    <thead><tr><th>Name</th><th>Department</th></tr></thead>
+                    <tbody>
+                        @foreach (var emp in Model.OnLeaveToday)
+                        {
+                            <tr>
+                                <td><a asp-page="/Employees/Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                                <td>@emp.Department.Name</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">No employees currently on leave.</p>
+            }
+        </section>
+    </div>
+</div>

@@ -1,0 +1,42 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.CancelModel
+@{
+    ViewData["Title"] = "Cancel Leave Request";
+}
+
+@if (Model.Request is null)
+{
+    <p class="text-danger">Leave request not found.</p>
+}
+else
+{
+    <h1 class="text-danger">Cancel Leave Request #@Model.Request.Id</h1>
+
+    @if (Model.Request.Status == HorizonHR.Models.Enums.LeaveRequestStatus.Approved)
+    {
+        <div class="alert alert-info" role="alert">
+            This request was previously approved. Cancelling will restore <strong>@Model.Request.TotalDays.ToString("F1")</strong> days to the employee's leave balance.
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Employee</dt>
+                <dd class="col-sm-9">@Model.Request.Employee.FullName</dd>
+                <dt class="col-sm-3">Leave Type</dt>
+                <dd class="col-sm-9">@Model.Request.LeaveType.Name</dd>
+                <dt class="col-sm-3">Dates</dt>
+                <dd class="col-sm-9">@Model.Request.StartDate.ToString("MMM d") — @Model.Request.EndDate.ToString("MMM d, yyyy")</dd>
+                <dt class="col-sm-3">Days</dt>
+                <dd class="col-sm-9">@Model.Request.TotalDays.ToString("F1")</dd>
+            </dl>
+        </div>
+    </div>
+
+    <form method="post">
+        <input type="hidden" name="id" value="@Model.Request.Id" />
+        <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+        <a href="/Leave/Details/@Model.Request.Id" class="btn btn-link">Go Back</a>
+    </form>
+}

@@ -1,0 +1,20 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.SelfAssessmentModel
+@{
+    ViewData["Title"] = "Self-Assessment";
+}
+
+<h1>Self-Assessment — @Model.EmployeeName</h1>
+
+<p>Review Period: @Model.PeriodStart.ToString("MMM dd, yyyy") — @Model.PeriodEnd.ToString("MMM dd, yyyy")</p>
+
+<form method="post">
+    <div class="mb-3">
+        <label asp-for="SelfAssessmentText" class="form-label">Self-Assessment</label>
+        <textarea asp-for="SelfAssessmentText" class="form-control" rows="8" required></textarea>
+        <span asp-validation-for="SelfAssessmentText" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit Self-Assessment</button>
+    <a asp-page="Details" asp-route-id="@Model.ReviewId" class="btn btn-secondary">Cancel</a>
+</form>

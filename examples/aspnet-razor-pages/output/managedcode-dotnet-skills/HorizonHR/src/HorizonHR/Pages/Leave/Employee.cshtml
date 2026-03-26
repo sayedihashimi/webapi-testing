@@ -1,0 +1,65 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.EmployeeModel
+@{
+    ViewData["Title"] = $"Leave Summary — {Model.EmployeeName}";
+}
+
+<h1>Leave Summary — @Model.EmployeeName</h1>
+
+<section class="mb-4">
+    <h4>Leave Balances (@DateTime.UtcNow.Year)</h4>
+    @if (!Model.Balances.Any())
+    {
+        <p class="text-muted">No leave balances found.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead><tr><th>Leave Type</th><th>Total</th><th>Used</th><th>Carried Over</th><th>Remaining</th></tr></thead>
+            <tbody>
+                @foreach (var bal in Model.Balances)
+                {
+                    <tr>
+                        <td>@bal.LeaveType.Name</td>
+                        <td>@bal.TotalDays.ToString("F1")</td>
+                        <td>@bal.UsedDays.ToString("F1")</td>
+                        <td>@bal.CarriedOverDays.ToString("F1")</td>
+                        <td class="@(bal.RemainingDays < 2 ? "text-danger fw-bold" : "")">@bal.RemainingDays.ToString("F1")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+<section>
+    <h4>Leave Request History</h4>
+    @if (!Model.Requests.Any())
+    {
+        <p class="text-muted">No leave requests found.</p>
+    }
+    else
+    {
+        <table class="table table-sm">
+            <thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var req in Model.Requests)
+                {
+                    <tr>
+                        <td>@req.LeaveType.Name</td>
+                        <td>@req.StartDate.ToString("MMM d") — @req.EndDate.ToString("MMM d, yyyy")</td>
+                        <td>@req.TotalDays.ToString("F1")</td>
+                        <td>
+                            @{ViewData["Status"] = req.Status.ToString();}
+                            <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                        </td>
+                        <td>@req.SubmittedDate.ToString("MMM d, yyyy")</td>
+                        <td><a href="/Leave/Details/@req.Id">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+<a href="/Employees/Details/@Model.EmployeeId" class="btn btn-link">&larr; Back to Employee Profile</a>

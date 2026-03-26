@@ -1,0 +1,64 @@
+@page
+@model KeystoneProperties.Pages.Maintenance.IndexModel
+@{ ViewData["Title"] = "Maintenance Requests"; }
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Maintenance Requests</h1>
+    <a asp-page="Create" class="btn btn-primary">New Request</a>
+</div>
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <select name="status" class="form-select">
+            <option value="">All Status</option>
+            @foreach (var s in Enum.GetValues<MaintenanceStatus>()) { <option value="@s" selected="@(Model.StatusFilter == s)">@s</option> }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="priority" class="form-select">
+            <option value="">All Priority</option>
+            @foreach (var p in Enum.GetValues<MaintenancePriority>()) { <option value="@p" selected="@(Model.PriorityFilter == p)">@p</option> }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="propertyId" class="form-select">
+            <option value="">All Properties</option>
+            @foreach (var p in Model.PropertyList) { <option value="@p.Id" selected="@(Model.PropertyId == p.Id)">@p.Name</option> }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="category" class="form-select">
+            <option value="">All Categories</option>
+            @foreach (var c in Enum.GetValues<MaintenanceCategory>()) { <option value="@c" selected="@(Model.CategoryFilter == c)">@c</option> }
+        </select>
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+@if (Model.Requests.Any())
+{
+    <table class="table table-striped">
+        <thead><tr><th>Title</th><th>Unit</th><th>Priority</th><th>Category</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
+        <tbody>
+            @foreach (var r in Model.Requests)
+            {
+                <tr>
+                    <td><a asp-page="Details" asp-route-id="@r.Id">@r.Title</a></td>
+                    <td>@r.Unit.Property.Name — @r.Unit.UnitNumber</td>
+                    <td><partial name="_StatusBadge" model="@(r.Priority.ToString(), "priority")" /></td>
+                    <td>@r.Category</td>
+                    <td><partial name="_StatusBadge" model="@(r.Status.ToString(), "maintenance")" /></td>
+                    <td>@r.SubmittedDate.ToString("MMM dd, yyyy")</td>
+                    <td>
+                        <a asp-page="Details" asp-route-id="@r.Id" class="btn btn-sm btn-outline-primary">View</a>
+                        @if (r.Status != MaintenanceStatus.Completed && r.Status != MaintenanceStatus.Cancelled)
+                        {
+                            <a asp-page="UpdateStatus" asp-route-id="@r.Id" class="btn btn-sm btn-outline-secondary">Update</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <partial name="_PaginationPartial" model="@(Model.CurrentPage, Model.TotalPages, $"?status={Model.StatusFilter}&priority={Model.PriorityFilter}&propertyId={Model.PropertyId}&category={Model.CategoryFilter}")" />
+}
+else { <p class="text-muted">No maintenance requests found.</p> }

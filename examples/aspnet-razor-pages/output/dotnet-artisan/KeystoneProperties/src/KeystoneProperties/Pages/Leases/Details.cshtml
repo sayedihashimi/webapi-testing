@@ -1,0 +1,189 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Leases.DetailsModel
+@{
+    ViewData["Title"] = $"Lease #{Model.Lease.Id}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Lease #@Model.Lease.Id</h1>
+    <div>
+        @if (Model.Lease.Status is LeaseStatus.Pending or LeaseStatus.Active)
+        {
+            <a asp-page="Edit" asp-route-id="@Model.Lease.Id" class="btn btn-outline-secondary">Edit</a>
+        }
+        @if (Model.Lease.Status == LeaseStatus.Active)
+        {
+            <a asp-page="Renew" asp-route-id="@Model.Lease.Id" class="btn btn-outline-success">Renew</a>
+            <a asp-page="Terminate" asp-route-id="@Model.Lease.Id" class="btn btn-outline-danger">Terminate</a>
+        }
+        <a asp-page="Index" class="btn btn-outline-dark">Back to List</a>
+    </div>
+</div>
+
+@if (Model.Lease.RenewalOfLeaseId.HasValue)
+{
+    <div class="alert alert-info">
+        <strong>Renewal Chain:</strong> This lease is a renewal of
+        <a asp-page="Details" asp-route-id="@Model.Lease.RenewalOfLeaseId">Lease #@Model.Lease.RenewalOfLeaseId</a>.
+    </div>
+}
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header"><h5 class="mb-0">Lease Information</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        <partial name="_StatusBadgePartial" model='(Model.Lease.Status.ToString(), "LeaseStatus")' />
+                    </dd>
+                    <dt class="col-sm-5">Tenant</dt>
+                    <dd class="col-sm-7">@Model.Lease.Tenant.FullName</dd>
+                    <dt class="col-sm-5">Property</dt>
+                    <dd class="col-sm-7">@Model.Lease.Unit.Property.Name</dd>
+                    <dt class="col-sm-5">Unit</dt>
+                    <dd class="col-sm-7">@Model.Lease.Unit.UnitNumber</dd>
+                    <dt class="col-sm-5">Start Date</dt>
+                    <dd class="col-sm-7">@Model.Lease.StartDate.ToShortDateString()</dd>
+                    <dt class="col-sm-5">End Date</dt>
+                    <dd class="col-sm-7">@Model.Lease.EndDate.ToShortDateString()</dd>
+                    <dt class="col-sm-5">Monthly Rent</dt>
+                    <dd class="col-sm-7">@Model.Lease.MonthlyRentAmount.ToString("C")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header"><h5 class="mb-0">Deposit &amp; Termination</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Deposit Amount</dt>
+                    <dd class="col-sm-7">@Model.Lease.DepositAmount.ToString("C")</dd>
+                    <dt class="col-sm-5">Deposit Status</dt>
+                    <dd class="col-sm-7">
+                        <partial name="_StatusBadgePartial" model='(Model.Lease.DepositStatus.ToString(), "DepositStatus")' />
+                    </dd>
+                    @if (Model.Lease.TerminationDate.HasValue)
+                    {
+                        <dt class="col-sm-5">Termination Date</dt>
+                        <dd class="col-sm-7">@Model.Lease.TerminationDate.Value.ToShortDateString()</dd>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.Lease.TerminationReason))
+                    {
+                        <dt class="col-sm-5">Termination Reason</dt>
+                        <dd class="col-sm-7">@Model.Lease.TerminationReason</dd>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.Lease.Notes))
+                    {
+                        <dt class="col-sm-5">Notes</dt>
+                        <dd class="col-sm-7">@Model.Lease.Notes</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">Payment History</h5></div>
+    <div class="card-body">
+        @if (Model.Lease.Payments.Count == 0)
+        {
+            <p class="text-muted mb-0">No payments recorded for this lease.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Due Date</th>
+                            <th>Type</th>
+                            <th>Method</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var payment in Model.Lease.Payments.OrderByDescending(p => p.PaymentDate))
+                        {
+                            <tr>
+                                <td>@payment.PaymentDate.ToShortDateString()</td>
+                                <td>@payment.DueDate.ToShortDateString()</td>
+                                <td>@payment.PaymentType</td>
+                                <td>@payment.PaymentMethod</td>
+                                <td>@payment.Amount.ToString("C")</td>
+                                <td>
+                                    <partial name="_StatusBadgePartial" model='(payment.Status.ToString(), "PaymentStatus")' />
+                                </td>
+                                <td>@payment.ReferenceNumber</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">Linked Inspections</h5></div>
+    <div class="card-body">
+        @if (Model.Lease.Inspections.Count == 0)
+        {
+            <p class="text-muted mb-0">No inspections linked to this lease.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Scheduled</th>
+                            <th>Completed</th>
+                            <th>Inspector</th>
+                            <th>Condition</th>
+                            <th>Follow-Up</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var inspection in Model.Lease.Inspections)
+                        {
+                            <tr>
+                                <td>@inspection.InspectionType</td>
+                                <td>@inspection.ScheduledDate.ToShortDateString()</td>
+                                <td>@(inspection.CompletedDate?.ToShortDateString() ?? "—")</td>
+                                <td>@inspection.InspectorName</td>
+                                <td>
+                                    @if (inspection.OverallCondition.HasValue)
+                                    {
+                                        <partial name="_StatusBadgePartial" model='(inspection.OverallCondition.Value.ToString(), "OverallCondition")' />
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (inspection.FollowUpRequired)
+                                    {
+                                        <span class="badge bg-warning text-dark">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

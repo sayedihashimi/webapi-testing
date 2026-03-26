@@ -1,0 +1,123 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.DetailsModel
+@{
+    ViewData["Title"] = "Review Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Review Details</h1>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to Reviews</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Review Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <dl>
+                    <dt>Employee</dt>
+                    <dd>@Model.Review.Employee.FullName</dd>
+                    <dt>Reviewer</dt>
+                    <dd>@Model.Review.Reviewer.FullName</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl>
+                    <dt>Review Period</dt>
+                    <dd>@Model.Review.ReviewPeriodStart.ToString("MMM d, yyyy") &ndash; @Model.Review.ReviewPeriodEnd.ToString("MMM d, yyyy")</dd>
+                    <dt>Status</dt>
+                    <dd><partial name="_StatusBadge" model="@Model.Review.Status.ToString()" /></dd>
+                    @if (Model.Review.OverallRating.HasValue)
+                    {
+                        <dt>Overall Rating</dt>
+                        <dd><partial name="_StatusBadge" model="@Model.Review.OverallRating.Value.ToString()" /></dd>
+                    }
+                    @if (Model.Review.CompletedDate.HasValue)
+                    {
+                        <dt>Completed Date</dt>
+                        <dd>@Model.Review.CompletedDate.Value.ToString("MMM d, yyyy")</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Review.SelfAssessment))
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Self Assessment</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-0" style="white-space: pre-wrap;">@Model.Review.SelfAssessment</p>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.Review.ManagerAssessment))
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Manager Assessment</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-0" style="white-space: pre-wrap;">@Model.Review.ManagerAssessment</p>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.Review.StrengthsNoted))
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Strengths</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-0" style="white-space: pre-wrap;">@Model.Review.StrengthsNoted</p>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.Review.AreasForImprovement))
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Areas for Improvement</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-0" style="white-space: pre-wrap;">@Model.Review.AreasForImprovement</p>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.Review.Goals))
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Goals</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-0" style="white-space: pre-wrap;">@Model.Review.Goals</p>
+        </div>
+    </div>
+}
+
+<div class="d-flex gap-2">
+    @if (Model.Review.Status == ReviewStatus.Draft)
+    {
+        <form method="post" asp-page-handler="Start" asp-route-id="@Model.Review.Id">
+            <button type="submit" class="btn btn-primary">Start Review</button>
+        </form>
+    }
+    @if (Model.Review.Status == ReviewStatus.SelfAssessmentPending)
+    {
+        <a asp-page="SelfAssessment" asp-route-id="@Model.Review.Id" class="btn btn-primary">Submit Self-Assessment</a>
+    }
+    @if (Model.Review.Status == ReviewStatus.ManagerReviewPending)
+    {
+        <a asp-page="ManagerReview" asp-route-id="@Model.Review.Id" class="btn btn-primary">Complete Manager Review</a>
+    }
+</div>

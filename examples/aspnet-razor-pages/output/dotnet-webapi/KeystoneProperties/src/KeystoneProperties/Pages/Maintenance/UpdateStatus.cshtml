@@ -1,0 +1,110 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Maintenance.UpdateStatusModel
+@{
+    ViewData["Title"] = $"Update Status — Request #{Model.Request.Id}";
+}
+
+<h1>Update Status</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Current Request</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Title</dt>
+                    <dd class="col-sm-9">@Model.Request.Title</dd>
+
+                    <dt class="col-sm-3">Current Status</dt>
+                    <dd class="col-sm-9">
+                        @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", Model.Request.Status.ToString() } })
+                    </dd>
+
+                    <dt class="col-sm-3">Unit / Property</dt>
+                    <dd class="col-sm-9">@Model.Request.Unit?.Property?.Name — @Model.Request.Unit?.UnitNumber</dd>
+
+                    <dt class="col-sm-3">Tenant</dt>
+                    <dd class="col-sm-9">@Model.Request.Tenant?.FullName</dd>
+                </dl>
+            </div>
+        </div>
+
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.NewStatus" class="form-label"></label>
+                <select asp-for="Input.NewStatus" id="newStatusSelect" class="form-select">
+                    <option value="">— Select New Status —</option>
+                    @foreach (var status in Model.ValidNextStatuses)
+                    {
+                        <option value="@status">@status</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.NewStatus" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3" id="assignedToGroup" style="display:none;">
+                <label asp-for="Input.AssignedTo" class="form-label"></label>
+                <input asp-for="Input.AssignedTo" class="form-control" />
+                <span asp-validation-for="Input.AssignedTo" class="text-danger"></span>
+                <div class="form-text">Required when transitioning to Assigned.</div>
+            </div>
+
+            <div class="mb-3" id="completionNotesGroup" style="display:none;">
+                <label asp-for="Input.CompletionNotes" class="form-label"></label>
+                <textarea asp-for="Input.CompletionNotes" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Input.CompletionNotes" class="text-danger"></span>
+                <div class="form-text">Required when completing a request.</div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.EstimatedCost" class="form-label"></label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input asp-for="Input.EstimatedCost" class="form-control" type="number" step="0.01" min="0" />
+                    </div>
+                    <span asp-validation-for="Input.EstimatedCost" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.ActualCost" class="form-label"></label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input asp-for="Input.ActualCost" class="form-control" type="number" step="0.01" min="0" />
+                    </div>
+                    <span asp-validation-for="Input.ActualCost" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-warning">Update Status</button>
+                <a asp-page="Details" asp-route-id="@Model.Request.Id" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('newStatusSelect').addEventListener('change', function () {
+            var assignedGroup = document.getElementById('assignedToGroup');
+            var completionGroup = document.getElementById('completionNotesGroup');
+
+            assignedGroup.style.display = (this.value === 'Assigned') ? '' : 'none';
+            completionGroup.style.display = (this.value === 'Completed') ? '' : 'none';
+        });
+
+        // Show fields on page load if values are pre-selected (e.g. after validation failure)
+        (function () {
+            var select = document.getElementById('newStatusSelect');
+            if (select.value === 'Assigned') {
+                document.getElementById('assignedToGroup').style.display = '';
+            }
+            if (select.value === 'Completed') {
+                document.getElementById('completionNotesGroup').style.display = '';
+            }
+        })();
+    </script>
+}

@@ -1,0 +1,42 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Maintenance.DetailsModel
+@{ ViewData["Title"] = Model.Request.Title; }
+<h1>@Model.Request.Title</h1>
+<div class="card mb-4"><div class="card-body"><div class="row">
+    <div class="col-md-6">
+        <p><strong>Unit:</strong> <a asp-page="/Units/Details" asp-route-id="@Model.Request.UnitId">@Model.Request.Unit.UnitNumber</a> — @Model.Request.Unit.Property.Name</p>
+        <p><strong>Tenant:</strong> <a asp-page="/Tenants/Details" asp-route-id="@Model.Request.TenantId">@Model.Request.Tenant.FullName</a></p>
+        <p><strong>Category:</strong> @Model.Request.Category</p>
+        <p><strong>Priority:</strong> <partial name="_StatusBadge" model="@(Model.Request.Priority.ToString(), "priority")" /></p>
+        <p><strong>Status:</strong> <partial name="_StatusBadge" model="@(Model.Request.Status.ToString(), "maintenance")" /></p>
+    </div>
+    <div class="col-md-6">
+        <p><strong>Submitted:</strong> @Model.Request.SubmittedDate.ToString("MMM dd, yyyy HH:mm")</p>
+        @if (Model.Request.AssignedTo != null) { <p><strong>Assigned To:</strong> @Model.Request.AssignedTo</p> }
+        @if (Model.Request.AssignedDate.HasValue) { <p><strong>Assigned Date:</strong> @Model.Request.AssignedDate.Value.ToString("MMM dd, yyyy")</p> }
+        @if (Model.Request.CompletedDate.HasValue) { <p><strong>Completed:</strong> @Model.Request.CompletedDate.Value.ToString("MMM dd, yyyy")</p> }
+        @if (Model.Request.EstimatedCost.HasValue) { <p><strong>Estimated Cost:</strong> @Model.Request.EstimatedCost.Value.ToString("C")</p> }
+        @if (Model.Request.ActualCost.HasValue) { <p><strong>Actual Cost:</strong> @Model.Request.ActualCost.Value.ToString("C")</p> }
+    </div>
+</div>
+    <p><strong>Description:</strong> @Model.Request.Description</p>
+    @if (!string.IsNullOrEmpty(Model.Request.CompletionNotes)) { <p><strong>Completion Notes:</strong> @Model.Request.CompletionNotes</p> }
+</div></div>
+
+<section class="mb-3">
+    <h5>Status Timeline</h5>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item">📋 Submitted: @Model.Request.SubmittedDate.ToString("MMM dd, yyyy HH:mm")</li>
+        @if (Model.Request.AssignedDate.HasValue) { <li class="list-group-item">👷 Assigned: @Model.Request.AssignedDate.Value.ToString("MMM dd, yyyy HH:mm") → @Model.Request.AssignedTo</li> }
+        @if (Model.Request.CompletedDate.HasValue) { <li class="list-group-item">✅ Completed: @Model.Request.CompletedDate.Value.ToString("MMM dd, yyyy HH:mm")</li> }
+        @if (Model.Request.Status == MaintenanceStatus.Cancelled) { <li class="list-group-item">❌ Cancelled</li> }
+    </ul>
+</section>
+
+<div class="d-flex gap-2">
+    @if (Model.Request.Status != MaintenanceStatus.Completed && Model.Request.Status != MaintenanceStatus.Cancelled)
+    {
+        <a asp-page="UpdateStatus" asp-route-id="@Model.Request.Id" class="btn btn-primary">Update Status</a>
+    }
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+</div>

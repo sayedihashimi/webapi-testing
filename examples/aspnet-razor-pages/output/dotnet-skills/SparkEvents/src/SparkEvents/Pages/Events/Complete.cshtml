@@ -1,0 +1,16 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.CompleteModel
+@{ ViewData["Title"] = "Complete Event"; }
+
+<h1>Mark Event as Completed</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Are you sure you want to mark this event as completed?</h5>
+        <p><strong>Event:</strong> @Model.Event!.Title</p>
+        <p><strong>Date:</strong> @Model.Event.StartDate.ToString("MMM dd, yyyy") — @Model.Event.EndDate.ToString("MMM dd, yyyy")</p>
+        <form method="post">
+            <button type="submit" class="btn btn-info">Mark Completed</button>
+            <a asp-page="Details" asp-route-id="@Model.Event.Id" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

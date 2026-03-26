@@ -1,0 +1,49 @@
+@page
+@model HorizonHR.Pages.Departments.CreateModel
+@{ ViewData["Title"] = "Create Department"; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Departments</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Create</li>
+    </ol>
+</nav>
+
+<h1>Create Department</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="Input.Name" class="form-label"></label>
+                <input asp-for="Input.Name" class="form-control" />
+                <span asp-validation-for="Input.Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Code" class="form-label"></label>
+                <input asp-for="Input.Code" class="form-control" />
+                <span asp-validation-for="Input.Code" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Description" class="form-label"></label>
+                <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Input.Description" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.ParentDepartmentId" class="form-label">Parent Department</label>
+                <select asp-for="Input.ParentDepartmentId" asp-items="Model.ParentDepartments" class="form-select">
+                    <option value="">— None —</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.ManagerId" class="form-label">Manager</label>
+                <select asp-for="Input.ManagerId" asp-items="Model.Managers" class="form-select">
+                    <option value="">— None —</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

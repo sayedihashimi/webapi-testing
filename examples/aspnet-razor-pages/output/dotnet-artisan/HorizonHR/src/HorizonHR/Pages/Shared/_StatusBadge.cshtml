@@ -1,0 +1,47 @@
+@using HorizonHR.Models
+@{
+    var status = (string?)ViewData["Status"];
+    var badgeClass = status switch
+    {
+        "Active" => "bg-success",
+        "OnLeave" => "bg-warning text-dark",
+        "Terminated" => "bg-secondary",
+        "Submitted" => "bg-info text-dark",
+        "Approved" => "bg-success",
+        "Rejected" => "bg-danger",
+        "Cancelled" => "bg-secondary",
+        "Draft" => "bg-light text-dark border",
+        "SelfAssessmentPending" => "bg-info text-dark",
+        "ManagerReviewPending" => "bg-warning text-dark",
+        "Completed" => "bg-success",
+        "Outstanding" => "bg-success",
+        "ExceedsExpectations" => "bg-primary",
+        "MeetsExpectations" => "bg-info text-dark",
+        "NeedsImprovement" => "bg-warning text-dark",
+        "Unsatisfactory" => "bg-danger",
+        "FullTime" => "bg-primary",
+        "PartTime" => "bg-info text-dark",
+        "Contract" => "bg-warning text-dark",
+        "Intern" => "bg-light text-dark border",
+        "Beginner" => "bg-light text-dark border",
+        "Intermediate" => "bg-info text-dark",
+        "Advanced" => "bg-primary",
+        "Expert" => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    // Make enum display names friendlier
+    var displayText = status switch
+    {
+        "SelfAssessmentPending" => "Self-Assessment Pending",
+        "ManagerReviewPending" => "Manager Review Pending",
+        "ExceedsExpectations" => "Exceeds Expectations",
+        "MeetsExpectations" => "Meets Expectations",
+        "NeedsImprovement" => "Needs Improvement",
+        "OnLeave" => "On Leave",
+        "FullTime" => "Full Time",
+        "PartTime" => "Part Time",
+        _ => status
+    };
+}
+<span class="badge @badgeClass">@displayText</span>

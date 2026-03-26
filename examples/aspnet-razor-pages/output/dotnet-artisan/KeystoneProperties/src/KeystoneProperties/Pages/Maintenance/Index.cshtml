@@ -1,0 +1,106 @@
+@page
+@model KeystoneProperties.Pages.Maintenance.IndexModel
+@{
+    ViewData["Title"] = "Maintenance Requests";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Maintenance Requests</h1>
+    <a asp-page="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> New Request
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMsg)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @successMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<form method="get" class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select asp-for="Status" asp-items="Html.GetEnumSelectList<MaintenanceStatus>()" class="form-select">
+                    <option value="">All Statuses</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Priority</label>
+                <select asp-for="Priority" asp-items="Html.GetEnumSelectList<MaintenancePriority>()" class="form-select">
+                    <option value="">All Priorities</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Property</label>
+                <select asp-for="PropertyId" asp-items="Model.PropertyList" class="form-select">
+                    <option value="">All Properties</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select asp-for="Category" asp-items="Html.GetEnumSelectList<MaintenanceCategory>()" class="form-select">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button type="submit" class="btn btn-outline-primary">Filter</button>
+            <a asp-page="Index" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </div>
+</form>
+
+@if (Model.Requests.Items.Count == 0)
+{
+    <div class="alert alert-info">No maintenance requests found matching the selected filters.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Unit</th>
+                    <th>Tenant</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th>Category</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var request in Model.Requests.Items)
+                {
+                    <tr>
+                        <td>@request.Title</td>
+                        <td>@request.Unit.Property.Name - Unit #@request.Unit.UnitNumber</td>
+                        <td>@request.Tenant.FullName</td>
+                        <td>
+                            <partial name="_StatusBadgePartial" model="@(request.Priority.ToString(), "MaintenancePriority")" />
+                        </td>
+                        <td>
+                            <partial name="_StatusBadgePartial" model="@(request.Status.ToString(), "MaintenanceStatus")" />
+                        </td>
+                        <td>@request.SubmittedDate.ToShortDateString()</td>
+                        <td>@request.Category</td>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@request.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                            @if (request.Status is not (MaintenanceStatus.Completed or MaintenanceStatus.Cancelled))
+                            {
+                                <a asp-page="UpdateStatus" asp-route-id="@request.Id" class="btn btn-sm btn-outline-warning">Update</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="_PaginationPartial" model="@(Model.Requests.PageNumber, Model.Requests.TotalPages, Model.GetFilterUrl())" />
+}

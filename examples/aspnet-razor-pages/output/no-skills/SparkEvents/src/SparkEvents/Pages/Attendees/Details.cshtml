@@ -1,0 +1,65 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Attendees.DetailsModel
+@{
+    ViewData["Title"] = Model.Attendee.FullName;
+}
+
+<section>
+    <h1>@Model.Attendee.FullName</h1>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-6">
+            <dl class="row">
+                <dt class="col-sm-4">Email</dt>
+                <dd class="col-sm-8">@Model.Attendee.Email</dd>
+                <dt class="col-sm-4">Phone</dt>
+                <dd class="col-sm-8">@(Model.Attendee.Phone ?? "N/A")</dd>
+                <dt class="col-sm-4">Organization</dt>
+                <dd class="col-sm-8">@(Model.Attendee.Organization ?? "N/A")</dd>
+                <dt class="col-sm-4">Dietary Needs</dt>
+                <dd class="col-sm-8">@(Model.Attendee.DietaryNeeds ?? "None")</dd>
+                <dt class="col-sm-4">Member Since</dt>
+                <dd class="col-sm-8">@Model.Attendee.CreatedAt.ToString("MMM dd, yyyy")</dd>
+            </dl>
+            <a asp-page="Edit" asp-route-id="@Model.Attendee.Id" class="btn btn-primary">Edit</a>
+            <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+</section>
+
+<section class="mt-4">
+    <h3>Registration History</h3>
+    @if (Model.Registrations.Any())
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Confirmation #</th>
+                    <th>Event</th>
+                    <th>Ticket</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Registrations)
+                {
+                    <tr>
+                        <td><a asp-page="/Registrations/Details" asp-route-id="@r.Id">@r.ConfirmationNumber</a></td>
+                        <td><a asp-page="/Events/Details" asp-route-id="@r.EventId">@r.Event.Title</a></td>
+                        <td>@r.TicketType.Name</td>
+                        <td>@r.AmountPaid.ToString("C")</td>
+                        <td><partial name="_RegistrationStatusBadge" model="r.Status" /></td>
+                        <td>@r.RegistrationDate.ToString("MMM dd, yyyy")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No registrations yet.</p>
+    }
+</section>

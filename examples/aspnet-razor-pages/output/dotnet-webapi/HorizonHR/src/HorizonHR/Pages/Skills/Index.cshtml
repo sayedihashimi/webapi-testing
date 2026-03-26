@@ -1,0 +1,48 @@
+@page
+@model HorizonHR.Pages.Skills.IndexModel
+@{
+    ViewData["Title"] = "Skills";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Skills Catalog</h1>
+    <div>
+        <a asp-page="Search" class="btn btn-outline-info">Search by Skill</a>
+        <a asp-page="Create" class="btn btn-primary">Add Skill</a>
+    </div>
+</div>
+
+@if (Model.SkillsByCategory.Count == 0)
+{
+    <p>No skills found.</p>
+}
+else
+{
+    @foreach (var group in Model.SkillsByCategory)
+    {
+        <section class="mb-4">
+            <h3>@group.Key</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Employees</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var skill in group.Value)
+                    {
+                        <tr>
+                            <td>@skill.Name</td>
+                            <td>@(skill.Description ?? "—")</td>
+                            <td><span class="badge bg-secondary">@skill.EmployeeSkills.Count</span></td>
+                            <td><a asp-page="Edit" asp-route-id="@skill.Id" class="btn btn-sm btn-outline-secondary">Edit</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+}

@@ -1,0 +1,118 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Inspections.DetailsModel
+@{
+    ViewData["Title"] = "Inspection Details";
+}
+
+<h1>Inspection Details</h1>
+
+@if (TempData["SuccessMessage"] is string success)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @success
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Inspection Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Unit</dt>
+                    <dd class="col-sm-8">@Model.Inspection.Unit.Property.Name - @Model.Inspection.Unit.UnitNumber</dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">@await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", Model.Inspection.InspectionType.ToString() } })</dd>
+
+                    <dt class="col-sm-4">Scheduled Date</dt>
+                    <dd class="col-sm-8">@Model.Inspection.ScheduledDate.ToString("yyyy-MM-dd")</dd>
+
+                    <dt class="col-sm-4">Completed Date</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Inspection.CompletedDate.HasValue)
+                        {
+                            @Model.Inspection.CompletedDate.Value.ToString("yyyy-MM-dd")
+                        }
+                        else
+                        {
+                            <span class="text-muted">Pending</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Inspector</dt>
+                    <dd class="col-sm-8">@Model.Inspection.InspectorName</dd>
+
+                    <dt class="col-sm-4">Overall Condition</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Inspection.OverallCondition.HasValue)
+                        {
+                            @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", Model.Inspection.OverallCondition.Value.ToString() } })
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Follow-Up Required</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Inspection.FollowUpRequired)
+                        {
+                            <span class="badge bg-warning text-dark">Yes</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Created</dt>
+                    <dd class="col-sm-8">@Model.Inspection.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Inspection.Notes))
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Notes</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0" style="white-space: pre-wrap;">@Model.Inspection.Notes</p>
+                </div>
+            </div>
+        }
+
+        @if (Model.Inspection.Lease is not null)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Linked Lease</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Tenant</dt>
+                        <dd class="col-sm-8">@Model.Inspection.Lease.Tenant.FullName</dd>
+
+                        <dt class="col-sm-4">Unit</dt>
+                        <dd class="col-sm-8">@Model.Inspection.Lease.Unit.Property.Name - @Model.Inspection.Lease.Unit.UnitNumber</dd>
+                    </dl>
+                    <a asp-page="/Leases/Details" asp-route-id="@Model.Inspection.LeaseId" class="btn btn-sm btn-outline-primary mt-2">View Lease</a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="mt-3">
+    @if (!Model.Inspection.CompletedDate.HasValue)
+    {
+        <a asp-page="./Complete" asp-route-id="@Model.Inspection.Id" class="btn btn-success">Complete Inspection</a>
+    }
+    <a asp-page="./Index" class="btn btn-outline-secondary">Back to List</a>
+</div>

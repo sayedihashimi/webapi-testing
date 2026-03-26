@@ -1,0 +1,74 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.EmployeeModel
+@{
+    ViewData["Title"] = $"Leave Summary - {Model.EmployeeName}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Leave</a></li>
+        <li class="breadcrumb-item active">@Model.EmployeeName</li>
+    </ol>
+</nav>
+
+<h1>Leave Summary — @Model.EmployeeName</h1>
+
+<section class="mb-4">
+    <h3>Balances (@DateTime.UtcNow.Year)</h3>
+    @if (Model.Balances.Count == 0)
+    {
+        <p>No leave balances found.</p>
+    }
+    else
+    {
+        <table class="table table-sm">
+            <thead>
+                <tr><th>Leave Type</th><th>Total</th><th>Used</th><th>Carried Over</th><th>Remaining</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var b in Model.Balances)
+                {
+                    <tr>
+                        <td>@b.LeaveType.Name</td>
+                        <td>@b.TotalDays</td>
+                        <td>@b.UsedDays</td>
+                        <td>@b.CarriedOverDays</td>
+                        <td><strong>@b.RemainingDays</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+<section>
+    <h3>Request History</h3>
+    @if (Model.Requests.Count == 0)
+    {
+        <p>No leave requests found.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Type</th><th>Start</th><th>End</th><th>Days</th><th>Status</th><th>Submitted</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Requests)
+                {
+                    <tr>
+                        <td>@r.LeaveType.Name</td>
+                        <td>@r.StartDate.ToString("MMM dd, yyyy")</td>
+                        <td>@r.EndDate.ToString("MMM dd, yyyy")</td>
+                        <td>@r.TotalDays</td>
+                        <td><partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", r.Status.ToString() } })' /></td>
+                        <td>@r.SubmittedDate.ToString("MMM dd, yyyy")</td>
+                        <td><a asp-page="Details" asp-route-id="@r.Id" class="btn btn-sm btn-outline-info">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>

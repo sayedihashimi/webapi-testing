@@ -1,0 +1,116 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Leases.EditModel
+@{
+    ViewData["Title"] = "Edit Lease";
+}
+
+<h1>Edit Lease</h1>
+
+<div class="mb-3">
+    <a asp-page="Index" class="btn btn-outline-secondary">&larr; Back to Leases</a>
+</div>
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+@if (Model.IsActive)
+{
+    <div class="alert alert-info">
+        This lease is currently active. Only the Notes field can be edited. To change other details, the lease must be terminated and a new one created.
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Current Lease Information</h5>
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Tenant</dt>
+                <dd class="col-sm-9">@Model.Lease.Tenant.FullName</dd>
+                <dt class="col-sm-3">Unit</dt>
+                <dd class="col-sm-9">@Model.Lease.Unit.UnitNumber - @Model.Lease.Unit.Property.Name</dd>
+                <dt class="col-sm-3">Start Date</dt>
+                <dd class="col-sm-9">@Model.Lease.StartDate.ToString("MMM dd, yyyy")</dd>
+                <dt class="col-sm-3">End Date</dt>
+                <dd class="col-sm-9">@Model.Lease.EndDate.ToString("MMM dd, yyyy")</dd>
+                <dt class="col-sm-3">Monthly Rent</dt>
+                <dd class="col-sm-9">@Model.Lease.MonthlyRentAmount.ToString("C")</dd>
+                <dt class="col-sm-3">Security Deposit</dt>
+                <dd class="col-sm-9">@Model.Lease.DepositAmount.ToString("C")</dd>
+            </dl>
+        </div>
+    </div>
+
+    <form method="post" class="row g-3">
+        <input type="hidden" asp-for="Input.Id" />
+        <input type="hidden" asp-for="Input.TenantId" />
+        <input type="hidden" asp-for="Input.UnitId" />
+        <input type="hidden" asp-for="Input.StartDate" />
+        <input type="hidden" asp-for="Input.EndDate" />
+        <input type="hidden" asp-for="Input.MonthlyRentAmount" />
+        <input type="hidden" asp-for="Input.DepositAmount" />
+        <div class="col-12">
+            <label asp-for="Input.Notes" class="form-label"></label>
+            <textarea asp-for="Input.Notes" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Input.Notes" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a asp-page="Details" asp-route-id="@Model.Input.Id" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+}
+else
+{
+    <form method="post" class="row g-3">
+        <input type="hidden" asp-for="Input.Id" />
+        <div class="col-md-6">
+            <label asp-for="Input.TenantId" class="form-label"></label>
+            <select asp-for="Input.TenantId" asp-items="@(new SelectList(Model.ActiveTenants, "Id", "FullName"))" class="form-select">
+                <option value="">-- Select Tenant --</option>
+            </select>
+            <span asp-validation-for="Input.TenantId" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Input.UnitId" class="form-label"></label>
+            <select asp-for="Input.UnitId" class="form-select">
+                <option value="">-- Select Unit --</option>
+                @foreach (var unit in Model.AvailableUnits)
+                {
+                    <option value="@unit.Id" selected="@(unit.Id == Model.Input.UnitId)">@unit.UnitNumber - @unit.Property.Name - @unit.MonthlyRent.ToString("C")/mo</option>
+                }
+            </select>
+            <span asp-validation-for="Input.UnitId" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Input.StartDate" class="form-label"></label>
+            <input asp-for="Input.StartDate" class="form-control" type="date" />
+            <span asp-validation-for="Input.StartDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Input.EndDate" class="form-label"></label>
+            <input asp-for="Input.EndDate" class="form-control" type="date" />
+            <span asp-validation-for="Input.EndDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Input.MonthlyRentAmount" class="form-label"></label>
+            <input asp-for="Input.MonthlyRentAmount" class="form-control" type="number" step="0.01" />
+            <span asp-validation-for="Input.MonthlyRentAmount" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Input.DepositAmount" class="form-label"></label>
+            <input asp-for="Input.DepositAmount" class="form-control" type="number" step="0.01" />
+            <span asp-validation-for="Input.DepositAmount" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="Input.Notes" class="form-label"></label>
+            <textarea asp-for="Input.Notes" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Input.Notes" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

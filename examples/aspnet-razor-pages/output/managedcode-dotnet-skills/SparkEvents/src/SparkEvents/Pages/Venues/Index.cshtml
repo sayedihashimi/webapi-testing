@@ -1,0 +1,70 @@
+@page
+@model SparkEvents.Pages.Venues.IndexModel
+@{
+    ViewData["Title"] = "Venues";
+}
+
+<section>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Venues</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Venues</h1>
+        <a asp-page="Create" class="btn btn-primary">Create New Venue</a>
+    </div>
+
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @successMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.Venues.Count == 0)
+    {
+        <p class="text-muted">No venues found.</p>
+    }
+    else
+    {
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>City</th>
+                    <th>State</th>
+                    <th>Max Capacity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var venue in Model.Venues)
+                {
+                    <tr>
+                        <td>@venue.Name</td>
+                        <td>@venue.City</td>
+                        <td>@venue.State</td>
+                        <td>@venue.MaxCapacity.ToString("N0")</td>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@venue.Id" class="btn btn-sm btn-outline-info">Details</a>
+                            <a asp-page="Edit" asp-route-id="@venue.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-page="Delete" asp-route-id="@venue.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>

@@ -1,0 +1,116 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.DetailsModel
+@{
+    ViewData["Title"] = "Review Details";
+}
+
+<section>
+    @if (Model.Review == null)
+    {
+        <p class="text-muted">Review not found.</p>
+    }
+    else
+    {
+        var r = Model.Review;
+        <h1>Performance Review — @r.Employee.FullName</h1>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Employee</dt>
+                    <dd class="col-sm-9"><a asp-page="/Employees/Details" asp-route-id="@r.EmployeeId">@r.Employee.FullName</a></dd>
+                    <dt class="col-sm-3">Department</dt>
+                    <dd class="col-sm-9">@r.Employee.Department.Name</dd>
+                    <dt class="col-sm-3">Reviewer</dt>
+                    <dd class="col-sm-9">@r.Reviewer.FullName</dd>
+                    <dt class="col-sm-3">Period</dt>
+                    <dd class="col-sm-9">@r.ReviewPeriodStart.ToString("MMM dd, yyyy") – @r.ReviewPeriodEnd.ToString("MMM dd, yyyy")</dd>
+                    <dt class="col-sm-3">Status</dt>
+                    <dd class="col-sm-9">
+                        @{ ViewData["StatusText"] = r.Status.ToString(); }
+                        <partial name="Shared/_StatusBadge" />
+                    </dd>
+                    @if (r.OverallRating.HasValue)
+                    {
+                        <dt class="col-sm-3">Rating</dt>
+                        <dd class="col-sm-9">
+                            @{ ViewData["StatusText"] = r.OverallRating.ToString(); }
+                            <partial name="Shared/_StatusBadge" />
+                        </dd>
+                    }
+                    @if (r.CompletedDate.HasValue)
+                    {
+                        <dt class="col-sm-3">Completed</dt>
+                        <dd class="col-sm-9">@r.CompletedDate.Value.ToString("MMM dd, yyyy")</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(r.SelfAssessment))
+        {
+            <div class="card mb-3">
+                <div class="card-header"><h5 class="mb-0">Self Assessment</h5></div>
+                <div class="card-body"><p>@r.SelfAssessment</p></div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(r.ManagerAssessment))
+        {
+            <div class="card mb-3">
+                <div class="card-header"><h5 class="mb-0">Manager Assessment</h5></div>
+                <div class="card-body"><p>@r.ManagerAssessment</p></div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(r.StrengthsNoted) || !string.IsNullOrEmpty(r.AreasForImprovement))
+        {
+            <div class="row">
+                @if (!string.IsNullOrEmpty(r.StrengthsNoted))
+                {
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header"><h5 class="mb-0">Strengths</h5></div>
+                            <div class="card-body"><p>@r.StrengthsNoted</p></div>
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(r.AreasForImprovement))
+                {
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header"><h5 class="mb-0">Areas for Improvement</h5></div>
+                            <div class="card-body"><p>@r.AreasForImprovement</p></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(r.Goals))
+        {
+            <div class="card mb-3">
+                <div class="card-header"><h5 class="mb-0">Goals</h5></div>
+                <div class="card-body"><p>@r.Goals</p></div>
+            </div>
+        }
+
+        <div class="d-flex gap-2">
+            @if (r.Status == ReviewStatus.Draft)
+            {
+                <form method="post" asp-page-handler="StartSelfAssessment">
+                    <button type="submit" class="btn btn-primary">Start Self-Assessment</button>
+                </form>
+            }
+            @if (r.Status == ReviewStatus.SelfAssessmentPending)
+            {
+                <a asp-page="SelfAssessment" asp-route-id="@r.Id" class="btn btn-primary">Submit Self-Assessment</a>
+            }
+            @if (r.Status == ReviewStatus.ManagerReviewPending)
+            {
+                <a asp-page="ManagerReview" asp-route-id="@r.Id" class="btn btn-primary">Complete Manager Review</a>
+            }
+            <a asp-page="Index" class="btn btn-outline-secondary">Back to Reviews</a>
+        </div>
+    }
+</section>

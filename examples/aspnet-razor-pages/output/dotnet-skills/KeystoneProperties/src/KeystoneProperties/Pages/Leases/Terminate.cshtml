@@ -1,0 +1,95 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Leases.TerminateModel
+@{
+    ViewData["Title"] = "Terminate Lease";
+}
+
+<section>
+    <h1 class="mb-4"><i class="bi bi-x-circle"></i> Terminate Lease</h1>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Lease Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-5">Tenant</dt>
+                        <dd class="col-sm-7">@Model.Lease.Tenant.FullName</dd>
+
+                        <dt class="col-sm-5">Property</dt>
+                        <dd class="col-sm-7">@Model.Lease.Unit.Property.Name</dd>
+
+                        <dt class="col-sm-5">Unit</dt>
+                        <dd class="col-sm-7">@Model.Lease.Unit.UnitNumber</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-5">Start Date</dt>
+                        <dd class="col-sm-7">@Model.Lease.StartDate.ToString("MMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-5">End Date</dt>
+                        <dd class="col-sm-7">@Model.Lease.EndDate.ToString("MMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-5">Monthly Rent</dt>
+                        <dd class="col-sm-7">@Model.Lease.MonthlyRentAmount.ToString("C")</dd>
+
+                        <dt class="col-sm-5">Deposit Amount</dt>
+                        <dd class="col-sm-7">@Model.Lease.DepositAmount.ToString("C")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Termination Details</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                <input type="hidden" asp-for="Input.Id" />
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label asp-for="Input.TerminationReason" class="form-label"></label>
+                        <textarea asp-for="Input.TerminationReason" class="form-control" rows="4" placeholder="Enter the reason for termination..."></textarea>
+                        <span asp-validation-for="Input.TerminationReason" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.DepositStatus" class="form-label"></label>
+                        <select asp-for="Input.DepositStatus" class="form-select">
+                            <option value="@DepositStatus.Returned">Returned</option>
+                            <option value="@DepositStatus.PartiallyReturned">Partially Returned</option>
+                            <option value="@DepositStatus.Forfeited">Forfeited</option>
+                        </select>
+                        <span asp-validation-for="Input.DepositStatus" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.DepositReturnAmount" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="Input.DepositReturnAmount" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Input.DepositReturnAmount" class="text-danger"></span>
+                        <div class="form-text">Required when deposit status is Returned or Partially Returned.</div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle"></i> Terminate Lease
+                    </button>
+                    <a asp-page="Details" asp-route-id="@Model.Lease.Id" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,80 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.TerminateModel
+@{
+    ViewData["Title"] = "Terminate Employee";
+}
+
+<section class="py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="Index">Employees</a></li>
+            <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Employee.Id">@Model.Employee.FullName</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Terminate</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-4">Terminate Employee</h1>
+
+    <div class="alert alert-danger" role="alert">
+        <h5 class="alert-heading">Warning</h5>
+        <p>You are about to terminate <strong>@Model.Employee.FullName</strong> (@Model.Employee.EmployeeNumber). This action will have the following cascading effects:</p>
+        <ul class="mb-0">
+            <li>All submitted leave requests will be cancelled</li>
+            <li>Employee will be removed as manager from departments</li>
+            <li>Employee will be removed as manager from direct reports</li>
+        </ul>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Employee Information</h5></div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Name</dt>
+                <dd class="col-sm-9">@Model.Employee.FullName</dd>
+
+                <dt class="col-sm-3">Employee Number</dt>
+                <dd class="col-sm-9">@Model.Employee.EmployeeNumber</dd>
+
+                <dt class="col-sm-3">Department</dt>
+                <dd class="col-sm-9">@Model.Employee.Department?.Name</dd>
+
+                <dt class="col-sm-3">Job Title</dt>
+                <dd class="col-sm-9">@Model.Employee.JobTitle</dd>
+
+                <dt class="col-sm-3">Hire Date</dt>
+                <dd class="col-sm-9">@Model.Employee.HireDate.ToString("MMMM d, yyyy")</dd>
+
+                <dt class="col-sm-3">Current Status</dt>
+                <dd class="col-sm-9">
+                    <partial name="_StatusBadge" model="@Model.Employee.Status.ToString()" />
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <form method="post">
+        <input type="hidden" asp-for="Input.Id" />
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="Input.TerminationDate" class="form-label"></label>
+                        <input asp-for="Input.TerminationDate" class="form-control" type="date" />
+                        <span asp-validation-for="Input.TerminationDate" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">Confirm Termination</button>
+            <a asp-page="Details" asp-route-id="@Model.Employee.Id" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

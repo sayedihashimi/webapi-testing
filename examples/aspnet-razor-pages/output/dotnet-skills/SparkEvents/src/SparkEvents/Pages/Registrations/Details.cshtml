@@ -1,0 +1,65 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Registrations.DetailsModel
+@{ ViewData["Title"] = $"Registration {Model.Registration!.ConfirmationNumber}"; }
+
+<h1>Registration Details</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@Model.Registration.ConfirmationNumber</h5>
+                <partial name="_RegistrationStatusBadge" model="Model.Registration.Status" />
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Attendee</h6>
+                        <p><a asp-page="/Attendees/Details" asp-route-id="@Model.Registration.AttendeeId">@Model.Registration.Attendee.FullName</a></p>
+                        <p class="text-muted">@Model.Registration.Attendee.Email</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Event</h6>
+                        <p><a asp-page="/Events/Details" asp-route-id="@Model.Registration.EventId">@Model.Registration.Event.Title</a></p>
+                        <p class="text-muted">@Model.Registration.Event.StartDate.ToString("MMM dd, yyyy")</p>
+                    </div>
+                </div>
+                <hr />
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Ticket Type:</strong> @Model.Registration.TicketType.Name</p>
+                        <p><strong>Amount Paid:</strong> @Model.Registration.AmountPaid.ToString("C")</p>
+                        <p><strong>Registration Date:</strong> @Model.Registration.RegistrationDate.ToString("MMM dd, yyyy h:mm tt")</p>
+                    </div>
+                    <div class="col-md-6">
+                        @if (Model.Registration.WaitlistPosition.HasValue)
+                        {
+                            <p><strong>Waitlist Position:</strong> @Model.Registration.WaitlistPosition</p>
+                        }
+                        @if (Model.Registration.CheckInTime.HasValue)
+                        {
+                            <p><strong>Check-In Time:</strong> @Model.Registration.CheckInTime.Value.ToString("h:mm tt")</p>
+                        }
+                        @if (Model.Registration.CancellationDate.HasValue)
+                        {
+                            <p><strong>Cancelled:</strong> @Model.Registration.CancellationDate.Value.ToString("MMM dd, yyyy")</p>
+                            <p><strong>Reason:</strong> @Model.Registration.CancellationReason</p>
+                        }
+                    </div>
+                </div>
+                @if (Model.Registration.SpecialRequests != null)
+                {
+                    <p><strong>Special Requests:</strong> @Model.Registration.SpecialRequests</p>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            @if (Model.Registration.Status == SparkEvents.Models.RegistrationStatus.Confirmed)
+            {
+                <a asp-page="/Registrations/Cancel" asp-route-id="@Model.Registration.Id" class="btn btn-outline-danger">Cancel Registration</a>
+            }
+            <a asp-page="/Events/Details" asp-route-id="@Model.Registration.EventId" class="btn btn-outline-secondary">Back to Event</a>
+        </div>
+    </div>
+</div>

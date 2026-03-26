@@ -1,0 +1,55 @@
+@page
+@model KeystoneProperties.Pages.Inspections.IndexModel
+@{ ViewData["Title"] = "Inspections"; }
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Inspections</h1>
+    <a asp-page="Create" class="btn btn-primary">Schedule Inspection</a>
+</div>
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <select name="type" class="form-select">
+            <option value="">All Types</option>
+            @foreach (var t in Enum.GetValues<InspectionType>()) { <option value="@t" selected="@(Model.TypeFilter == t)">@t</option> }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <input type="date" name="fromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <input type="date" name="toDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" class="form-control" />
+    </div>
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+@if (Model.Inspections.Any())
+{
+    <table class="table table-striped">
+        <thead><tr><th>Type</th><th>Unit</th><th>Inspector</th><th>Scheduled</th><th>Completed</th><th>Condition</th><th>Follow-Up</th><th>Actions</th></tr></thead>
+        <tbody>
+            @foreach (var i in Model.Inspections)
+            {
+                <tr>
+                    <td>@i.InspectionType</td>
+                    <td>@i.Unit.Property.Name — @i.Unit.UnitNumber</td>
+                    <td>@i.InspectorName</td>
+                    <td>@i.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                    <td>@(i.CompletedDate?.ToString("MMM dd, yyyy") ?? "Pending")</td>
+                    <td>
+                        @if (i.OverallCondition.HasValue)
+                        { <partial name="_StatusBadge" model="@(i.OverallCondition.Value.ToString(), "condition")" /> }
+                        else { <span class="text-muted">—</span> }
+                    </td>
+                    <td>@(i.FollowUpRequired ? "Yes" : "No")</td>
+                    <td>
+                        <a asp-page="Details" asp-route-id="@i.Id" class="btn btn-sm btn-outline-primary">View</a>
+                        @if (!i.CompletedDate.HasValue)
+                        { <a asp-page="Complete" asp-route-id="@i.Id" class="btn btn-sm btn-outline-success">Complete</a> }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <partial name="_PaginationPartial" model="@(Model.CurrentPage, Model.TotalPages, $"?type={Model.TypeFilter}&fromDate={Model.FromDate?.ToString("yyyy-MM-dd")}&toDate={Model.ToDate?.ToString("yyyy-MM-dd")}")" />
+}
+else { <p class="text-muted">No inspections found.</p> }

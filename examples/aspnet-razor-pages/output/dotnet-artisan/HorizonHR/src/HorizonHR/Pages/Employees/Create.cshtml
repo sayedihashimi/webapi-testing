@@ -1,0 +1,107 @@
+@page
+@model HorizonHR.Pages.Employees.CreateModel
+@using HorizonHR.Models
+@{ ViewData["Title"] = "Add Employee"; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Employees</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Add Employee</li>
+    </ol>
+</nav>
+<h1>Add Employee</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.FirstName" class="form-label"></label>
+                    <input asp-for="Input.FirstName" class="form-control" />
+                    <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.LastName" class="form-label"></label>
+                    <input asp-for="Input.LastName" class="form-control" />
+                    <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Email" class="form-label"></label>
+                    <input asp-for="Input.Email" class="form-control" type="email" />
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Phone" class="form-label"></label>
+                    <input asp-for="Input.Phone" class="form-control" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.DateOfBirth" class="form-label"></label>
+                    <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
+                    <span asp-validation-for="Input.DateOfBirth" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.HireDate" class="form-label"></label>
+                    <input asp-for="Input.HireDate" class="form-control" type="date" />
+                    <span asp-validation-for="Input.HireDate" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.DepartmentId" class="form-label">Department</label>
+                    <select asp-for="Input.DepartmentId" asp-items="Model.Departments" class="form-select">
+                        <option value="">Select...</option>
+                    </select>
+                    <span asp-validation-for="Input.DepartmentId" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.JobTitle" class="form-label"></label>
+                    <input asp-for="Input.JobTitle" class="form-control" />
+                    <span asp-validation-for="Input.JobTitle" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.EmploymentType" class="form-label"></label>
+                    <select asp-for="Input.EmploymentType" asp-items="Html.GetEnumSelectList<EmploymentType>()" class="form-select"></select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.Salary" class="form-label"></label>
+                    <input asp-for="Input.Salary" class="form-control" type="number" step="0.01" />
+                    <span asp-validation-for="Input.Salary" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.ManagerId" class="form-label">Manager</label>
+                    <select asp-for="Input.ManagerId" asp-items="Model.Managers" class="form-select">
+                        <option value="">— None —</option>
+                    </select>
+                </div>
+            </div>
+            <h5 class="mt-3">Address</h5>
+            <div class="mb-3">
+                <label asp-for="Input.Address" class="form-label"></label>
+                <input asp-for="Input.Address" class="form-control" />
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.City" class="form-label"></label>
+                    <input asp-for="Input.City" class="form-control" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.State" class="form-label"></label>
+                    <input asp-for="Input.State" class="form-control" maxlength="2" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.ZipCode" class="form-label"></label>
+                    <input asp-for="Input.ZipCode" class="form-control" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Employee</button>
+            <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

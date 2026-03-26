@@ -1,0 +1,57 @@
+@page
+@model SparkEvents.Pages.Categories.IndexModel
+@{
+    ViewData["Title"] = "Categories";
+}
+
+<h1>Categories</h1>
+
+<p>
+    <a asp-page="Create" class="btn btn-primary">Create New</a>
+</p>
+
+@if (!Model.Categories.Items.Any())
+{
+    <div class="alert alert-info">No categories found.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Color</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var category in Model.Categories.Items)
+            {
+                <tr>
+                    <td>@category.Name</td>
+                    <td>@category.Description</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(category.ColorHex))
+                        {
+                            <span class="badge" style="background-color: @category.ColorHex;">@category.ColorHex</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-page="Edit" asp-route-id="@category.Id" class="btn btn-sm btn-warning">Edit</a>
+                        <a asp-page="Delete" asp-route-id="@category.Id" class="btn btn-sm btn-danger">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@{
+    ViewData["PageNumber"] = Model.Categories.PageNumber;
+    ViewData["TotalPages"] = Model.Categories.TotalPages;
+    ViewData["PageUrl"] = "/Categories?";
+    ViewData["HasPreviousPage"] = Model.Categories.HasPreviousPage;
+    ViewData["HasNextPage"] = Model.Categories.HasNextPage;
+}
+<partial name="_Pagination" />

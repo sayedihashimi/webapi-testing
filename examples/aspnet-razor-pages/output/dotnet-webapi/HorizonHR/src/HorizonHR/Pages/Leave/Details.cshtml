@@ -1,0 +1,58 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.DetailsModel
+@{
+    ViewData["Title"] = "Leave Request Details";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Leave Requests</a></li>
+        <li class="breadcrumb-item active">Request #@Model.Request.Id</li>
+    </ol>
+</nav>
+
+<h1>Leave Request #@Model.Request.Id
+    <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Request.Status.ToString() } })' />
+</h1>
+
+<section class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <p><strong>Employee:</strong> <a asp-page="/Employees/Details" asp-route-id="@Model.Request.EmployeeId">@Model.Request.Employee.FirstName @Model.Request.Employee.LastName</a></p>
+                <p><strong>Department:</strong> @Model.Request.Employee.Department.Name</p>
+                <p><strong>Leave Type:</strong> @Model.Request.LeaveType.Name</p>
+                <p><strong>Dates:</strong> @Model.Request.StartDate.ToString("MMM dd, yyyy") — @Model.Request.EndDate.ToString("MMM dd, yyyy")</p>
+                <p><strong>Total Days:</strong> @Model.Request.TotalDays</p>
+                <p><strong>Reason:</strong> @Model.Request.Reason</p>
+                <p><strong>Submitted:</strong> @Model.Request.SubmittedDate.ToString("MMM dd, yyyy HH:mm")</p>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Request.ReviewedBy != null)
+    {
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><strong>Review Info</strong></div>
+                <div class="card-body">
+                    <p><strong>Reviewed By:</strong> @Model.Request.ReviewedBy.FirstName @Model.Request.ReviewedBy.LastName</p>
+                    <p><strong>Review Date:</strong> @Model.Request.ReviewDate?.ToString("MMM dd, yyyy HH:mm")</p>
+                    <p><strong>Notes:</strong> @(Model.Request.ReviewNotes ?? "None")</p>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+<div class="d-flex gap-2">
+    @if (Model.Request.Status == LeaveRequestStatus.Submitted)
+    {
+        <a asp-page="Review" asp-route-id="@Model.Request.Id" class="btn btn-primary">Review</a>
+    }
+    @if (Model.Request.Status == LeaveRequestStatus.Submitted || Model.Request.Status == LeaveRequestStatus.Approved)
+    {
+        <a asp-page="Cancel" asp-route-id="@Model.Request.Id" class="btn btn-outline-danger">Cancel</a>
+    }
+    <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+</div>

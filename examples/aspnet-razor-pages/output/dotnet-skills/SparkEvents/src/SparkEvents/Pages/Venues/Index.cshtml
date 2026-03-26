@@ -1,0 +1,35 @@
+@page
+@model SparkEvents.Pages.Venues.IndexModel
+@{ ViewData["Title"] = "Venues"; }
+
+<h1>Venues</h1>
+<a asp-page="Create" class="btn btn-primary mb-3">Create New Venue</a>
+
+@if (Model.Venues.Items.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Name</th><th>City</th><th>State</th><th>Max Capacity</th><th>Contact</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var v in Model.Venues.Items)
+                {
+                    <tr>
+                        <td><a asp-page="Details" asp-route-id="@v.Id">@v.Name</a></td>
+                        <td>@v.City</td>
+                        <td>@v.State</td>
+                        <td>@v.MaxCapacity</td>
+                        <td>@v.ContactEmail</td>
+                        <td>
+                            <a asp-page="Edit" asp-route-id="@v.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-page="Delete" asp-route-id="@v.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">No venues found.</p>
+}

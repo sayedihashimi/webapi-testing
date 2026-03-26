@@ -1,0 +1,44 @@
+@page
+@model HorizonHR.Pages.Departments.CreateModel
+@{
+    ViewData["Title"] = "Create Department";
+}
+
+<section>
+    <h1>Create Department</h1>
+
+    <form method="post" class="mt-3">
+        <div asp-validation-summary="All" class="text-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Input.Name" class="form-label"></label>
+            <input asp-for="Input.Name" class="form-control" />
+            <span asp-validation-for="Input.Name" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.Code" class="form-label"></label>
+            <input asp-for="Input.Code" class="form-control" />
+            <span asp-validation-for="Input.Code" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.Description" class="form-label"></label>
+            <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Input.Description" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.ParentDepartmentId" class="form-label">Parent Department</label>
+            <select asp-for="Input.ParentDepartmentId" class="form-select" asp-items="Model.DepartmentOptions">
+                <option value="">— None —</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.ManagerId" class="form-label">Manager</label>
+            <select asp-for="Input.ManagerId" class="form-select" asp-items="Model.EmployeeOptions">
+                <option value="">— None —</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create</button>
+        <a asp-page="Index" class="btn btn-outline-secondary ms-2">Cancel</a>
+    </form>
+</section>

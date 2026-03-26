@@ -1,0 +1,58 @@
+@page
+@model HorizonHR.Pages.Leave.BalancesModel
+@{
+    ViewData["Title"] = "Leave Balances";
+}
+
+<section>
+    <h1>Leave Balances — @Model.Year</h1>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3">
+            <select name="departmentId" class="form-select" asp-items="Model.DepartmentOptions">
+                <option value="">All Departments</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+        </div>
+    </form>
+
+    @if (!Model.Balances.Any())
+    {
+        <p class="text-muted">No leave balances found.</p>
+    }
+    else
+    {
+        var grouped = Model.Balances.GroupBy(b => b.Employee);
+        <table class="table table-hover">
+            <thead>
+                <tr><th>Employee</th><th>Department</th><th>Leave Type</th><th>Total</th><th>Used</th><th>Carried Over</th><th>Remaining</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var group in grouped)
+                {
+                    var first = true;
+                    foreach (var bal in group)
+                    {
+                        <tr>
+                            @if (first)
+                            {
+                                <td rowspan="@group.Count()">
+                                    <a asp-page="/Employees/Details" asp-route-id="@group.Key.Id">@group.Key.FullName</a>
+                                </td>
+                                <td rowspan="@group.Count()">@group.Key.Department.Name</td>
+                                first = false;
+                            }
+                            <td>@bal.LeaveType.Name</td>
+                            <td>@bal.TotalDays</td>
+                            <td>@bal.UsedDays</td>
+                            <td>@bal.CarriedOverDays</td>
+                            <td>@bal.RemainingDays</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+</section>

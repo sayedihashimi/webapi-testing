@@ -1,0 +1,152 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Maintenance.DetailsModel
+@{
+    ViewData["Title"] = $"Request #{Model.Request.Id} — {Model.Request.Title}";
+
+    string PriorityBadgeClass(KeystoneProperties.Models.MaintenancePriority p) => p switch
+    {
+        KeystoneProperties.Models.MaintenancePriority.Emergency => "bg-danger",
+        KeystoneProperties.Models.MaintenancePriority.High => "bg-warning text-dark",
+        KeystoneProperties.Models.MaintenancePriority.Medium => "bg-secondary",
+        KeystoneProperties.Models.MaintenancePriority.Low => "bg-light text-dark",
+        _ => "bg-secondary"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>
+        Request #@Model.Request.Id
+        @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", Model.Request.Status.ToString() } })
+    </h1>
+    <div>
+        @if (!Model.IsTerminal)
+        {
+            <a asp-page="UpdateStatus" asp-route-id="@Model.Request.Id" class="btn btn-warning">Update Status</a>
+        }
+        <a asp-page="Index" class="btn btn-outline-secondary ms-2">Back to List</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Request Details</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Title</dt>
+                    <dd class="col-sm-9">@Model.Request.Title</dd>
+
+                    <dt class="col-sm-3">Category</dt>
+                    <dd class="col-sm-9">@Model.Request.Category</dd>
+
+                    <dt class="col-sm-3">Priority</dt>
+                    <dd class="col-sm-9"><span class="badge @PriorityBadgeClass(Model.Request.Priority)">@Model.Request.Priority</span></dd>
+
+                    <dt class="col-sm-3">Description</dt>
+                    <dd class="col-sm-9" style="white-space: pre-wrap;">@Model.Request.Description</dd>
+
+                    @if (!string.IsNullOrEmpty(Model.Request.AssignedTo))
+                    {
+                        <dt class="col-sm-3">Assigned To</dt>
+                        <dd class="col-sm-9">@Model.Request.AssignedTo</dd>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Request.CompletionNotes))
+                    {
+                        <dt class="col-sm-3">Completion Notes</dt>
+                        <dd class="col-sm-9" style="white-space: pre-wrap;">@Model.Request.CompletionNotes</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Status Timeline</h5></div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Submitted</strong>
+                        </div>
+                        <span class="text-muted">@Model.Request.SubmittedDate.ToString("MMM d, yyyy h:mm tt")</span>
+                    </li>
+                    @if (Model.Request.AssignedDate.HasValue)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Assigned</strong>
+                                @if (!string.IsNullOrEmpty(Model.Request.AssignedTo))
+                                {
+                                    <span class="text-muted ms-2">to @Model.Request.AssignedTo</span>
+                                }
+                            </div>
+                            <span class="text-muted">@Model.Request.AssignedDate.Value.ToString("MMM d, yyyy h:mm tt")</span>
+                        </li>
+                    }
+                    @if (Model.Request.CompletedDate.HasValue)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>
+                                    @(Model.Request.Status == KeystoneProperties.Models.MaintenanceStatus.Cancelled ? "Cancelled" : "Completed")
+                                </strong>
+                            </div>
+                            <span class="text-muted">@Model.Request.CompletedDate.Value.ToString("MMM d, yyyy h:mm tt")</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Costs</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Estimated Cost</dt>
+                    <dd class="col-sm-8">@(Model.Request.EstimatedCost.HasValue ? Model.Request.EstimatedCost.Value.ToString("C") : "—")</dd>
+
+                    <dt class="col-sm-4">Actual Cost</dt>
+                    <dd class="col-sm-8">@(Model.Request.ActualCost.HasValue ? Model.Request.ActualCost.Value.ToString("C") : "—")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Unit Information</h5></div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Property</dt>
+                    <dd>@Model.Request.Unit?.Property?.Name</dd>
+
+                    <dt>Unit</dt>
+                    <dd>@Model.Request.Unit?.UnitNumber</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Tenant Information</h5></div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Name</dt>
+                    <dd>@Model.Request.Tenant?.FullName</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Timestamps</h5></div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Created</dt>
+                    <dd>@Model.Request.CreatedAt.ToString("MMM d, yyyy h:mm tt")</dd>
+
+                    <dt>Last Updated</dt>
+                    <dd>@Model.Request.UpdatedAt.ToString("MMM d, yyyy h:mm tt")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

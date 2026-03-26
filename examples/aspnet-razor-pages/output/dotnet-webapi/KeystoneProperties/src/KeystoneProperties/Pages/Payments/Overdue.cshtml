@@ -1,0 +1,80 @@
+@page
+@model KeystoneProperties.Pages.Payments.OverdueModel
+@{
+    ViewData["Title"] = "Overdue Payments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Overdue Payments</h1>
+    <div>
+        <a asp-page="Create" class="btn btn-primary me-2">Record Payment</a>
+        <a asp-page="Index" class="btn btn-outline-secondary">Back to Payments</a>
+    </div>
+</div>
+
+@if (Model.OverdueLeases.Count == 0)
+{
+    <div class="alert alert-success">
+        <strong>All caught up!</strong> There are no overdue rent payments at this time.
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <strong>@Model.OverdueLeases.Count</strong> lease(s) with overdue rent payments.
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Tenant</th>
+                <th>Property</th>
+                <th>Unit</th>
+                <th>Monthly Rent</th>
+                <th>Lease Status</th>
+                <th>Months Overdue</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var lease in Model.OverdueLeases)
+            {
+                var monthsOverdue = CalculateMonthsOverdue(lease);
+                <tr>
+                    <td>
+                        <a asp-page="/Tenants/Details" asp-route-id="@lease.TenantId">@lease.Tenant.FullName</a>
+                    </td>
+                    <td>@lease.Unit.Property.Name</td>
+                    <td>@lease.Unit.UnitNumber</td>
+                    <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                    <td>
+                        @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", lease.Status.ToString() } })
+                    </td>
+                    <td>
+                        <span class="badge bg-danger">@monthsOverdue month(s)</span>
+                    </td>
+                    <td>
+                        <a asp-page="Create" class="btn btn-sm btn-outline-primary">Record Payment</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@functions {
+    private static int CalculateMonthsOverdue(KeystoneProperties.Models.Lease lease)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var lastPaymentDate = lease.Payments
+            .Where(p => p.PaymentType == KeystoneProperties.Models.PaymentType.Rent
+                        && p.Status == KeystoneProperties.Models.PaymentStatus.Completed)
+            .OrderByDescending(p => p.DueDate)
+            .Select(p => (DateOnly?)p.DueDate)
+            .FirstOrDefault();
+
+        var startDate = lastPaymentDate?.AddMonths(1) ?? lease.StartDate;
+        var months = (today.Year - startDate.Year) * 12 + (today.Month - startDate.Month);
+        return Math.Max(months, 1);
+    }
+}

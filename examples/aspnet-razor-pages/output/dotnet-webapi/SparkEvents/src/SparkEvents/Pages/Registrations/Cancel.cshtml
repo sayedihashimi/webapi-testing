@@ -1,0 +1,62 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Registrations.CancelModel
+@{
+    ViewData["Title"] = "Cancel Registration";
+}
+
+<h1>Cancel Registration</h1>
+
+<div class="alert alert-warning">
+    <h5 class="alert-heading">Cancellation Policy</h5>
+    <p class="mb-0">Registrations can only be cancelled at least 24 hours before the event start time. Cancellations made within 24 hours of the event will be denied.</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Registration Details</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Confirmation #</dt>
+            <dd class="col-sm-9"><code>@Model.Registration.ConfirmationNumber</code></dd>
+
+            <dt class="col-sm-3">Event</dt>
+            <dd class="col-sm-9">@Model.Registration.Event?.Title</dd>
+
+            <dt class="col-sm-3">Attendee</dt>
+            <dd class="col-sm-9">@Model.Registration.Attendee?.FullName</dd>
+
+            <dt class="col-sm-3">Ticket Type</dt>
+            <dd class="col-sm-9">@Model.Registration.TicketType?.Name</dd>
+
+            <dt class="col-sm-3">Amount Paid</dt>
+            <dd class="col-sm-9">@Model.Registration.AmountPaid.ToString("C")</dd>
+
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">
+                <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Registration.Status.ToString() } })' />
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <input type="hidden" asp-for="Input.Id" />
+
+            <div class="mb-3">
+                <label asp-for="Input.CancellationReason" class="form-label"></label>
+                <textarea asp-for="Input.CancellationReason" class="form-control" rows="3" placeholder="Optional: provide a reason for cancellation"></textarea>
+                <span asp-validation-for="Input.CancellationReason" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+            <a asp-page="Details" asp-route-id="@Model.Registration.Id" class="btn btn-outline-secondary">Go Back</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

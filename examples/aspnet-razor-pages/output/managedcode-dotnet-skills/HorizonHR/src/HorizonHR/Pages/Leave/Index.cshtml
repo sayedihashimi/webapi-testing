@@ -1,0 +1,76 @@
+@page
+@model HorizonHR.Pages.Leave.IndexModel
+@using HorizonHR.Models.Enums
+@{
+    ViewData["Title"] = "Leave Requests";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Leave Requests</h1>
+    <div>
+        <a href="/Leave/Balances" class="btn btn-outline-info me-2">View Balances</a>
+        <a href="/Leave/Create" class="btn btn-primary">+ New Request</a>
+    </div>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <select name="status" class="form-select">
+            <option value="">All Statuses</option>
+            @foreach (var s in Enum.GetValues<LeaveRequestStatus>())
+            {
+                <option value="@s" selected="@(Model.StatusFilter == s)">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="leaveTypeId" class="form-select" asp-items="Model.LeaveTypeOptions">
+            <option value="">All Types</option>
+        </select>
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+    </div>
+</form>
+
+@if (!Model.Requests.Any())
+{
+    <p class="text-muted">No leave requests found.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th>Submitted</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var req in Model.Requests)
+            {
+                <tr>
+                    <td><a href="/Employees/Details/@req.EmployeeId">@req.Employee.FullName</a></td>
+                    <td>@req.LeaveType.Name</td>
+                    <td>@req.StartDate.ToString("MMM d") — @req.EndDate.ToString("MMM d, yyyy")</td>
+                    <td>@req.TotalDays.ToString("F1")</td>
+                    <td>
+                        @{ViewData["Status"] = req.Status.ToString();}
+                        <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                    </td>
+                    <td>@req.SubmittedDate.ToString("MMM d, yyyy")</td>
+                    <td>
+                        <a href="/Leave/Details/@req.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                        @if (req.Status == LeaveRequestStatus.Submitted)
+                        {
+                            <a href="/Leave/Review/@req.Id" class="btn btn-sm btn-outline-primary ms-1">Review</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    var qs = $"?status={Model.StatusFilter}&leaveTypeId={Model.LeaveTypeId}&";
+    ViewData["CurrentPage"] = Model.PageNumber;
+    ViewData["TotalPages"] = Model.TotalPages;
+    ViewData["PageUrl"] = $"/Leave{qs}";
+    <partial name="Shared/_Pagination" view-data="ViewData" />
+}

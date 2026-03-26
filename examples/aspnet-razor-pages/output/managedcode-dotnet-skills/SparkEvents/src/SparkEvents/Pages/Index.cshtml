@@ -1,0 +1,147 @@
+@page
+@model SparkEvents.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<section>
+    <h1>Spark Events Dashboard</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Total Events</h5>
+                    <p class="display-6 fw-bold">@Model.TotalEvents</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Total Registrations</h5>
+                    <p class="display-6 fw-bold">@Model.TotalRegistrations</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Events This Month</h5>
+                    <p class="display-6 fw-bold">@Model.EventsThisMonth</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="mb-4">
+        <h2>Today's Events</h2>
+        @if (Model.TodayEvents.Count == 0)
+        {
+            <p class="text-muted">No events today.</p>
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var ev in Model.TodayEvents)
+                {
+                    var stats = Model.CheckInStats.GetValueOrDefault(ev.Id);
+                    var percent = stats.TotalConfirmed > 0
+                        ? (int)Math.Round((double)stats.CheckedIn / stats.TotalConfirmed * 100)
+                        : 0;
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">@ev.Title</h5>
+                                <p class="text-muted mb-2">@ev.StartDate.ToString("h:mm tt") — @ev.Venue?.Name</p>
+                                <p class="mb-1">Check-in: @stats.CheckedIn / @stats.TotalConfirmed</p>
+                                <div class="progress" role="progressbar" aria-valuenow="@percent"
+                                     aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar bg-success" style="width: @(percent)%">@(percent)%</div>
+                                </div>
+                                <a asp-page="/CheckIn/Index" asp-route-eventId="@ev.Id"
+                                   class="btn btn-sm btn-outline-primary mt-2">Go to Check-In</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="mb-4">
+        <h2>Upcoming Events</h2>
+        @if (Model.UpcomingEvents.Count == 0)
+        {
+            <p class="text-muted">No upcoming events.</p>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Date</th>
+                        <th>Venue</th>
+                        <th>Capacity</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ev in Model.UpcomingEvents)
+                    {
+                        <tr>
+                            <td><a asp-page="/Events/Details" asp-route-id="@ev.Id">@ev.Title</a></td>
+                            <td>@ev.StartDate.ToString("MMM dd, yyyy")</td>
+                            <td>@ev.Venue?.Name</td>
+                            <td>@ev.CurrentRegistrations / @ev.TotalCapacity</td>
+                            <td>
+                                <partial name="_StatusBadge" model="@ev.Status.ToString()" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    <section>
+        <h2>Recent Registrations</h2>
+        @if (Model.RecentRegistrations.Count == 0)
+        {
+            <p class="text-muted">No recent registrations.</p>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Confirmation #</th>
+                        <th>Attendee</th>
+                        <th>Event</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var reg in Model.RecentRegistrations)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-page="/Registrations/Details" asp-route-id="@reg.Id">
+                                    @reg.ConfirmationNumber
+                                </a>
+                            </td>
+                            <td>@reg.Attendee.FullName</td>
+                            <td>@reg.Event.Title</td>
+                            <td>
+                                <partial name="_StatusBadge" model="@reg.Status.ToString()" />
+                            </td>
+                            <td>@reg.RegistrationDate.ToString("MMM dd, yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</section>

@@ -1,0 +1,24 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Inspections.DetailsModel
+@{ ViewData["Title"] = "Inspection Details"; }
+<h1>Inspection — @Model.Inspection.InspectionType</h1>
+<div class="card mb-4"><div class="card-body"><div class="row">
+    <div class="col-md-6">
+        <p><strong>Unit:</strong> <a asp-page="/Units/Details" asp-route-id="@Model.Inspection.UnitId">@Model.Inspection.Unit.UnitNumber</a> — @Model.Inspection.Unit.Property.Name</p>
+        <p><strong>Type:</strong> @Model.Inspection.InspectionType</p>
+        <p><strong>Inspector:</strong> @Model.Inspection.InspectorName</p>
+        @if (Model.Inspection.Lease != null) { <p><strong>Lease:</strong> <a asp-page="/Leases/Details" asp-route-id="@Model.Inspection.LeaseId">Lease #@Model.Inspection.LeaseId</a></p> }
+    </div>
+    <div class="col-md-6">
+        <p><strong>Scheduled:</strong> @Model.Inspection.ScheduledDate.ToString("MMM dd, yyyy")</p>
+        <p><strong>Completed:</strong> @(Model.Inspection.CompletedDate?.ToString("MMM dd, yyyy") ?? "Pending")</p>
+        @if (Model.Inspection.OverallCondition.HasValue) { <p><strong>Condition:</strong> <partial name="_StatusBadge" model="@(Model.Inspection.OverallCondition.Value.ToString(), "condition")" /></p> }
+        <p><strong>Follow-Up Required:</strong> @(Model.Inspection.FollowUpRequired ? "Yes" : "No")</p>
+    </div>
+</div>
+    @if (!string.IsNullOrEmpty(Model.Inspection.Notes)) { <p><strong>Notes:</strong> @Model.Inspection.Notes</p> }
+</div></div>
+<div class="d-flex gap-2">
+    @if (!Model.Inspection.CompletedDate.HasValue) { <a asp-page="Complete" asp-route-id="@Model.Inspection.Id" class="btn btn-success">Complete Inspection</a> }
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+</div>

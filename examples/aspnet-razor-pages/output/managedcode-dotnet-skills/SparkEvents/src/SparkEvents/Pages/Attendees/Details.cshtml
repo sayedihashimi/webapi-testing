@@ -1,0 +1,86 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Attendees.DetailsModel
+@{
+    ViewData["Title"] = $"Attendee - {Model.Attendee.FullName}";
+}
+
+<section>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-page="Index">Attendees</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Attendee.FullName</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>@Model.Attendee.FullName</h1>
+        <a asp-page="Edit" asp-route-id="@Model.Attendee.Id" class="btn btn-outline-primary">Edit</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Attendee Information</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Full Name</dt>
+                <dd class="col-sm-9">@Model.Attendee.FullName</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9">@Model.Attendee.Email</dd>
+
+                <dt class="col-sm-3">Phone</dt>
+                <dd class="col-sm-9">@(Model.Attendee.Phone ?? "—")</dd>
+
+                <dt class="col-sm-3">Organization</dt>
+                <dd class="col-sm-9">@(Model.Attendee.Organization ?? "—")</dd>
+
+                <dt class="col-sm-3">Dietary Needs</dt>
+                <dd class="col-sm-9">@(Model.Attendee.DietaryNeeds ?? "—")</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Registration History</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Attendee.Registrations.Count == 0)
+            {
+                <p class="text-muted mb-0">No registrations found.</p>
+            }
+            else
+            {
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Event Title</th>
+                            <th>Date</th>
+                            <th>Ticket Type</th>
+                            <th>Status</th>
+                            <th>Confirmation #</th>
+                            <th>Amount Paid</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reg in Model.Attendee.Registrations)
+                        {
+                            <tr>
+                                <td>@reg.Event.Title</td>
+                                <td>@reg.Event.StartDate.ToString("MMM dd, yyyy")</td>
+                                <td>@reg.TicketType?.Name</td>
+                                <td>
+                                    <partial name="_StatusBadge" model="@reg.Status.ToString()" />
+                                </td>
+                                <td>@reg.ConfirmationNumber</td>
+                                <td>@reg.AmountPaid.ToString("C")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</section>

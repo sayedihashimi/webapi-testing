@@ -1,0 +1,271 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.DetailsModel
+@{
+    ViewData["Title"] = $"{Model.Employee.FullName} - Employee Details";
+}
+
+<section class="py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="Index">Employees</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Employee.FullName</li>
+        </ol>
+    </nav>
+
+    <!-- Employee Profile Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2 text-center">
+                    @if (!string.IsNullOrEmpty(Model.Employee.ProfileImageUrl))
+                    {
+                        <img src="@Model.Employee.ProfileImageUrl" alt="@Model.Employee.FullName"
+                             class="rounded-circle img-fluid mb-3" style="width: 120px; height: 120px; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto mb-3"
+                             style="width: 120px; height: 120px;">
+                            <span class="text-white fs-1">@Model.Employee.FirstName[0]@Model.Employee.LastName[0]</span>
+                        </div>
+                    }
+                </div>
+                <div class="col-md-5">
+                    <h2 class="mb-1">@Model.Employee.FullName</h2>
+                    <p class="text-muted mb-2">@Model.Employee.JobTitle</p>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Employee Number</dt>
+                        <dd class="col-sm-7">@Model.Employee.EmployeeNumber</dd>
+
+                        <dt class="col-sm-5">Email</dt>
+                        <dd class="col-sm-7"><a href="mailto:@Model.Employee.Email">@Model.Employee.Email</a></dd>
+
+                        <dt class="col-sm-5">Phone</dt>
+                        <dd class="col-sm-7">@(Model.Employee.Phone ?? "—")</dd>
+
+                        <dt class="col-sm-5">Department</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.Employee.Department is not null)
+                            {
+                                <a asp-page="/Departments/Details" asp-route-id="@Model.Employee.DepartmentId">@Model.Employee.Department.Name</a>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-5">Manager</dt>
+                        <dd class="col-sm-7">
+                            @if (Model.Employee.Manager is not null)
+                            {
+                                <a asp-page="Details" asp-route-id="@Model.Employee.ManagerId">@Model.Employee.Manager.FullName</a>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+                <div class="col-md-5">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Employment Type</dt>
+                        <dd class="col-sm-7">
+                            <partial name="_StatusBadge" model="@Model.Employee.EmploymentType.ToString()" />
+                        </dd>
+
+                        <dt class="col-sm-5">Status</dt>
+                        <dd class="col-sm-7">
+                            <partial name="_StatusBadge" model="@Model.Employee.Status.ToString()" />
+                        </dd>
+
+                        <dt class="col-sm-5">Hire Date</dt>
+                        <dd class="col-sm-7">@Model.Employee.HireDate.ToString("MMMM d, yyyy")</dd>
+
+                        <dt class="col-sm-5">Date of Birth</dt>
+                        <dd class="col-sm-7">@Model.Employee.DateOfBirth.ToString("MMMM d, yyyy")</dd>
+
+                        @if (Model.Employee.TerminationDate.HasValue)
+                        {
+                            <dt class="col-sm-5">Termination Date</dt>
+                            <dd class="col-sm-7">@Model.Employee.TerminationDate.Value.ToString("MMMM d, yyyy")</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Address Section -->
+    @if (!string.IsNullOrEmpty(Model.Employee.Address))
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Address</h5>
+            </div>
+            <div class="card-body">
+                <address class="mb-0">
+                    @Model.Employee.Address<br />
+                    @if (!string.IsNullOrEmpty(Model.Employee.City) || !string.IsNullOrEmpty(Model.Employee.State) || !string.IsNullOrEmpty(Model.Employee.ZipCode))
+                    {
+                        @Model.Employee.City@((!string.IsNullOrEmpty(Model.Employee.City) && !string.IsNullOrEmpty(Model.Employee.State)) ? ", " : "")@Model.Employee.State @Model.Employee.ZipCode
+                    }
+                </address>
+            </div>
+        </div>
+    }
+
+    <!-- Direct Reports -->
+    @if (Model.DirectReports.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Direct Reports</h5>
+                <a asp-page="DirectReports" asp-route-id="@Model.Employee.Id" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    @foreach (var report in Model.DirectReports)
+                    {
+                        <a asp-page="Details" asp-route-id="@report.Id" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>@report.FullName</strong>
+                                <small class="text-muted d-block">@report.JobTitle</small>
+                            </div>
+                            <partial name="_StatusBadge" model="@report.Status.ToString()" />
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Leave Balances -->
+    @if (Model.LeaveBalances.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Leave Balances (@DateTime.Now.Year)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Leave Type</th>
+                                <th class="text-end">Total Days</th>
+                                <th class="text-end">Used Days</th>
+                                <th class="text-end">Carried Over</th>
+                                <th class="text-end">Remaining Days</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var balance in Model.LeaveBalances)
+                            {
+                                <tr>
+                                    <td>@balance.LeaveType?.Name</td>
+                                    <td class="text-end">@balance.TotalDays</td>
+                                    <td class="text-end">@balance.UsedDays</td>
+                                    <td class="text-end">@balance.CarriedOverDays</td>
+                                    <td class="text-end fw-bold">@balance.RemainingDays</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Skills -->
+    @if (Model.EmployeeSkills.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Skills</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Skill Name</th>
+                                <th>Category</th>
+                                <th>Proficiency</th>
+                                <th class="text-end">Years of Experience</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var es in Model.EmployeeSkills)
+                            {
+                                <tr>
+                                    <td>@es.Skill?.Name</td>
+                                    <td>@es.Skill?.Category</td>
+                                    <td>
+                                        <partial name="_StatusBadge" model="@es.ProficiencyLevel.ToString()" />
+                                    </td>
+                                    <td class="text-end">@(es.YearsOfExperience?.ToString() ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Recent Performance Reviews -->
+    @if (Model.Employee.PerformanceReviews?.Any() == true)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Performance Reviews</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Review Period</th>
+                                <th>Reviewer</th>
+                                <th>Overall Rating</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var review in Model.Employee.PerformanceReviews.OrderByDescending(r => r.ReviewPeriodEnd))
+                            {
+                                <tr>
+                                    <td>@review.ReviewPeriodStart.ToString("MMM yyyy") – @review.ReviewPeriodEnd.ToString("MMM yyyy")</td>
+                                    <td>@review.Reviewer?.FullName</td>
+                                    <td>
+                                        @if (review.OverallRating.HasValue)
+                                        {
+                                            <partial name="_StatusBadge" model="@review.OverallRating.Value.ToString()" />
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Pending</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <partial name="_StatusBadge" model="@review.Status.ToString()" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2">
+        <a asp-page="Edit" asp-route-id="@Model.Employee.Id" class="btn btn-warning">Edit</a>
+        @if (Model.Employee.Status == EmployeeStatus.Active)
+        {
+            <a asp-page="Terminate" asp-route-id="@Model.Employee.Id" class="btn btn-danger">Terminate</a>
+        }
+        <a asp-page="/Skills/Index" class="btn btn-outline-primary">Manage Skills</a>
+        <a asp-page="/Leave/Index" class="btn btn-outline-primary">View Leave History</a>
+        <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</section>

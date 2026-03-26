@@ -1,0 +1,34 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Categories.DeleteModel
+@{
+    ViewData["Title"] = "Delete Category";
+}
+
+<section>
+    <h1>Delete Category</h1>
+    <hr />
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">@Model.Category.Name</h5>
+            <p class="card-text">@Model.Category.Description</p>
+
+            @if (Model.HasEvents)
+            {
+                <div class="alert alert-warning" role="alert">
+                    This category cannot be deleted because it has associated events.
+                </div>
+                <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+            }
+            else
+            {
+                <p class="text-danger">Are you sure you want to delete this category? This action cannot be undone.</p>
+                <form method="post">
+                    <input type="hidden" asp-for="Category.Id" />
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+                </form>
+            }
+        </div>
+    </div>
+</section>

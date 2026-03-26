@@ -1,0 +1,134 @@
+@page "/Events/{eventId:int}/TicketTypes"
+@model SparkEvents.Pages.Events.TicketTypes.IndexModel
+@{
+    ViewData["Title"] = $"Ticket Types — {Model.Event.Title}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>Ticket Types</h1>
+        <p class="text-muted mb-0">For: <strong>@Model.Event.Title</strong></p>
+    </div>
+    <a asp-page="/Events/Details" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary">Back to Event</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    var alertClass = Model.StatusMessage.StartsWith("Error") ? "alert-danger" : "alert-success";
+    <div class="alert @alertClass alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="table-responsive mb-4">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Early Bird</th>
+                <th>Quantity</th>
+                <th>Sold</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.TicketTypeList.Count == 0)
+            {
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-3">No ticket types yet. Add one below.</td>
+                </tr>
+            }
+            @foreach (var tt in Model.TicketTypeList)
+            {
+                <tr class="@(tt.IsActive ? "" : "text-muted")">
+                    <td>@tt.Name</td>
+                    <td>@(tt.Description ?? "—")</td>
+                    <td>@tt.Price.ToString("C")</td>
+                    <td>@(tt.EarlyBirdPrice?.ToString("C") ?? "—")</td>
+                    <td>@tt.Quantity</td>
+                    <td>@tt.QuantitySold</td>
+                    <td>
+                        @if (tt.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a asp-page="Edit" asp-route-eventId="@Model.Event.Id" asp-route-id="@tt.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <form method="post" asp-page-handler="ToggleActive" asp-route-id="@tt.Id" asp-route-eventId="@Model.Event.Id">
+                                @if (tt.IsActive)
+                                {
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Deactivate</button>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                                }
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Add Ticket Type</h5></div>
+    <div class="card-body">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <input type="hidden" asp-for="Input.EventId" />
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Name" class="form-label"></label>
+                    <input asp-for="Input.Name" class="form-control" />
+                    <span asp-validation-for="Input.Name" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Description" class="form-label"></label>
+                    <input asp-for="Input.Description" class="form-control" />
+                    <span asp-validation-for="Input.Description" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Input.Price" class="form-label"></label>
+                    <input asp-for="Input.Price" class="form-control" type="number" step="0.01" min="0" />
+                    <span asp-validation-for="Input.Price" class="text-danger"></span>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Input.EarlyBirdPrice" class="form-label"></label>
+                    <input asp-for="Input.EarlyBirdPrice" class="form-control" type="number" step="0.01" min="0" />
+                    <span asp-validation-for="Input.EarlyBirdPrice" class="text-danger"></span>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Input.Quantity" class="form-label"></label>
+                    <input asp-for="Input.Quantity" class="form-control" type="number" min="1" />
+                    <span asp-validation-for="Input.Quantity" class="text-danger"></span>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Input.SortOrder" class="form-label"></label>
+                    <input asp-for="Input.SortOrder" class="form-control" type="number" min="0" />
+                    <span asp-validation-for="Input.SortOrder" class="text-danger"></span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Add Ticket Type</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

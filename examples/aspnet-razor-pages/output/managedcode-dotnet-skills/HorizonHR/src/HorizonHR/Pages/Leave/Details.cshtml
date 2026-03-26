@@ -1,0 +1,69 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.DetailsModel
+@{
+    ViewData["Title"] = "Leave Request Details";
+}
+
+@if (Model.Request is null)
+{
+    <p class="text-danger">Leave request not found.</p>
+}
+else
+{
+    var req = Model.Request;
+    <h1>Leave Request #@req.Id</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Employee</dt>
+                        <dd class="col-sm-8"><a href="/Employees/Details/@req.EmployeeId">@req.Employee.FullName</a></dd>
+                        <dt class="col-sm-4">Department</dt>
+                        <dd class="col-sm-8">@req.Employee.Department.Name</dd>
+                        <dt class="col-sm-4">Leave Type</dt>
+                        <dd class="col-sm-8">@req.LeaveType.Name</dd>
+                        <dt class="col-sm-4">Dates</dt>
+                        <dd class="col-sm-8">@req.StartDate.ToString("MMM d, yyyy") — @req.EndDate.ToString("MMM d, yyyy")</dd>
+                        <dt class="col-sm-4">Total Days</dt>
+                        <dd class="col-sm-8">@req.TotalDays.ToString("F1")</dd>
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            @{ViewData["Status"] = req.Status.ToString();}
+                            <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                        </dd>
+                        <dt class="col-sm-4">Reason</dt>
+                        <dd class="col-sm-8">@req.Reason</dd>
+                        <dt class="col-sm-4">Submitted</dt>
+                        <dd class="col-sm-8">@req.SubmittedDate.ToString("MMM d, yyyy HH:mm")</dd>
+                        @if (req.ReviewedBy is not null)
+                        {
+                            <dt class="col-sm-4">Reviewed By</dt>
+                            <dd class="col-sm-8">@req.ReviewedBy.FullName</dd>
+                            <dt class="col-sm-4">Review Date</dt>
+                            <dd class="col-sm-8">@req.ReviewDate?.ToString("MMM d, yyyy HH:mm")</dd>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(req.ReviewNotes))
+                        {
+                            <dt class="col-sm-4">Review Notes</dt>
+                            <dd class="col-sm-8">@req.ReviewNotes</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        @if (req.Status == HorizonHR.Models.Enums.LeaveRequestStatus.Submitted)
+        {
+            <a href="/Leave/Review/@req.Id" class="btn btn-primary">Review</a>
+        }
+        @if (req.Status is HorizonHR.Models.Enums.LeaveRequestStatus.Submitted or HorizonHR.Models.Enums.LeaveRequestStatus.Approved)
+        {
+            <a href="/Leave/Cancel/@req.Id" class="btn btn-outline-danger">Cancel</a>
+        }
+        <a href="/Leave" class="btn btn-link">&larr; Back to Leave Requests</a>
+    </div>
+}

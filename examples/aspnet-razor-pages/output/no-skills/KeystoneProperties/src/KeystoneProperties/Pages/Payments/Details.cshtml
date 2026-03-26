@@ -1,0 +1,22 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Payments.DetailsModel
+@{ ViewData["Title"] = $"Payment #{Model.Payment.Id}"; }
+<h1>Payment #@Model.Payment.Id</h1>
+<div class="card mb-4"><div class="card-body"><div class="row">
+    <div class="col-md-6">
+        <p><strong>Payment Date:</strong> @Model.Payment.PaymentDate.ToString("MMM dd, yyyy")</p>
+        <p><strong>Due Date:</strong> @Model.Payment.DueDate.ToString("MMM dd, yyyy")</p>
+        <p><strong>Amount:</strong> @Model.Payment.Amount.ToString("C")</p>
+        <p><strong>Type:</strong> @Model.Payment.PaymentType</p>
+        <p><strong>Method:</strong> @Model.Payment.PaymentMethod</p>
+    </div>
+    <div class="col-md-6">
+        <p><strong>Status:</strong> <partial name="_StatusBadge" model="@(Model.Payment.Status.ToString(), "payment")" /></p>
+        <p><strong>Tenant:</strong> <a asp-page="/Tenants/Details" asp-route-id="@Model.Payment.Lease.TenantId">@Model.Payment.Lease.Tenant.FullName</a></p>
+        <p><strong>Unit:</strong> <a asp-page="/Units/Details" asp-route-id="@Model.Payment.Lease.UnitId">@Model.Payment.Lease.Unit.UnitNumber</a> — @Model.Payment.Lease.Unit.Property.Name</p>
+        <p><strong>Lease:</strong> <a asp-page="/Leases/Details" asp-route-id="@Model.Payment.LeaseId">Lease #@Model.Payment.LeaseId</a></p>
+        @if (!string.IsNullOrEmpty(Model.Payment.ReferenceNumber)) { <p><strong>Ref #:</strong> @Model.Payment.ReferenceNumber</p> }
+        @if (!string.IsNullOrEmpty(Model.Payment.Notes)) { <p><strong>Notes:</strong> @Model.Payment.Notes</p> }
+    </div>
+</div></div></div>
+<a asp-page="Index" class="btn btn-outline-secondary">Back to Payments</a>

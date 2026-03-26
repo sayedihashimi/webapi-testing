@@ -1,0 +1,67 @@
+@page
+@model KeystoneProperties.Pages.Leases.CreateModel
+@{
+    ViewData["Title"] = "Create New Lease";
+}
+
+<h1>Create New Lease</h1>
+
+<div class="mb-3">
+    <a asp-page="Index" class="btn btn-outline-secondary">&larr; Back to Leases</a>
+</div>
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<form method="post" class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="Input.TenantId" class="form-label"></label>
+        <select asp-for="Input.TenantId" asp-items="@(new SelectList(Model.ActiveTenants, "Id", "FullName"))" class="form-select">
+            <option value="">-- Select Tenant --</option>
+        </select>
+        <span asp-validation-for="Input.TenantId" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.UnitId" class="form-label"></label>
+        <select asp-for="Input.UnitId" class="form-select">
+            <option value="">-- Select Unit --</option>
+            @foreach (var unit in Model.AvailableUnits)
+            {
+                <option value="@unit.Id">@unit.UnitNumber - @unit.Property.Name - @unit.MonthlyRent.ToString("C")/mo</option>
+            }
+        </select>
+        <span asp-validation-for="Input.UnitId" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.StartDate" class="form-label"></label>
+        <input asp-for="Input.StartDate" class="form-control" type="date" />
+        <span asp-validation-for="Input.StartDate" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.EndDate" class="form-label"></label>
+        <input asp-for="Input.EndDate" class="form-control" type="date" />
+        <span asp-validation-for="Input.EndDate" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.MonthlyRentAmount" class="form-label"></label>
+        <input asp-for="Input.MonthlyRentAmount" class="form-control" type="number" step="0.01" />
+        <span asp-validation-for="Input.MonthlyRentAmount" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.DepositAmount" class="form-label"></label>
+        <input asp-for="Input.DepositAmount" class="form-control" type="number" step="0.01" />
+        <span asp-validation-for="Input.DepositAmount" class="text-danger"></span>
+    </div>
+    <div class="col-12">
+        <label asp-for="Input.Notes" class="form-label"></label>
+        <textarea asp-for="Input.Notes" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Input.Notes" class="text-danger"></span>
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Create Lease</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

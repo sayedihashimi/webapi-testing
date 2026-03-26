@@ -1,0 +1,148 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Departments.DetailsModel
+@{
+    ViewData["Title"] = $"Department: {Model.Department.Name}";
+}
+
+<header class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@Model.Department.Name</h1>
+    <div>
+        <a asp-page="Edit" asp-route-id="@Model.Department.Id" class="btn btn-outline-secondary">Edit</a>
+        <a asp-page="Index" class="btn btn-outline-primary">Back to List</a>
+    </div>
+</header>
+
+<section aria-label="Department Information" class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Department Information</h2>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Department Code</dt>
+                    <dd class="col-sm-8"><code>@Model.Department.Code</code></dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <partial name="_StatusBadge" model="@(Model.Department.IsActive ? "Active" : "Terminated")" />
+                    </dd>
+
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@(Model.Department.Description ?? "—")</dd>
+
+                    <dt class="col-sm-4">Created</dt>
+                    <dd class="col-sm-8">@Model.Department.CreatedAt.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-4">Last Updated</dt>
+                    <dd class="col-sm-8">@Model.Department.UpdatedAt.ToString("MMM dd, yyyy")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Manager</h2>
+            </div>
+            <div class="card-body">
+                @if (Model.Department.Manager != null)
+                {
+                    <p class="mb-1"><strong>@Model.Department.Manager.FullName</strong></p>
+                    <p class="text-muted mb-0">@Model.Department.Manager.JobTitle</p>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No manager assigned.</p>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<section aria-label="Parent Department" class="mb-4">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Parent Department</h2>
+        </div>
+        <div class="card-body">
+            @if (Model.Department.ParentDepartment != null)
+            {
+                <a asp-page="Details" asp-route-id="@Model.Department.ParentDepartment.Id">
+                    @Model.Department.ParentDepartment.Name
+                </a>
+            }
+            else
+            {
+                <p class="text-muted mb-0">This is a top-level department.</p>
+            }
+        </div>
+    </div>
+</section>
+
+<section aria-label="Child Departments" class="mb-4">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Child Departments</h2>
+        </div>
+        <div class="card-body">
+            @if (Model.Department.ChildDepartments.Any())
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var child in Model.Department.ChildDepartments)
+                    {
+                        <li class="list-group-item">
+                            <a asp-page="Details" asp-route-id="@child.Id">@child.Name</a>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-muted mb-0">No child departments.</p>
+            }
+        </div>
+    </div>
+</section>
+
+<section aria-label="Employees" class="mb-4">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Employees (@Model.Department.Employees.Count)</h2>
+        </div>
+        <div class="card-body">
+            @if (Model.Department.Employees.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Job Title</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var employee in Model.Department.Employees)
+                            {
+                                <tr>
+                                    <td>@employee.FullName</td>
+                                    <td>@employee.JobTitle</td>
+                                    <td>@employee.Email</td>
+                                    <td>
+                                        <partial name="_StatusBadge" model="@employee.Status.ToString()" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mb-0">No employees in this department.</p>
+            }
+        </div>
+    </div>
+</section>

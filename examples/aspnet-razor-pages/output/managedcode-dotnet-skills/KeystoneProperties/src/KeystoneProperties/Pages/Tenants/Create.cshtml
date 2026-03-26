@@ -1,0 +1,64 @@
+@page
+@model CreateModel
+@{
+    ViewData["Title"] = "Add New Tenant";
+}
+
+<h1>Add New Tenant</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.FirstName" class="form-label"></label>
+                <input asp-for="Input.FirstName" class="form-control" />
+                <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.LastName" class="form-label"></label>
+                <input asp-for="Input.LastName" class="form-control" />
+                <span asp-validation-for="Input.LastName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Email" class="form-label"></label>
+                <input asp-for="Input.Email" class="form-control" />
+                <span asp-validation-for="Input.Email" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Phone" class="form-label"></label>
+                <input asp-for="Input.Phone" class="form-control" />
+                <span asp-validation-for="Input.Phone" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.DateOfBirth" class="form-label"></label>
+                <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
+                <span asp-validation-for="Input.DateOfBirth" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.EmergencyContactName" class="form-label"></label>
+                <input asp-for="Input.EmergencyContactName" class="form-control" />
+                <span asp-validation-for="Input.EmergencyContactName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.EmergencyContactPhone" class="form-label"></label>
+                <input asp-for="Input.EmergencyContactPhone" class="form-control" />
+                <span asp-validation-for="Input.EmergencyContactPhone" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a asp-page="/Tenants/Index" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

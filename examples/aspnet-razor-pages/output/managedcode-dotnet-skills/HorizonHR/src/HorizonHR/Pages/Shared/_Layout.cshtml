@@ -1,0 +1,91 @@
+@{
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Horizon HR</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <style>
+        .stat-card { border-left: 4px solid; }
+        .stat-card.primary { border-left-color: #0d6efd; }
+        .stat-card.success { border-left-color: #198754; }
+        .stat-card.warning { border-left-color: #ffc107; }
+        .stat-card.info { border-left-color: #0dcaf0; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark" aria-label="Main navigation">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">🏢 Horizon HR</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link @(currentPage.StartsWith("/Dashboard") || currentPage == "/Index" ? "active" : "")"
+                           @(currentPage.StartsWith("/Dashboard") || currentPage == "/Index" ? "aria-current=page" : "")
+                           href="/">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(currentPage.StartsWith("/Employees") ? "active" : "")"
+                           @(currentPage.StartsWith("/Employees") ? "aria-current=page" : "")
+                           href="/Employees">Employees</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(currentPage.StartsWith("/Departments") ? "active" : "")"
+                           @(currentPage.StartsWith("/Departments") ? "aria-current=page" : "")
+                           href="/Departments">Departments</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(currentPage.StartsWith("/Leave") ? "active" : "")"
+                           @(currentPage.StartsWith("/Leave") ? "aria-current=page" : "")
+                           href="/Leave">Leave</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(currentPage.StartsWith("/Reviews") ? "active" : "")"
+                           @(currentPage.StartsWith("/Reviews") ? "aria-current=page" : "")
+                           href="/Reviews">Reviews</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(currentPage.StartsWith("/Skills") ? "active" : "")"
+                           @(currentPage.StartsWith("/Skills") ? "aria-current=page" : "")
+                           href="/Skills">Skills</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-fluid py-4">
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @success
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] is string error)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @error
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @RenderBody()
+    </main>
+
+    <footer class="bg-light text-center py-3 mt-4 border-top">
+        <span class="text-muted">&copy; @DateTime.Now.Year Horizon HR &mdash; Employee Directory &amp; HR Portal</span>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.21.0/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

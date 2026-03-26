@@ -1,0 +1,15 @@
+@model SparkEvents.Models.EventStatus
+
+@{
+    var (badgeClass, label) = Model switch
+    {
+        SparkEvents.Models.EventStatus.Draft => ("bg-secondary", "Draft"),
+        SparkEvents.Models.EventStatus.Published => ("bg-success", "Published"),
+        SparkEvents.Models.EventStatus.SoldOut => ("bg-warning text-dark", "Sold Out"),
+        SparkEvents.Models.EventStatus.Completed => ("bg-info text-dark", "Completed"),
+        SparkEvents.Models.EventStatus.Cancelled => ("bg-danger", "Cancelled"),
+        _ => ("bg-secondary", Model.ToString())
+    };
+}
+
+<span class="badge @badgeClass">@label</span>

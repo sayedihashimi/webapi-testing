@@ -1,0 +1,77 @@
+@page
+@model HorizonHR.Pages.Leave.BalancesModel
+@{
+    ViewData["Title"] = "Leave Balances";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Leave Balances</h1>
+    <a asp-page="/Leave/Index" class="btn btn-outline-secondary">Back to Leave Requests</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="DepartmentId" class="form-label">Department</label>
+                <select asp-for="DepartmentId" class="form-select">
+                    <option value="">All Departments</option>
+                    @foreach (var department in Model.Departments)
+                    {
+                        <option value="@department.Id">@department.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="Year" class="form-label">Year</label>
+                <input asp-for="Year" type="number" class="form-control" min="2000" max="2100" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-secondary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.LeaveBalances.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Leave Type</th>
+                    <th>Total Days</th>
+                    <th>Used Days</th>
+                    <th>Carried Over</th>
+                    <th>Remaining Days</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var balance in Model.LeaveBalances)
+                {
+                    <tr>
+                        <td>@balance.Employee.FullName</td>
+                        <td>@balance.LeaveType.Name</td>
+                        <td>@balance.TotalDays</td>
+                        <td>@balance.UsedDays</td>
+                        <td>@balance.CarriedOverDays</td>
+                        <td>
+                            <span class="fw-bold @(balance.RemainingDays > 0 ? "text-success" : "text-danger")">
+                                @balance.RemainingDays
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="_Pagination" model="Model.Pagination" />
+}
+else
+{
+    <div class="alert alert-info" role="alert">
+        No balances found.
+    </div>
+}

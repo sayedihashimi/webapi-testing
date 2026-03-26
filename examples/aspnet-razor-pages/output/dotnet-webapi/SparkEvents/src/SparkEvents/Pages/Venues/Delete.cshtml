@@ -1,0 +1,46 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Venues.DeleteModel
+@{
+    ViewData["Title"] = "Delete Venue";
+}
+
+<h1 class="mb-4">Delete Venue</h1>
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">@Model.Venue.Name</h5>
+        <p class="text-danger fw-bold">Are you sure you want to delete this venue?</p>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Address</dt>
+            <dd class="col-sm-9">@Model.Venue.Address</dd>
+
+            <dt class="col-sm-3">City</dt>
+            <dd class="col-sm-9">@Model.Venue.City</dd>
+
+            <dt class="col-sm-3">State</dt>
+            <dd class="col-sm-9">@Model.Venue.State</dd>
+
+            <dt class="col-sm-3">Zip Code</dt>
+            <dd class="col-sm-9">@Model.Venue.ZipCode</dd>
+
+            <dt class="col-sm-3">Max Capacity</dt>
+            <dd class="col-sm-9">@Model.Venue.MaxCapacity.ToString("N0")</dd>
+
+            <dt class="col-sm-3">Contact Email</dt>
+            <dd class="col-sm-9">@(Model.Venue.ContactEmail ?? "—")</dd>
+
+            <dt class="col-sm-3">Contact Phone</dt>
+            <dd class="col-sm-9">@(Model.Venue.ContactPhone ?? "—")</dd>
+
+            <dt class="col-sm-3">Notes</dt>
+            <dd class="col-sm-9">@(Model.Venue.Notes ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+
+<form method="post" asp-route-id="@Model.Venue.Id">
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to list</a>
+</form>

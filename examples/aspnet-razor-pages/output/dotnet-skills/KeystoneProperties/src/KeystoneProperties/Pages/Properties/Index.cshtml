@@ -1,0 +1,155 @@
+@page
+@model KeystoneProperties.Pages.Properties.IndexModel
+@{
+    ViewData["Title"] = "Properties";
+}
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Properties</h1>
+        <a asp-page="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Create New
+        </a>
+    </div>
+
+    @if (TempData["Success"] is string successMsg)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @successMsg
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form method="get" class="card card-body mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="Search" class="form-label">Search (Name or City)</label>
+                <input type="text" id="Search" asp-for="Search" class="form-control" placeholder="Search by name or city..." />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Type" class="form-label">Property Type</label>
+                <select asp-for="Type" asp-items="Html.GetEnumSelectList<PropertyType>()" class="form-select">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="IsActive" class="form-label">Active Status</label>
+                <select asp-for="IsActive" class="form-select">
+                    <option value="">All</option>
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Properties.Count == 0)
+    {
+        <div class="alert alert-info">No properties found.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>City / State</th>
+                        <th>Type</th>
+                        <th>Units</th>
+                        <th>Occupancy Rate</th>
+                        <th>Active</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var property in Model.Properties)
+                    {
+                        var totalUnits = property.Units.Count;
+                        var occupiedUnits = property.Units.Count(u => u.Status == UnitStatus.Occupied);
+                        var occupancyRate = totalUnits > 0
+                            ? (double)occupiedUnits / totalUnits * 100
+                            : 0;
+
+                        <tr>
+                            <td>@property.Name</td>
+                            <td>@property.Address</td>
+                            <td>@property.City, @property.State</td>
+                            <td>
+                                <span class="badge bg-info text-dark">@property.PropertyType</span>
+                            </td>
+                            <td>@totalUnits</td>
+                            <td>@occupancyRate.ToString("F1")%</td>
+                            <td>
+                                @if (property.IsActive)
+                                {
+                                    <span class="text-success fw-bold">Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger fw-bold">No</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-page="Details" asp-route-id="@property.Id" class="btn btn-sm btn-outline-primary" title="Details">
+                                    <i class="bi bi-eye"></i> Details
+                                </a>
+                                <a asp-page="Edit" asp-route-id="@property.Id" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Properties.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(Model.Properties.HasPreviousPage ? "" : "disabled")">
+                        <a class="page-link"
+                           asp-page="Index"
+                           asp-route-pageNumber="@(Model.Properties.PageIndex - 1)"
+                           asp-route-search="@Model.Search"
+                           asp-route-type="@Model.Type"
+                           asp-route-isActive="@Model.IsActive">
+                            <span aria-hidden="true">&laquo;</span> Previous
+                        </a>
+                    </li>
+                    @for (var i = 1; i <= Model.Properties.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Properties.PageIndex ? "active" : "")">
+                            <a class="page-link"
+                               asp-page="Index"
+                               asp-route-pageNumber="@i"
+                               asp-route-search="@Model.Search"
+                               asp-route-type="@Model.Type"
+                               asp-route-isActive="@Model.IsActive">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.Properties.HasNextPage ? "" : "disabled")">
+                        <a class="page-link"
+                           asp-page="Index"
+                           asp-route-pageNumber="@(Model.Properties.PageIndex + 1)"
+                           asp-route-search="@Model.Search"
+                           asp-route-type="@Model.Type"
+                           asp-route-isActive="@Model.IsActive">
+                            Next <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <p class="text-center text-muted small">
+                Showing page @Model.Properties.PageIndex of @Model.Properties.TotalPages (@Model.Properties.TotalCount total items)
+            </p>
+        }
+    }
+</section>

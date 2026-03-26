@@ -1,0 +1,43 @@
+@page
+@model HorizonHR.Pages.Reviews.CreateModel
+@{
+    ViewData["Title"] = "Create Performance Review";
+}
+
+<h1>Create Performance Review</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.EmployeeId" class="form-label">Employee</label>
+                <select asp-for="Input.EmployeeId" asp-items="Model.EmployeeList" class="form-select">
+                    <option value="">-- Select Employee --</option>
+                </select>
+                <span asp-validation-for="Input.EmployeeId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.ReviewerId" class="form-label">Reviewer</label>
+                <select asp-for="Input.ReviewerId" asp-items="Model.ReviewerList" class="form-select">
+                    <option value="">-- Select Reviewer --</option>
+                </select>
+                <span asp-validation-for="Input.ReviewerId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.ReviewPeriodStart" class="form-label">Period Start</label>
+                <input asp-for="Input.ReviewPeriodStart" class="form-control" type="date" />
+                <span asp-validation-for="Input.ReviewPeriodStart" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.ReviewPeriodEnd" class="form-label">Period End</label>
+                <input asp-for="Input.ReviewPeriodEnd" class="form-control" type="date" />
+                <span asp-validation-for="Input.ReviewPeriodEnd" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

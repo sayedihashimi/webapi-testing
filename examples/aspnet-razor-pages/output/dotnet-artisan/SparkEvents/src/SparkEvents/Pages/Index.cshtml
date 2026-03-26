@@ -1,0 +1,140 @@
+@page
+@model SparkEvents.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="mb-4">⚡ Spark Events Dashboard</h1>
+
+<section class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Total Events</h5>
+                <p class="card-text display-6">@Model.TotalEvents</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Total Registrations</h5>
+                <p class="card-text display-6">@Model.TotalRegistrations</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-info mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Events This Month</h5>
+                <p class="card-text display-6">@Model.EventsThisMonth</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-warning mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Total Attendees</h5>
+                <p class="card-text display-6">@Model.TotalAttendees</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (Model.TodaysEvents.Count > 0)
+{
+    <section class="mb-4">
+        <h3>Today's Events</h3>
+        @foreach (var evt in Model.TodaysEvents)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">
+                                <a asp-page="/Events/Details" asp-route-id="@evt.Id">@evt.Title</a>
+                                <partial name="_StatusBadge" model="evt.Status" />
+                            </h5>
+                            <p class="text-muted mb-1">@evt.Venue.Name &bull; @evt.StartDate.ToString("h:mm tt") - @evt.EndDate.ToString("h:mm tt")</p>
+                        </div>
+                        <a asp-page="/CheckIn/Index" asp-route-eventId="@evt.Id" class="btn btn-primary">Check-In</a>
+                    </div>
+                    @{
+                        var checkedIn = evt.Registrations.Count(r => r.Status == SparkEvents.Models.RegistrationStatus.CheckedIn);
+                        var totalConfirmed = evt.Registrations.Count(r => r.Status == SparkEvents.Models.RegistrationStatus.Confirmed || r.Status == SparkEvents.Models.RegistrationStatus.CheckedIn);
+                        var pct = totalConfirmed > 0 ? (int)(checkedIn * 100.0 / totalConfirmed) : 0;
+                    }
+                    <div class="progress mt-2" style="height: 25px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: @pct%;" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100">
+                            @checkedIn / @totalConfirmed checked in
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
+}
+
+@if (Model.UpcomingEvents.Count > 0)
+{
+    <section class="mb-4">
+        <h3>Upcoming Events (Next 7 Days)</h3>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Date</th>
+                        <th>Venue</th>
+                        <th>Status</th>
+                        <th>Registrations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var evt in Model.UpcomingEvents)
+                    {
+                        <tr>
+                            <td><a asp-page="/Events/Details" asp-route-id="@evt.Id">@evt.Title</a></td>
+                            <td>@evt.StartDate.ToString("MMM dd, yyyy")</td>
+                            <td>@evt.Venue.Name</td>
+                            <td><partial name="_StatusBadge" model="evt.Status" /></td>
+                            <td>@evt.CurrentRegistrations / @evt.TotalCapacity</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@if (Model.RecentRegistrations.Count > 0)
+{
+    <section class="mb-4">
+        <h3>Recent Registrations</h3>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Confirmation</th>
+                        <th>Attendee</th>
+                        <th>Event</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var reg in Model.RecentRegistrations)
+                    {
+                        <tr>
+                            <td><a asp-page="/Registrations/Details" asp-route-id="@reg.Id">@reg.ConfirmationNumber</a></td>
+                            <td>@reg.Attendee.FullName</td>
+                            <td>@reg.Event.Title</td>
+                            <td><partial name="_RegistrationStatusBadge" model="reg.Status" /></td>
+                            <td>@reg.RegistrationDate.ToString("MMM dd, yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}

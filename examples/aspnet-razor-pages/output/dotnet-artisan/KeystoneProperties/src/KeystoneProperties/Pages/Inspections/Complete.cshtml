@@ -1,0 +1,69 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Inspections.CompleteModel
+@{
+    ViewData["Title"] = "Complete Inspection";
+}
+
+<h1 class="mb-4">Complete Inspection</h1>
+
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Inspection Info</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Unit</dt>
+                    <dd class="col-sm-8">@Model.Inspection.Unit.Property.Name - Unit #@Model.Inspection.Unit.UnitNumber</dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">@Model.Inspection.InspectionType</dd>
+
+                    <dt class="col-sm-4">Scheduled Date</dt>
+                    <dd class="col-sm-8">@Model.Inspection.ScheduledDate.ToShortDateString()</dd>
+
+                    <dt class="col-sm-4">Inspector</dt>
+                    <dd class="col-sm-8">@Model.Inspection.InspectorName</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Inspection Results</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.OverallCondition" class="form-label"></label>
+                        <select asp-for="Input.OverallCondition" class="form-select" asp-items="Html.GetEnumSelectList<OverallCondition>()"></select>
+                        <span asp-validation-for="Input.OverallCondition" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Notes" class="form-label"></label>
+                        <textarea asp-for="Input.Notes" class="form-control" rows="5" placeholder="Inspection notes..."></textarea>
+                        <span asp-validation-for="Input.Notes" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input asp-for="Input.FollowUpRequired" class="form-check-input" />
+                        <label asp-for="Input.FollowUpRequired" class="form-check-label"></label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">Mark as Complete</button>
+                        <a asp-page="Details" asp-route-id="@Model.Inspection.Id" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

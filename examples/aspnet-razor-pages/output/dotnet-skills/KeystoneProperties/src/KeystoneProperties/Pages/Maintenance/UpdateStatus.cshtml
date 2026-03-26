@@ -1,0 +1,116 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Maintenance.UpdateStatusModel
+@{
+    ViewData["Title"] = "Update Maintenance Status";
+}
+
+<section>
+    <h1 class="mb-4"><i class="bi bi-arrow-repeat"></i> Update Status</h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Current Request Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Title</dt>
+                        <dd class="col-sm-9">@Model.Request.Title</dd>
+
+                        <dt class="col-sm-3">Unit</dt>
+                        <dd class="col-sm-9">@Model.Request.Unit.Property.Name - Unit @Model.Request.Unit.UnitNumber</dd>
+
+                        <dt class="col-sm-3">Tenant</dt>
+                        <dd class="col-sm-9">@Model.Request.Tenant.FullName</dd>
+
+                        <dt class="col-sm-3">Priority</dt>
+                        <dd class="col-sm-9">
+                            <partial name="_StatusBadge" model='(Model.Request.Priority.ToString(), "MaintenancePriority")' />
+                        </dd>
+
+                        <dt class="col-sm-3">Current Status</dt>
+                        <dd class="col-sm-9">
+                            <partial name="_StatusBadge" model='(Model.Request.Status.ToString(), "MaintenanceStatus")' />
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Update Status</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.NewStatus" class="form-label"></label>
+                            <select asp-for="Input.NewStatus" asp-items="Model.ValidStatuses" class="form-select" id="statusSelect">
+                                <option value="">-- Select New Status --</option>
+                            </select>
+                            <span asp-validation-for="Input.NewStatus" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3" id="assignedToGroup" style="display: none;">
+                            <label asp-for="Input.AssignedTo" class="form-label"></label>
+                            <input asp-for="Input.AssignedTo" class="form-control" />
+                            <span asp-validation-for="Input.AssignedTo" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3" id="completionNotesGroup" style="display: none;">
+                            <label asp-for="Input.CompletionNotes" class="form-label"></label>
+                            <textarea asp-for="Input.CompletionNotes" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Input.CompletionNotes" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.EstimatedCost" class="form-label"></label>
+                            <input asp-for="Input.EstimatedCost" class="form-control" />
+                            <span asp-validation-for="Input.EstimatedCost" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.ActualCost" class="form-label"></label>
+                            <input asp-for="Input.ActualCost" class="form-control" />
+                            <span asp-validation-for="Input.ActualCost" class="text-danger"></span>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-check-lg"></i> Update Status
+                            </button>
+                            <a asp-page="Details" asp-route-id="@Model.Request.Id" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('statusSelect').addEventListener('change', function () {
+            var assignedGroup = document.getElementById('assignedToGroup');
+            var completionGroup = document.getElementById('completionNotesGroup');
+            var selectedText = this.options[this.selectedIndex]?.text || '';
+
+            // Show AssignedTo when transitioning to Assigned
+            if (this.value === '1' || selectedText === 'Assigned') {
+                assignedGroup.style.display = 'block';
+            } else {
+                assignedGroup.style.display = 'none';
+            }
+
+            // Show CompletionNotes when transitioning to Completed
+            if (this.value === '3' || selectedText === 'Completed') {
+                completionGroup.style.display = 'block';
+            } else {
+                completionGroup.style.display = 'none';
+            }
+        });
+    </script>
+}

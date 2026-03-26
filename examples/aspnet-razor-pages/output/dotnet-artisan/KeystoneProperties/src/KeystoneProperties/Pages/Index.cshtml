@@ -1,0 +1,105 @@
+@page
+@model KeystoneProperties.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="mb-4">Dashboard</h1>
+
+<section class="row g-3 mb-4">
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Properties</h5>
+                <p class="display-6 fw-bold">@Model.TotalProperties</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Total Units</h5>
+                <p class="display-6 fw-bold">@Model.TotalUnits</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Occupancy</h5>
+                <p class="display-6 fw-bold">@Model.OccupancyRate.ToString("P0")</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Rent This Month</h5>
+                <p class="display-6 fw-bold text-success">@Model.RentCollected.ToString("C0")</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Overdue</h5>
+                <p class="display-6 fw-bold @(Model.OverdueCount > 0 ? "text-danger" : "")">@Model.OverdueCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Open Maintenance</h5>
+                <p class="display-6 fw-bold @(Model.OpenMaintenanceCount > 0 ? "text-warning" : "")">@Model.OpenMaintenanceCount</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Upcoming Lease Expirations (Next 30 Days)</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.ExpiringLeases.Count == 0)
+                {
+                    <p class="text-muted mb-0">No leases expiring in the next 30 days.</p>
+                }
+                else
+                {
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Tenant</th>
+                                <th>Property</th>
+                                <th>Unit</th>
+                                <th>End Date</th>
+                                <th>Monthly Rent</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var lease in Model.ExpiringLeases)
+                            {
+                                <tr>
+                                    <td>@lease.Tenant.FullName</td>
+                                    <td>@lease.Unit.Property.Name</td>
+                                    <td>@lease.Unit.UnitNumber</td>
+                                    <td>@lease.EndDate.ToShortDateString()</td>
+                                    <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                                    <td>
+                                        <a asp-page="/Leases/Details" asp-route-id="@lease.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a asp-page="/Leases/Renew" asp-route-id="@lease.Id" class="btn btn-sm btn-outline-success">Renew</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</section>

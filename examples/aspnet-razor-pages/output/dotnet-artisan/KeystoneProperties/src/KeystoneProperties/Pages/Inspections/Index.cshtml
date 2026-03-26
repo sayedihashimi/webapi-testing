@@ -1,0 +1,116 @@
+@page
+@model KeystoneProperties.Pages.Inspections.IndexModel
+@{
+    ViewData["Title"] = "Inspections";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Inspections</h1>
+    <a asp-page="Create" class="btn btn-primary">Schedule Inspection</a>
+</div>
+
+<form method="get" class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="InspectionType" class="form-label">Type</label>
+                <select asp-for="InspectionType" class="form-select" asp-items="Html.GetEnumSelectList<InspectionType>()">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="UnitId" class="form-label">Unit ID</label>
+                <input asp-for="UnitId" class="form-control" placeholder="Unit ID" />
+            </div>
+            <div class="col-md-2">
+                <label for="FromDate" class="form-label">From Date</label>
+                <input asp-for="FromDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label for="ToDate" class="form-label">To Date</label>
+                <input asp-for="ToDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-outline-primary">Filter</button>
+                <a asp-page="Index" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+@if (Model.Inspections.Items.Count == 0)
+{
+    <div class="alert alert-info">No inspections found matching the selected filters.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Scheduled Date</th>
+                    <th>Unit</th>
+                    <th>Type</th>
+                    <th>Inspector</th>
+                    <th>Condition</th>
+                    <th>Completed</th>
+                    <th>Follow-Up</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var inspection in Model.Inspections.Items)
+                {
+                    <tr>
+                        <td>@inspection.ScheduledDate.ToShortDateString()</td>
+                        <td>@inspection.Unit.Property.Name - Unit #@inspection.Unit.UnitNumber</td>
+                        <td>@inspection.InspectionType</td>
+                        <td>@inspection.InspectorName</td>
+                        <td>
+                            @if (inspection.OverallCondition.HasValue)
+                            {
+                                @await Html.PartialAsync("_StatusBadgePartial", (inspection.OverallCondition.Value.ToString(), "OverallCondition"))
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td>
+                            @if (inspection.CompletedDate.HasValue)
+                            {
+                                @inspection.CompletedDate.Value.ToShortDateString()
+                            }
+                            else
+                            {
+                                <span class="text-muted">Pending</span>
+                            }
+                        </td>
+                        <td>
+                            @if (inspection.FollowUpRequired)
+                            {
+                                <span class="badge bg-warning text-dark">Follow-Up Required</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@inspection.Id" class="btn btn-sm btn-outline-primary">View</a>
+                            @if (!inspection.CompletedDate.HasValue)
+                            {
+                                <a asp-page="Complete" asp-route-id="@inspection.Id" class="btn btn-sm btn-outline-success">Complete</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    var queryParams = new List<string>();
+    if (Model.InspectionType.HasValue) { queryParams.Add($"InspectionType={Model.InspectionType}"); }
+    if (Model.UnitId.HasValue) { queryParams.Add($"UnitId={Model.UnitId}"); }
+    if (Model.FromDate.HasValue) { queryParams.Add($"FromDate={Model.FromDate.Value:yyyy-MM-dd}"); }
+    if (Model.ToDate.HasValue) { queryParams.Add($"ToDate={Model.ToDate.Value:yyyy-MM-dd}"); }
+    var baseUrl = Request.Path + "?" + string.Join("&", queryParams);
+
+    @await Html.PartialAsync("_PaginationPartial", (Model.Inspections.PageNumber, Model.Inspections.TotalPages, baseUrl))
+}

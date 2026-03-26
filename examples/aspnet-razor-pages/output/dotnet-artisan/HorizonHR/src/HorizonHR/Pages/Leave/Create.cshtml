@@ -1,0 +1,52 @@
+@page
+@model HorizonHR.Pages.Leave.CreateModel
+@{ ViewData["Title"] = "Submit Leave Request"; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Leave Requests</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Submit</li>
+    </ol>
+</nav>
+<h1>Submit Leave Request</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="Input.EmployeeId" class="form-label">Employee</label>
+                <select asp-for="Input.EmployeeId" asp-items="Model.Employees" class="form-select">
+                    <option value="">Select Employee...</option>
+                </select>
+                <span asp-validation-for="Input.EmployeeId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.LeaveTypeId" class="form-label">Leave Type</label>
+                <select asp-for="Input.LeaveTypeId" asp-items="Model.LeaveTypes" class="form-select">
+                    <option value="">Select Type...</option>
+                </select>
+                <span asp-validation-for="Input.LeaveTypeId" class="text-danger"></span>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.StartDate" class="form-label"></label>
+                    <input asp-for="Input.StartDate" class="form-control" type="date" />
+                    <span asp-validation-for="Input.StartDate" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.EndDate" class="form-label"></label>
+                    <input asp-for="Input.EndDate" class="form-control" type="date" />
+                    <span asp-validation-for="Input.EndDate" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Reason" class="form-label"></label>
+                <textarea asp-for="Input.Reason" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Input.Reason" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+            <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

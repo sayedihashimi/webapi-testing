@@ -1,0 +1,58 @@
+@page
+@model SparkEvents.Pages.Venues.IndexModel
+@{
+    ViewData["Title"] = "Venues";
+}
+
+<h1 class="mb-4">Venues</h1>
+
+<p>
+    <a asp-page="Create" class="btn btn-primary">Create New Venue</a>
+</p>
+
+@if (!Model.Venues.Items.Any())
+{
+    <p class="text-muted">No venues found.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>City</th>
+                    <th>State</th>
+                    <th>Max Capacity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var venue in Model.Venues.Items)
+                {
+                    <tr>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@venue.Id">@venue.Name</a>
+                        </td>
+                        <td>@venue.City</td>
+                        <td>@venue.State</td>
+                        <td>@venue.MaxCapacity.ToString("N0")</td>
+                        <td>
+                            <a asp-page="Edit" asp-route-id="@venue.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a asp-page="Delete" asp-route-id="@venue.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="_Pagination" view-data='@(new ViewDataDictionary(ViewData)
+    {
+        { "PageNumber", Model.Venues.PageNumber },
+        { "TotalPages", Model.Venues.TotalPages },
+        { "PageUrl", "/Venues?" },
+        { "HasPreviousPage", Model.Venues.HasPreviousPage },
+        { "HasNextPage", Model.Venues.HasNextPage }
+    })' />
+}

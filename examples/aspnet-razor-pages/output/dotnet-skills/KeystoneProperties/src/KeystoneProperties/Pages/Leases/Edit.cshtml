@@ -1,0 +1,102 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Leases.EditModel
+@{
+    ViewData["Title"] = "Edit Lease";
+}
+
+<section>
+    <h1 class="mb-4"><i class="bi bi-pencil"></i> Edit Lease</h1>
+
+    @if (Model.IsActive)
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> This lease is active. Only Monthly Rent and Notes can be edited.
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                <input type="hidden" asp-for="Input.Id" />
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Tenant</label>
+                        <input type="text" class="form-control" value="@Model.Lease.Tenant.FullName" disabled />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Unit</label>
+                        <input type="text" class="form-control" value="@Model.Lease.Unit.Property.Name - Unit @Model.Lease.Unit.UnitNumber" disabled />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.StartDate" class="form-label"></label>
+                        @if (Model.IsActive)
+                        {
+                            <input asp-for="Input.StartDate" type="date" class="form-control" disabled />
+                            <input type="hidden" asp-for="Input.StartDate" />
+                        }
+                        else
+                        {
+                            <input asp-for="Input.StartDate" type="date" class="form-control" />
+                        }
+                        <span asp-validation-for="Input.StartDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.EndDate" class="form-label"></label>
+                        @if (Model.IsActive)
+                        {
+                            <input asp-for="Input.EndDate" type="date" class="form-control" disabled />
+                            <input type="hidden" asp-for="Input.EndDate" />
+                        }
+                        else
+                        {
+                            <input asp-for="Input.EndDate" type="date" class="form-control" />
+                        }
+                        <span asp-validation-for="Input.EndDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.MonthlyRentAmount" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="Input.MonthlyRentAmount" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Input.MonthlyRentAmount" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.DepositAmount" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            @if (Model.IsActive)
+                            {
+                                <input asp-for="Input.DepositAmount" class="form-control" disabled />
+                                <input type="hidden" asp-for="Input.DepositAmount" />
+                            }
+                            else
+                            {
+                                <input asp-for="Input.DepositAmount" class="form-control" />
+                            }
+                        </div>
+                        <span asp-validation-for="Input.DepositAmount" class="text-danger"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Input.Notes" class="form-label"></label>
+                        <textarea asp-for="Input.Notes" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Input.Notes" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Save Changes
+                    </button>
+                    <a asp-page="Details" asp-route-id="@Model.Lease.Id" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

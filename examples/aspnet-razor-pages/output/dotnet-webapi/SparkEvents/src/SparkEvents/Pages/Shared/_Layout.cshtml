@@ -1,0 +1,84 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Spark Events</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SparkEvents.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-dark bg-dark mb-3" aria-label="Main navigation">
+            <div class="container">
+                <a class="navbar-brand" asp-page="/Index">⚡ Spark Events</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Index" ? "active" : "")"
+                               asp-page="/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString() == "/Index" ? "page" : null)">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Events") == true ? "active" : "")"
+                               asp-page="/Events/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Events") == true ? "page" : null)">Events</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Attendees") == true ? "active" : "")"
+                               asp-page="/Attendees/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Attendees") == true ? "page" : null)">Attendees</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Venues") == true ? "active" : "")"
+                               asp-page="/Venues/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Venues") == true ? "page" : null)">Venues</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Categories") == true ? "active" : "")"
+                               asp-page="/Categories/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Categories") == true ? "page" : null)">Categories</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        @if (TempData["SuccessMessage"] is string successMsg)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @successMsg
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] is string errorMsg)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @errorMsg
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted mt-4 py-3">
+        <div class="container text-center">
+            &copy; 2026 Spark Events — Community Event Registration Portal
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

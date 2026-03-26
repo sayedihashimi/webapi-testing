@@ -1,0 +1,31 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Inspections.CompleteModel
+@{ ViewData["Title"] = "Complete Inspection"; }
+<h1>Complete Inspection</h1>
+<div class="card mb-3"><div class="card-body">
+    <p><strong>Unit:</strong> @Model.Inspection.Unit.UnitNumber — @Model.Inspection.Unit.Property.Name</p>
+    <p><strong>Type:</strong> @Model.Inspection.InspectionType</p>
+    <p><strong>Inspector:</strong> @Model.Inspection.InspectorName</p>
+    <p><strong>Scheduled:</strong> @Model.Inspection.ScheduledDate.ToString("MMM dd, yyyy")</p>
+</div></div>
+<div class="row"><div class="col-md-8">
+    <form method="post">
+        <input type="hidden" asp-for="InspectionId" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Input.OverallCondition" class="form-label"></label>
+            <select asp-for="Input.OverallCondition" asp-items="@Html.GetEnumSelectList<OverallCondition>()" class="form-select"></select>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.Notes" class="form-label"></label>
+            <textarea asp-for="Input.Notes" class="form-control" rows="4"></textarea>
+        </div>
+        <div class="mb-3 form-check">
+            <input asp-for="Input.FollowUpRequired" class="form-check-input" />
+            <label asp-for="Input.FollowUpRequired" class="form-check-label"></label>
+        </div>
+        <button type="submit" class="btn btn-success">Complete Inspection</button>
+        <a asp-page="Details" asp-route-id="@Model.InspectionId" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

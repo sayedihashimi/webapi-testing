@@ -1,0 +1,123 @@
+@page
+@model KeystoneProperties.Pages.Leases.IndexModel
+@{
+    ViewData["Title"] = "Leases";
+}
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-file-earmark-text"></i> Leases</h1>
+        <a asp-page="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Lease
+        </a>
+    </div>
+
+    <form method="get" class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" asp-items="Html.GetEnumSelectList<LeaseStatus>()" class="form-select">
+                        <option value="">All Statuses</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="PropertyId" class="form-label">Property</label>
+                    <select asp-for="PropertyId" asp-items="Model.PropertyList" class="form-select">
+                        <option value="">All Properties</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Search" class="form-label">Search</label>
+                    <input asp-for="Search" class="form-control" placeholder="Tenant name, unit number..." />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Leases.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Tenant</th>
+                        <th>Property</th>
+                        <th>Unit</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Monthly Rent</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Leases)
+                    {
+                        <tr>
+                            <td>@item.Tenant.FullName</td>
+                            <td>@item.Unit.Property.Name</td>
+                            <td>@item.Unit.UnitNumber</td>
+                            <td>@item.StartDate.ToString("MMM dd, yyyy")</td>
+                            <td>@item.EndDate.ToString("MMM dd, yyyy")</td>
+                            <td>@item.MonthlyRentAmount.ToString("C")</td>
+                            <td>@await Html.PartialAsync("_StatusBadge", (item.Status.ToString(), "LeaseStatus"))</td>
+                            <td>
+                                <a asp-page="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.Leases.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-route-pageNumber="@(Model.Leases.PageIndex - 1)"
+                       asp-route-status="@Model.Status"
+                       asp-route-propertyId="@Model.PropertyId"
+                       asp-route-search="@Model.Search">
+                        <span aria-hidden="true">&laquo;</span> Previous
+                    </a>
+                </li>
+                @for (var i = 1; i <= Model.Leases.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.Leases.PageIndex ? "active" : "")">
+                        <a class="page-link"
+                           asp-route-pageNumber="@i"
+                           asp-route-status="@Model.Status"
+                           asp-route-propertyId="@Model.PropertyId"
+                           asp-route-search="@Model.Search">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Leases.HasNextPage ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-route-pageNumber="@(Model.Leases.PageIndex + 1)"
+                       asp-route-status="@Model.Status"
+                       asp-route-propertyId="@Model.PropertyId"
+                       asp-route-search="@Model.Search">
+                        Next <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <p class="text-center text-muted small">
+            Showing page @Model.Leases.PageIndex of @Model.Leases.TotalPages (@Model.Leases.TotalCount total items)
+        </p>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No leases found matching your criteria.
+        </div>
+    }
+</section>

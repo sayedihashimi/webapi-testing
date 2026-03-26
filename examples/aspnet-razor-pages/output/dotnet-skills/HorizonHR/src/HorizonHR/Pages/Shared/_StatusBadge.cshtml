@@ -1,0 +1,33 @@
+@model string
+@{
+    var badgeClass = Model switch
+    {
+        "Active" => "bg-success",
+        "OnLeave" => "bg-warning text-dark",
+        "Terminated" => "bg-danger",
+        "Submitted" => "bg-info",
+        "Approved" => "bg-success",
+        "Rejected" => "bg-danger",
+        "Cancelled" => "bg-secondary",
+        "Draft" => "bg-secondary",
+        "SelfAssessmentPending" => "bg-info",
+        "ManagerReviewPending" => "bg-warning text-dark",
+        "Completed" => "bg-success",
+        "Outstanding" => "bg-success",
+        "ExceedsExpectations" => "bg-primary",
+        "MeetsExpectations" => "bg-info",
+        "NeedsImprovement" => "bg-warning text-dark",
+        "Unsatisfactory" => "bg-danger",
+        "FullTime" => "bg-primary",
+        "PartTime" => "bg-info",
+        "Contract" => "bg-warning text-dark",
+        "Intern" => "bg-secondary",
+        "Beginner" => "bg-secondary",
+        "Intermediate" => "bg-info",
+        "Advanced" => "bg-primary",
+        "Expert" => "bg-success",
+        _ => "bg-secondary"
+    };
+    var displayText = System.Text.RegularExpressions.Regex.Replace(Model ?? "", "([a-z])([A-Z])", "$1 $2");
+}
+<span class="badge @badgeClass">@displayText</span>

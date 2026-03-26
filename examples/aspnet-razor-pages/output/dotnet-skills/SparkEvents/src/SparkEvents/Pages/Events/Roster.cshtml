@@ -1,0 +1,47 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.Events.RosterModel
+@{ ViewData["Title"] = $"Roster — {Model.Event!.Title}"; }
+
+<h1>Event Roster — @Model.Event.Title</h1>
+<a asp-page="Details" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary mb-3">← Back to Event</a>
+
+<form method="get" class="row g-3 mb-3">
+    <div class="col-auto">
+        <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search by name or confirmation..." />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+    </div>
+</form>
+
+@if (Model.Roster.Items.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Confirmation #</th><th>Attendee</th><th>Ticket</th><th>Amount</th><th>Status</th><th>Check-In</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var reg in Model.Roster.Items)
+                {
+                    <tr>
+                        <td><a asp-page="/Registrations/Details" asp-route-id="@reg.Id">@reg.ConfirmationNumber</a></td>
+                        <td>@reg.Attendee.FullName</td>
+                        <td>@reg.TicketType.Name</td>
+                        <td>@reg.AmountPaid.ToString("C")</td>
+                        <td><partial name="_RegistrationStatusBadge" model="reg.Status" /></td>
+                        <td>@(reg.CheckIn != null ? reg.CheckIn.CheckInTime.ToString("h:mm tt") : "—")</td>
+                        <td>
+                            @if (reg.Status == SparkEvents.Models.RegistrationStatus.Confirmed)
+                            {
+                                <a asp-page="/Registrations/Cancel" asp-route-id="@reg.Id" class="btn btn-sm btn-outline-danger">Cancel</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">No registrations found.</p>
+}

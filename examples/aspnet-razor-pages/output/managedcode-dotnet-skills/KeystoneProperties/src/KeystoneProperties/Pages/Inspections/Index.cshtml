@@ -1,0 +1,107 @@
+@page
+@model KeystoneProperties.Pages.Inspections.IndexModel
+@using KeystoneProperties.Models
+@{
+    ViewData["Title"] = "Inspections";
+}
+
+<h1>Inspections</h1>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <select class="form-select" asp-for="InspectionType" asp-items="@Html.GetEnumSelectList<InspectionType>()">
+            <option value="">All Types</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <input type="date" class="form-control" asp-for="StartDate" placeholder="Start Date" />
+    </div>
+    <div class="col-md-3">
+        <input type="date" class="form-control" asp-for="EndDate" placeholder="End Date" />
+    </div>
+    <div class="col-md-4">
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-page="/Inspections/Index" class="btn btn-outline-secondary ms-2">Clear</a>
+    </div>
+</form>
+
+<div class="mb-3">
+    <a asp-page="/Inspections/Create" class="btn btn-success">Schedule Inspection</a>
+</div>
+
+@if (Model.Inspections.Count == 0)
+{
+    <div class="alert alert-info">No inspections found.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Unit</th>
+                <th>Scheduled Date</th>
+                <th>Completed Date</th>
+                <th>Inspector</th>
+                <th>Condition</th>
+                <th>Follow-up</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var inspection in Model.Inspections)
+            {
+                <tr>
+                    <td>@Html.DisplayFor(m => inspection.InspectionType)</td>
+                    <td>@inspection.Unit.UnitNumber - @inspection.Unit.Property.Name</td>
+                    <td>@inspection.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                    <td>
+                        @if (inspection.CompletedDate.HasValue)
+                        {
+                            @inspection.CompletedDate.Value.ToString("MMM dd, yyyy")
+                        }
+                        else
+                        {
+                            <span class="text-muted">Pending</span>
+                        }
+                    </td>
+                    <td>@inspection.InspectorName</td>
+                    <td>
+                        @if (inspection.OverallCondition.HasValue)
+                        {
+                            @await Component.InvokeAsync("StatusBadge", new { status = inspection.OverallCondition.Value.ToString() })
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    <td>
+                        @if (inspection.CompletedDate.HasValue)
+                        {
+                            @(inspection.FollowUpRequired ? "Yes" : "No")
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-page="/Inspections/Details" asp-route-id="@inspection.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                        @if (!inspection.CompletedDate.HasValue)
+                        {
+                            <a asp-page="/Inspections/Complete" asp-route-id="@inspection.Id" class="btn btn-sm btn-outline-success">Complete</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@{
+    ViewData["PageIndex"] = Model.Inspections.PageIndex;
+    ViewData["TotalPages"] = Model.Inspections.TotalPages;
+    ViewData["PageUrl"] = $"?inspectionType={Model.InspectionType}&unitId={Model.UnitId}&startDate={Model.StartDate}&endDate={Model.EndDate}";
+}
+@await Html.PartialAsync("_PaginationPartial")

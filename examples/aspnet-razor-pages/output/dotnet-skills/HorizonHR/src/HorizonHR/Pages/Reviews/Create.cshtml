@@ -1,0 +1,60 @@
+@page
+@model HorizonHR.Pages.Reviews.CreateModel
+@{
+    ViewData["Title"] = "Create Performance Review";
+}
+
+<h1>Create Performance Review</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.EmployeeId" class="form-label"></label>
+                <select asp-for="Input.EmployeeId" class="form-select">
+                    <option value="">-- Select Employee --</option>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <option value="@employee.Id">@employee.FullName (@employee.EmployeeNumber)</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.EmployeeId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.ReviewerId" class="form-label"></label>
+                <select asp-for="Input.ReviewerId" class="form-select">
+                    <option value="">-- Select Reviewer --</option>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <option value="@employee.Id">@employee.FullName (@employee.EmployeeNumber)</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.ReviewerId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.ReviewPeriodStart" class="form-label"></label>
+                <input asp-for="Input.ReviewPeriodStart" type="date" class="form-control" />
+                <span asp-validation-for="Input.ReviewPeriodStart" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.ReviewPeriodEnd" class="form-label"></label>
+                <input asp-for="Input.ReviewPeriodEnd" type="date" class="form-control" />
+                <span asp-validation-for="Input.ReviewPeriodEnd" class="text-danger"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Create Review</button>
+                <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,77 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Venues.EditModel
+@{
+    ViewData["Title"] = "Edit Venue";
+}
+
+<section>
+    <h1>Edit Venue</h1>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-8">
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Input.Id" />
+
+                <div class="mb-3">
+                    <label asp-for="Input.Name" class="form-label"></label>
+                    <input asp-for="Input.Name" class="form-control" />
+                    <span asp-validation-for="Input.Name" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.Address" class="form-label"></label>
+                    <input asp-for="Input.Address" class="form-control" />
+                    <span asp-validation-for="Input.Address" class="text-danger"></span>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-5">
+                        <label asp-for="Input.City" class="form-label"></label>
+                        <input asp-for="Input.City" class="form-control" />
+                        <span asp-validation-for="Input.City" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Input.State" class="form-label"></label>
+                        <input asp-for="Input.State" class="form-control" maxlength="2" />
+                        <span asp-validation-for="Input.State" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.ZipCode" class="form-label"></label>
+                        <input asp-for="Input.ZipCode" class="form-control" />
+                        <span asp-validation-for="Input.ZipCode" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.MaxCapacity" class="form-label"></label>
+                    <input asp-for="Input.MaxCapacity" class="form-control" type="number" min="1" />
+                    <span asp-validation-for="Input.MaxCapacity" class="text-danger"></span>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Input.ContactEmail" class="form-label"></label>
+                        <input asp-for="Input.ContactEmail" class="form-control" type="email" />
+                        <span asp-validation-for="Input.ContactEmail" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.ContactPhone" class="form-label"></label>
+                        <input asp-for="Input.ContactPhone" class="form-control" />
+                        <span asp-validation-for="Input.ContactPhone" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.Notes" class="form-label"></label>
+                    <textarea asp-for="Input.Notes" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Input.Notes" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</section>

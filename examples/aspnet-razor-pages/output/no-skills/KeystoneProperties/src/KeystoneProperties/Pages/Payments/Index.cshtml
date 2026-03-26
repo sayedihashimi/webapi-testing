@@ -1,0 +1,62 @@
+@page
+@model KeystoneProperties.Pages.Payments.IndexModel
+@{ ViewData["Title"] = "Payments"; }
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Payments</h1>
+    <div>
+        <a asp-page="Overdue" class="btn btn-outline-danger">View Overdue</a>
+        <a asp-page="Create" class="btn btn-primary">Record Payment</a>
+    </div>
+</div>
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <select name="type" class="form-select">
+            <option value="">All Types</option>
+            @foreach (var t in Enum.GetValues<PaymentType>()) { <option value="@t" selected="@(Model.TypeFilter == t)">@t</option> }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="status" class="form-select">
+            <option value="">All Status</option>
+            @foreach (var s in Enum.GetValues<PaymentStatus>()) { <option value="@s" selected="@(Model.StatusFilter == s)">@s</option> }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="fromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" class="form-control" placeholder="From" />
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="toDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" class="form-control" placeholder="To" />
+    </div>
+    <div class="col-md-2">
+        <select name="propertyId" class="form-select">
+            <option value="">All Properties</option>
+            @foreach (var p in Model.PropertyList) { <option value="@p.Id" selected="@(Model.PropertyId == p.Id)">@p.Name</option> }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+@if (Model.Payments.Any())
+{
+    <table class="table table-striped">
+        <thead><tr><th>Date</th><th>Tenant</th><th>Unit</th><th>Amount</th><th>Type</th><th>Method</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var p in Model.Payments)
+            {
+                <tr>
+                    <td>@p.PaymentDate.ToString("MMM dd, yyyy")</td>
+                    <td>@p.Lease.Tenant.FullName</td>
+                    <td>@p.Lease.Unit.UnitNumber</td>
+                    <td>@p.Amount.ToString("C")</td>
+                    <td>@p.PaymentType</td>
+                    <td>@p.PaymentMethod</td>
+                    <td><partial name="_StatusBadge" model="@(p.Status.ToString(), "payment")" /></td>
+                    <td><a asp-page="Details" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <partial name="_PaginationPartial" model="@(Model.CurrentPage, Model.TotalPages, $"?type={Model.TypeFilter}&status={Model.StatusFilter}&fromDate={Model.FromDate?.ToString("yyyy-MM-dd")}&toDate={Model.ToDate?.ToString("yyyy-MM-dd")}&propertyId={Model.PropertyId}")" />
+}
+else { <p class="text-muted">No payments found.</p> }

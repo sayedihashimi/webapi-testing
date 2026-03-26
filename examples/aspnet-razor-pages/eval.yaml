@@ -1,0 +1,381 @@
+name: "ASP.NET Core Razor Pages Skill Evaluation"
+description: >
+  Evaluate how custom Copilot skills impact the quality of generated
+  ASP.NET Core Razor Pages code across three realistic application scenarios.
+
+scenarios:
+  - name: SparkEvents
+    prompt: prompts/scenarios/event-registration.prompt.md
+    description: "Event registration portal with ticket types, capacity management, waitlists, and check-in"
+  - name: KeystoneProperties
+    prompt: prompts/scenarios/property-management.prompt.md
+    description: "Property management with leases, tenants, maintenance requests, and rent tracking"
+  - name: HorizonHR
+    prompt: prompts/scenarios/employee-directory.prompt.md
+    description: "Employee directory and HR portal with leave management, reviews, and skills"
+
+configurations:
+  - name: no-skills
+    label: "Baseline (default Copilot)"
+    skills: []
+    plugins: []
+  - name: dotnet-webapi
+    label: "dotnet-webapi skill"
+    skills:
+      - skills/dotnet-webapi
+    plugins: []
+  - name: dotnet-artisan
+    label: "dotnet-artisan plugin chain"
+    skills: []
+    plugins:
+      - plugins/dotnet-artisan
+  - name: managedcode-dotnet-skills
+    label: "Community managed-code skills"
+    skills:
+      - skills/managedcode-dotnet-skills
+    plugins: []
+  - name: dotnet-skills
+    label: "Official .NET Skills (dotnet/skills)"
+    skills: []
+    plugins:
+      - plugins/dotnet-skills/dotnet
+      - plugins/dotnet-skills/dotnet-ai
+      - plugins/dotnet-skills/dotnet-data
+      - plugins/dotnet-skills/dotnet-diag
+      - plugins/dotnet-skills/dotnet-experimental
+      - plugins/dotnet-skills/dotnet-maui
+      - plugins/dotnet-skills/dotnet-msbuild
+      - plugins/dotnet-skills/dotnet-nuget
+      - plugins/dotnet-skills/dotnet-template-engine
+      - plugins/dotnet-skills/dotnet-test
+      - plugins/dotnet-skills/dotnet-upgrade
+
+verification:
+  build:
+    command: "dotnet build"
+    success_pattern: "Build succeeded"
+  run:
+    command: "dotnet run"
+    timeout_seconds: 15
+
+dimensions:
+  - name: "Page Model Design"
+    description: "How page models are structured — thin vs fat, separation of concerns"
+    what_to_look_for: |
+      Check page model classes (*.cshtml.cs). Are they thin (delegating to services)
+      or fat (containing business logic and DbContext queries directly)? Look for
+      injected services vs inline DbContext. Check for clear OnGet/OnPost handler
+      separation. Check if page models inherit only from PageModel.
+    why_it_matters: "Thin page models with injected services are more testable, maintainable, and follow single responsibility"
+
+  - name: "Form Handling & Validation"
+    description: "BindProperty usage, anti-forgery, validation display, PRG pattern, named handlers"
+    what_to_look_for: |
+      Check for [BindProperty] attributes with nested InputModel classes vs binding directly
+      to entity properties. Look for [ValidateAntiForgeryToken] on POST handlers.
+      Check for asp-validation-for, asp-validation-summary (ModelOnly vs All), and
+      _ValidationScriptsPartial inclusion. Verify PRG pattern (OnPost returns RedirectToPage,
+      not Page()). Check for named handler methods (OnPostSaveAsync, OnPostDeleteAsync)
+      vs single OnPost with switch/if logic.
+    why_it_matters: "Proper form handling prevents over-posting, CSRF attacks, duplicate submissions, and provides good UX"
+
+  - name: "Input Model Separation"
+    description: "Dedicated input models vs binding directly to entities"
+    what_to_look_for: |
+      Check if page models use nested InputModel or separate DTO classes for form binding
+      vs [BindProperty] directly on entity properties. Look for [BindProperty] public Event Event
+      vs [BindProperty] public InputModel Input with a dedicated class. Check if entities are
+      ever exposed directly to views or if view models / DTOs mediate.
+    why_it_matters: "Input model separation prevents over-posting attacks, keeps entities clean, and allows view-specific validation"
+
+  - name: "Named Handler Methods"
+    description: "Multiple named handlers vs single catch-all OnPost"
+    what_to_look_for: |
+      On pages with multiple actions (e.g., save + delete, approve + reject), check for
+      named handlers like OnPostApproveAsync, OnPostRejectAsync with asp-page-handler
+      tag helper vs a single OnPost with hidden fields or switch statements.
+    why_it_matters: "Named handlers produce cleaner routing, more testable page models, and better intent clarity"
+
+  - name: "Semantic HTML"
+    description: "Use of semantic HTML elements vs generic div/span soup"
+    what_to_look_for: |
+      Check .cshtml files for semantic elements: <nav> for navigation, <main> for primary
+      content, <section> for grouped content, <article> for self-contained content,
+      <header>/<footer> for page structure, <button> for actions (not <a> styled as button),
+      <table> with <thead>/<tbody>, <label> associated with inputs via asp-for.
+      Count <div>-only structures vs semantic alternatives.
+    why_it_matters: "Semantic HTML improves accessibility, SEO, and document structure readability"
+
+  - name: "Accessibility & ARIA"
+    description: "ARIA attributes, screen reader support, keyboard navigability"
+    what_to_look_for: |
+      Check for role="alert" on flash message alerts, aria-label on navigation elements
+      and pagination, aria-describedby linking inputs to validation messages,
+      aria-current="page" on active nav items, aria-hidden on decorative icons,
+      alt text on images, sr-only/visually-hidden classes for screen-reader-only text.
+      Check that buttons have accessible names.
+    why_it_matters: "WCAG compliance, screen reader support, legal accessibility requirements"
+
+  - name: "View Components & Reusable UI"
+    description: "ViewComponent classes, reusable partial views, or custom tag helpers for shared UI"
+    what_to_look_for: |
+      Look for ViewComponent classes (inheriting from ViewComponent) used for reusable
+      widgets like status badges, dashboard cards, or pagination. Check for <vc:*> tag
+      helper invocations. Look for meaningful partial views (<partial name="..." />)
+      for repeated UI patterns vs duplicated markup across pages. Count how many times
+      similar HTML blocks are copy-pasted vs extracted.
+    why_it_matters: "Component composition reduces duplication, improves testability, and follows DRY"
+
+  - name: "Null & Empty State Handling"
+    description: "Graceful handling of null data, empty collections, and loading states"
+    what_to_look_for: |
+      Check for @if (Model.Items?.Count > 0) or @if (Model.Items.Any()) guards around
+      collection rendering. Look for "No items found" or empty state messages when
+      collections are empty. Check for null checks before accessing navigation properties.
+      Look for conditional rendering with 'is not null' pattern.
+    why_it_matters: "Prevents NullReferenceExceptions at runtime and provides polished UX"
+
+  - name: "CSS Organization"
+    description: "Inline styles vs organized CSS files vs scoped CSS"
+    what_to_look_for: |
+      Search .cshtml files for inline style="" attributes. Check if custom CSS goes in
+      site.css or page-specific CSS files. Look for CSS class usage vs inline styles
+      for positioning, colors, sizing. Check for wwwroot/css organization.
+    why_it_matters: "Organized CSS improves maintainability and avoids specificity conflicts"
+
+  - name: "Tag Helper Usage"
+    description: "Modern tag helpers vs raw HTML helpers vs plain HTML"
+    what_to_look_for: |
+      Check .cshtml files for asp-for, asp-items with SelectList, asp-page, asp-route-*,
+      asp-append-version on script/link tags. Look for asp-validation-summary="ModelOnly".
+      Check for @Html.TextBoxFor() or @Html.ActionLink() legacy patterns.
+      Verify _ViewImports.cshtml has @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers.
+    why_it_matters: "Tag helpers produce cleaner Razor markup, integrate with model binding, and are the modern standard"
+
+  - name: "Layout & Partial Views"
+    description: "Use of _Layout, partial views, view components, and sections"
+    what_to_look_for: |
+      Check for _Layout.cshtml, _ViewStart.cshtml, _ViewImports.cshtml. Look for
+      _ValidationScriptsPartial inclusion in form pages. Check for @section Scripts
+      for page-specific JS. Look for reusable partial views for repeated patterns
+      (pagination controls, status badges, filter forms) vs duplicated markup.
+    why_it_matters: "Proper layout hierarchy reduces duplication and improves maintainability"
+
+  - name: "Bootstrap Integration"
+    description: "Quality and depth of Bootstrap CSS class usage"
+    what_to_look_for: |
+      Check for responsive grid (container, row, col-md-*), proper form classes
+      (form-control, form-label, form-select, form-check), table classes
+      (table, table-striped, table-hover), button variants (btn-primary, btn-danger,
+      btn-outline-*), badge usage for status, alert with proper dismiss button
+      (data-bs-dismiss="alert"), Bootstrap Icons usage, card components for dashboards.
+    why_it_matters: "Comprehensive Bootstrap usage produces professional, responsive, accessible UI"
+
+  - name: "Sealed Types"
+    description: "Whether classes and records are declared sealed"
+    what_to_look_for: |
+      Check all class and record declarations for the 'sealed' modifier.
+      Count sealed vs non-sealed across models, services, and page models.
+    why_it_matters: "Sealed types enable JIT devirtualization optimizations and signal design intent"
+
+  - name: "Primary Constructors"
+    description: "C# 12 primary constructors vs traditional constructor injection"
+    what_to_look_for: |
+      Look for class declarations with parameter lists: class MyService(IRepo repo)
+      vs traditional private readonly IRepo _repo; public MyService(IRepo repo) { _repo = repo; }
+    why_it_matters: "Primary constructors reduce boilerplate and improve code clarity"
+
+  - name: "Service Abstraction"
+    description: "Interface + implementation vs concrete-only registration"
+    what_to_look_for: |
+      Check DI registration: AddScoped<IService, Service>() vs AddScoped<Service>().
+      Look for interface files — separate files per interface or grouped.
+    why_it_matters: "Interface-based registration enables testability and follows dependency inversion"
+
+  - name: "CancellationToken Propagation"
+    description: "Whether cancellation tokens are forwarded through all layers"
+    what_to_look_for: |
+      Check page model handlers for CancellationToken parameters.
+      Trace the token through service methods to EF Core calls (ToListAsync, SaveChangesAsync).
+      Count methods with vs without CancellationToken.
+    why_it_matters: "Critical for production — prevents wasted server resources on cancelled requests"
+
+  - name: "AsNoTracking Usage"
+    description: "Whether read-only queries use AsNoTracking()"
+    what_to_look_for: |
+      Search for .AsNoTracking() in service files.
+      Check if read-only queries (OnGet handlers) consistently use it.
+      Count total read queries vs those using AsNoTracking.
+    why_it_matters: "Major performance impact — tracking doubles memory usage and slows queries"
+
+  - name: "TempData & Flash Messages"
+    description: "How success/error messages are communicated after form submissions"
+    what_to_look_for: |
+      Check for TempData["Success"], TempData["Error"] patterns in page models.
+      Look for Bootstrap alert rendering in _Layout or individual pages with
+      role="alert" for accessibility. Check for consistent message display.
+      Look for type-safe null checks (TempData["Success"] is string message).
+    why_it_matters: "Consistent flash messaging provides clear user feedback and improves UX"
+
+  - name: "Data Seeder Design"
+    description: "Static methods vs injectable services vs HasData()"
+    what_to_look_for: |
+      Check how seed data is created: HasData() in OnModelCreating, static seeder methods
+      called from Program.cs, or injectable seeder services. Check for async seeding,
+      idempotency guards (AnyAsync check), and logging during seeding.
+    why_it_matters: "HasData() integrates with migrations; runtime seeders offer more flexibility"
+
+  - name: "Exception Handling Strategy"
+    description: "Custom exceptions, IExceptionHandler, or result patterns"
+    what_to_look_for: |
+      Look for custom exception classes. Check for IExceptionHandler middleware vs
+      default error page. Check how business rule violations are communicated from
+      services to page models. Look for StatusCodePagesWithReExecute configuration.
+    why_it_matters: "Well-designed exception handling makes errors consistent and debuggable"
+
+  - name: "File Organization"
+    description: "Page grouping, service placement, model organization"
+    what_to_look_for: |
+      Check folder structure: Pages organized by feature area (Pages/Events/,
+      Pages/Attendees/) or flat? Services in dedicated Services/ folder?
+      Models with separate Enums/ subfolder? Middleware in its own folder?
+    why_it_matters: "Feature-based organization improves discoverability in Razor Pages apps"
+
+  - name: "Pagination"
+    description: "Pagination implementation and UI rendering"
+    what_to_look_for: |
+      Check for reusable PaginatedList<T> or PagedResult<T> classes.
+      Look for reusable pagination partial views or custom tag helpers vs
+      duplicated pagination HTML on every list page. Check for Bootstrap
+      pagination CSS classes and aria-label on pagination nav.
+    why_it_matters: "Reusable pagination components reduce duplication across list pages"
+
+  - name: "Collection Initialization"
+    description: "Modern [] syntax vs new List<T>()"
+    what_to_look_for: |
+      Search for collection initialization patterns: modern [] (C# 12) vs
+      new List<T>() or new List<T> { ... }.
+    why_it_matters: "Modern collection expressions are more concise and signal C# version awareness"
+
+  - name: "Custom Tag Helpers"
+    description: "Custom TagHelper classes for repeated UI patterns"
+    what_to_look_for: |
+      Look for classes inheriting from TagHelper in a TagHelpers/ folder.
+      Check for custom tag helpers for status badges, pagination, or other
+      repeated patterns. Check _ViewImports.cshtml for @addTagHelper registrations
+      beyond the built-in Microsoft tag helpers.
+    why_it_matters: "Custom tag helpers are the Razor-idiomatic way to create reusable, encapsulated UI components"
+
+  - name: "Structured Logging"
+    description: "ILogger<T> with structured message templates instead of string interpolation"
+    what_to_look_for: |
+      Check for ILogger<T> injection in services, page models, and middleware. Look for
+      structured message templates with named placeholders like {Id}, {Name} vs string
+      interpolation $"...". Check log level usage (LogInformation, LogWarning, LogError).
+      Note if high-performance [LoggerMessage] source generators are used.
+    why_it_matters: "Structured logging enables searchable, indexable log entries in production monitoring systems like Application Insights or Seq"
+
+  - name: "Nullable Reference Types"
+    description: "Project-level nullable reference type enforcement and proper annotations"
+    what_to_look_for: |
+      Check .csproj for <Nullable>enable</Nullable>. Look for proper use of ?
+      annotations on optional properties and navigation properties. Check for
+      null-forgiving operator (!) misuse. Verify required vs optional relationships
+      are annotated correctly on entity models.
+    why_it_matters: "NRT catches null reference bugs at compile time and documents API contracts for nullability"
+
+  - name: "Global Using Directives"
+    description: "Use of C# 10+ global using directives for common namespace imports"
+    what_to_look_for: |
+      Check for a GlobalUsings.cs file or global using statements. Look for repetitive
+      using statements across files that could be centralized. Note if implicit usings
+      are enabled in .csproj via <ImplicitUsings>enable</ImplicitUsings>.
+    why_it_matters: "Global usings reduce boilerplate and keep individual files focused on domain logic"
+
+  - name: "Package Discipline"
+    description: "Minimal, purposeful NuGet package selection without unnecessary dependencies"
+    what_to_look_for: |
+      Check .csproj for unnecessary packages such as Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation,
+      Swashbuckle when built-in OpenAPI is available in .NET 9+, or packages that duplicate
+      framework capabilities. Count total package references vs what is functionally required.
+    why_it_matters: "Unnecessary packages increase attack surface, binary size, and maintenance burden"
+
+  - name: "EF Core Relationship Configuration"
+    description: "Explicit EF Core relationship and constraint configuration"
+    what_to_look_for: |
+      Check for Fluent API relationship configuration vs convention-only. Look for explicit
+      cascade delete behavior, required vs optional relationships, and composite keys.
+      Note if IEntityTypeConfiguration<T> is used for clean separation of entity configs
+      from OnModelCreating.
+    why_it_matters: "Explicit relationship configuration prevents surprise cascade behaviors and makes the data model self-documenting"
+
+  - name: "Naming Conventions"
+    description: "Adherence to .NET naming guidelines for types, members, and parameters"
+    what_to_look_for: |
+      Check that public types and members use PascalCasing and parameters use camelCasing.
+      Verify methods use verb or verb-phrase names (GetBookings, CancelReservation) and
+      properties use noun or adjective names (Status, IsActive). Look for abbreviations or
+      Hungarian notation (strName, iCount). Check that async methods end with the Async suffix.
+      Verify interfaces use the I prefix (IBookingService). Check that enums, exceptions,
+      and attributes follow standard suffixing conventions.
+    why_it_matters: "Consistent naming following .NET conventions makes APIs self-documenting and matches developer expectations across the ecosystem"
+
+  - name: "Enum Design"
+    description: "Proper use of enums for domain concepts following .NET type design guidelines"
+    what_to_look_for: |
+      Check that domain status and type fields use enums instead of magic strings or integers
+      (e.g., BookingStatus.Confirmed vs status == "confirmed"). Verify simple enums use
+      singular names (MembershipType, not MembershipTypes). Check that flag enums use plural
+      names and [Flags] attribute with powers-of-two values. Look for a zero default value
+      (None) on flag enums. Verify enum value names have no prefixes (Active, not StatusActive).
+      Check that enums are stored correctly in EF Core with .HasConversion<string>() when needed.
+    why_it_matters: "Well-designed enums enforce type safety, eliminate magic values, and follow .NET Framework Design Guidelines for type design"
+
+  - name: "Guard Clauses & Argument Validation"
+    description: "Validation of arguments at public API boundaries using modern guard patterns"
+    what_to_look_for: |
+      Check constructors and public service methods for argument validation using
+      ArgumentNullException.ThrowIfNull(), ArgumentException.ThrowIfNullOrEmpty(),
+      or ArgumentOutOfRangeException.ThrowIfNegative(). Look for fail-fast patterns that
+      validate inputs before performing work. Check whether null checks use modern throw
+      helpers vs manual if-null-throw patterns. Note if guard clauses are consistently
+      applied on DI-injected constructor parameters.
+    why_it_matters: "Guard clauses catch invalid inputs early, produce clear error messages, and follow .NET exception design guidelines for fail-fast behavior"
+
+  - name: "Async/Await Best Practices"
+    description: "Correct async/await patterns following .NET conventions"
+    what_to_look_for: |
+      Check that all async methods have the Async suffix (GetBookingsAsync, not GetBookings).
+      Look for async void methods (should be async Task except for event handlers).
+      Check for unnecessary async/await on simple pass-through methods where the Task could
+      be returned directly. Look for sync-over-async anti-patterns (Task.Result, .Wait(),
+      .GetAwaiter().GetResult()). Verify that async entry points (page handlers) use
+      await consistently through the call chain.
+    why_it_matters: "Proper async patterns prevent deadlocks, thread pool starvation, and follow .NET naming guidelines for async method identification"
+
+  - name: "Access Modifier Explicitness"
+    description: "Explicit access modifiers on types and members, file-scoped namespaces"
+    what_to_look_for: |
+      Check that all classes, records, interfaces, and enums have explicit access modifiers
+      (public, internal) rather than relying on the default (internal). Verify that members
+      have explicit access modifiers. Look for file-scoped namespace declarations (namespace X;)
+      instead of block-scoped (namespace X { }). Check whether internal types that should be
+      public (or vice versa) are correctly scoped. Note use of the 'file' access modifier
+      (C# 11) for helper types that should be file-local.
+    why_it_matters: "Explicit access modifiers communicate design intent clearly and prevent accidental API surface exposure, per .NET type design guidelines"
+
+  - name: "Dispose & Resource Management"
+    description: "Proper resource cleanup with IDisposable/IAsyncDisposable and using declarations"
+    what_to_look_for: |
+      Check for modern using declarations (using var stream = ...; without braces) vs
+      traditional using blocks. Look for IAsyncDisposable implementation on types that hold
+      async resources. Verify DbContext instances are not manually disposed when managed by DI.
+      Check that HttpClient instances use IHttpClientFactory instead of direct instantiation.
+      Look for file/stream operations that properly dispose resources.
+    why_it_matters: "Correct resource management prevents memory leaks and connection exhaustion, following the .NET dispose pattern guidelines"
+
+output:
+  directory: output
+  reports_directory: reports
+  analysis_file: analysis.md
+  notes_file: build-notes.md

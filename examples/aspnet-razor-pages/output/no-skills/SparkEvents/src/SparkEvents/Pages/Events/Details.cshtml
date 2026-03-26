@@ -1,0 +1,131 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.DetailsModel
+@{
+    ViewData["Title"] = Model.Event.Title;
+}
+
+<section>
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>
+            @Model.Event.Title
+            @if (Model.Event.IsFeatured) { <span class="badge bg-warning text-dark">Featured</span> }
+        </h1>
+        <partial name="_StatusBadge" model="Model.Event.Status" />
+    </div>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-8">
+            <p>@Model.Event.Description</p>
+
+            <dl class="row">
+                <dt class="col-sm-4">Category</dt>
+                <dd class="col-sm-8">@Model.Event.EventCategory.Name</dd>
+
+                <dt class="col-sm-4">Venue</dt>
+                <dd class="col-sm-8"><a asp-page="/Venues/Details" asp-route-id="@Model.Event.VenueId">@Model.Event.Venue.Name</a></dd>
+
+                <dt class="col-sm-4">Dates</dt>
+                <dd class="col-sm-8">@Model.Event.StartDate.ToString("MMM dd, yyyy h:mm tt") — @Model.Event.EndDate.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                <dt class="col-sm-4">Registration Window</dt>
+                <dd class="col-sm-8">@Model.Event.RegistrationOpenDate.ToString("MMM dd, yyyy") — @Model.Event.RegistrationCloseDate.ToString("MMM dd, yyyy")</dd>
+
+                @if (Model.Event.EarlyBirdDeadline.HasValue)
+                {
+                    <dt class="col-sm-4">Early Bird Deadline</dt>
+                    <dd class="col-sm-8">@Model.Event.EarlyBirdDeadline.Value.ToString("MMM dd, yyyy")</dd>
+                }
+            </dl>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Capacity</h5>
+                    @{
+                        var pct = Model.Event.TotalCapacity > 0 ? (int)(100.0 * Model.Event.CurrentRegistrations / Model.Event.TotalCapacity) : 0;
+                    }
+                    <div class="progress capacity-bar mb-2">
+                        <div class="progress-bar @(pct >= 100 ? "bg-danger" : pct >= 75 ? "bg-warning" : "bg-success")" style="width: @pct%">@pct%</div>
+                    </div>
+                    <p>@Model.Event.CurrentRegistrations / @Model.Event.TotalCapacity registered</p>
+                    @if (Model.Event.WaitlistCount > 0)
+                    {
+                        <p class="text-warning">@Model.Event.WaitlistCount on waitlist</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mt-4">
+    <h3>Ticket Types</h3>
+    @if (Model.Event.TicketTypes.Any())
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Early Bird</th>
+                    <th>Sold</th>
+                    <th>Available</th>
+                    <th>Active</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tt in Model.Event.TicketTypes)
+                {
+                    <tr class="@(!tt.IsActive ? "table-secondary" : "")">
+                        <td>@tt.Name</td>
+                        <td>@tt.Price.ToString("C")</td>
+                        <td>@(tt.EarlyBirdPrice?.ToString("C") ?? "—")</td>
+                        <td>@tt.QuantitySold</td>
+                        <td>@(tt.Quantity - tt.QuantitySold)</td>
+                        <td>@(tt.IsActive ? "✅" : "❌")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No ticket types defined yet.</p>
+    }
+</section>
+
+<section class="mt-4">
+    <h3>Actions</h3>
+    <div class="d-flex gap-2 flex-wrap">
+        @if (Model.Event.Status == EventStatus.Published || Model.Event.Status == EventStatus.SoldOut)
+        {
+            <a asp-page="/Events/Register" asp-route-eventId="@Model.Event.Id" class="btn btn-success">Register Attendee</a>
+            <a asp-page="/Events/Roster" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-primary">View Roster</a>
+            <a asp-page="/Events/Waitlist" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-warning">View Waitlist</a>
+            <a asp-page="/CheckIn/Index" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-info">Check-In</a>
+        }
+        <a asp-page="/Events/TicketTypes/Index" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-secondary">Manage Tickets</a>
+        <a asp-page="Edit" asp-route-id="@Model.Event.Id" class="btn btn-outline-primary">Edit Event</a>
+
+        @if (Model.Event.Status == EventStatus.Draft)
+        {
+            <form method="post" asp-page-handler="Publish" class="d-inline">
+                <input type="hidden" name="id" value="@Model.Event.Id" />
+                <button type="submit" class="btn btn-success">Publish</button>
+            </form>
+        }
+        @if (Model.Event.Status != EventStatus.Completed && Model.Event.Status != EventStatus.Cancelled)
+        {
+            <a asp-page="Cancel" asp-route-id="@Model.Event.Id" class="btn btn-outline-danger">Cancel Event</a>
+        }
+        @if ((Model.Event.Status == EventStatus.Published || Model.Event.Status == EventStatus.SoldOut) && Model.Event.EndDate < DateTime.UtcNow)
+        {
+            <a asp-page="Complete" asp-route-id="@Model.Event.Id" class="btn btn-outline-info">Mark Completed</a>
+        }
+    </div>
+</section>
+
+<div class="mt-3">
+    <a asp-page="Index" class="btn btn-secondary">Back to Events</a>
+</div>

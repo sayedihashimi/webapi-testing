@@ -1,0 +1,45 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Properties.DeactivateModel
+@{
+    ViewData["Title"] = "Deactivate Property";
+}
+
+<h1 class="mb-4">Deactivate Property</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">⚠ Confirm Deactivation</h5>
+            </div>
+            <div class="card-body">
+                <p>Are you sure you want to deactivate the following property?</p>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8"><strong>@Model.Property.Name</strong></dd>
+
+                    <dt class="col-sm-4">Address</dt>
+                    <dd class="col-sm-8">@Model.Property.Address, @Model.Property.City, @Model.Property.State @Model.Property.ZipCode</dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">@Model.Property.PropertyType</dd>
+
+                    <dt class="col-sm-4">Total Units</dt>
+                    <dd class="col-sm-8">@Model.Property.TotalUnits</dd>
+                </dl>
+
+                <div class="alert alert-warning mt-3 mb-0">
+                    <strong>Warning:</strong> Deactivating a property will mark it as inactive.
+                    This action cannot be performed if there are active leases on any of its units.
+                </div>
+            </div>
+            <div class="card-footer d-flex gap-2">
+                <form method="post" asp-route-id="@Model.Property.Id">
+                    <button type="submit" class="btn btn-danger">Yes, Deactivate</button>
+                </form>
+                <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </div>
+    </div>
+</div>

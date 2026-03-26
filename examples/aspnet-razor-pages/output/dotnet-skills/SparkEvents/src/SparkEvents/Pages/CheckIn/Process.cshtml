@@ -1,0 +1,40 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.CheckIn.ProcessModel
+@{ ViewData["Title"] = "Process Check-In"; }
+
+<h1>Process Check-In</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Attendee Info</h5></div>
+            <div class="card-body">
+                <p><strong>Name:</strong> @Model.Registration!.Attendee.FullName</p>
+                <p><strong>Confirmation:</strong> @Model.Registration.ConfirmationNumber</p>
+                <p><strong>Ticket:</strong> @Model.Registration.TicketType.Name</p>
+                <p><strong>Status:</strong> <partial name="_RegistrationStatusBadge" model="Model.Registration.Status" /></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="mb-3">
+                        <label asp-for="CheckedInBy" class="form-label">Staff Name</label>
+                        <input asp-for="CheckedInBy" class="form-control" required />
+                        <span asp-validation-for="CheckedInBy" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="form-label">Notes (optional)</label>
+                        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Confirm Check-In</button>
+                    <a asp-page="Index" asp-route-eventId="@Model.EventId" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

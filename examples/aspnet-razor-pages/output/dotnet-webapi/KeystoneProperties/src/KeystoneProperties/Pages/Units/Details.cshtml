@@ -1,0 +1,223 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Units.DetailsModel
+@{
+    ViewData["Title"] = $"Unit {Model.Unit.UnitNumber}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Unit @Model.Unit.UnitNumber</h1>
+    <div>
+        <a asp-page="Edit" asp-route-id="@Model.Unit.Id" class="btn btn-outline-secondary">Edit</a>
+        <a asp-page="Index" class="btn btn-outline-primary">Back to List</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Unit Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Property</dt>
+                    <dd class="col-sm-8">
+                        <a asp-page="/Properties/Details" asp-route-id="@Model.Unit.PropertyId">@Model.Unit.Property.Name</a>
+                    </dd>
+                    <dt class="col-sm-4">Unit Number</dt>
+                    <dd class="col-sm-8">@Model.Unit.UnitNumber</dd>
+                    <dt class="col-sm-4">Floor</dt>
+                    <dd class="col-sm-8">@(Model.Unit.Floor?.ToString() ?? "—")</dd>
+                    <dt class="col-sm-4">Bedrooms</dt>
+                    <dd class="col-sm-8">@Model.Unit.Bedrooms</dd>
+                    <dt class="col-sm-4">Bathrooms</dt>
+                    <dd class="col-sm-8">@Model.Unit.Bathrooms</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Square Feet</dt>
+                    <dd class="col-sm-8">@Model.Unit.SquareFeet.ToString("N0")</dd>
+                    <dt class="col-sm-4">Monthly Rent</dt>
+                    <dd class="col-sm-8">@Model.Unit.MonthlyRent.ToString("C")</dd>
+                    <dt class="col-sm-4">Deposit</dt>
+                    <dd class="col-sm-8">@Model.Unit.DepositAmount.ToString("C")</dd>
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        @await Html.PartialAsync("_StatusBadge", null, new ViewDataDictionary(ViewData) { { "Status", Model.Unit.Status.ToString() } })
+                    </dd>
+                    <dt class="col-sm-4">Amenities</dt>
+                    <dd class="col-sm-8">@(Model.Unit.Amenities ?? "—")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Lease -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Current Lease</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.CurrentLease is null)
+        {
+            <p class="text-muted mb-0">None</p>
+        }
+        else
+        {
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Tenant</dt>
+                <dd class="col-sm-9">@Model.CurrentLease.Tenant.FullName</dd>
+                <dt class="col-sm-3">Lease Period</dt>
+                <dd class="col-sm-9">@Model.CurrentLease.StartDate.ToString("MMM d, yyyy") — @Model.CurrentLease.EndDate.ToString("MMM d, yyyy")</dd>
+                <dt class="col-sm-3">Monthly Rent</dt>
+                <dd class="col-sm-9">@Model.CurrentLease.MonthlyRentAmount.ToString("C")</dd>
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    @await Html.PartialAsync("_StatusBadge", null, new ViewDataDictionary(ViewData) { { "Status", Model.CurrentLease.Status.ToString() } })
+                </dd>
+            </dl>
+        }
+    </div>
+</div>
+
+<!-- Lease History -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Lease History</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.LeaseHistory.Count == 0)
+        {
+            <p class="text-muted mb-0">None</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Tenant</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Monthly Rent</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lease in Model.LeaseHistory)
+                    {
+                        <tr>
+                            <td>@lease.Tenant.FullName</td>
+                            <td>@lease.StartDate.ToString("MMM d, yyyy")</td>
+                            <td>@lease.EndDate.ToString("MMM d, yyyy")</td>
+                            <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                            <td>
+                                @await Html.PartialAsync("_StatusBadge", null, new ViewDataDictionary(ViewData) { { "Status", lease.Status.ToString() } })
+                            </td>
+                            <td>
+                                <a asp-page="/Leases/Details" asp-route-id="@lease.Id" class="btn btn-sm btn-outline-primary">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<!-- Maintenance History -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Maintenance History</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.MaintenanceHistory.Count == 0)
+        {
+            <p class="text-muted mb-0">None</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th>Tenant</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var req in Model.MaintenanceHistory)
+                    {
+                        <tr>
+                            <td>@req.Title</td>
+                            <td>
+                                @await Html.PartialAsync("_StatusBadge", null, new ViewDataDictionary(ViewData) { { "Status", req.Priority.ToString() } })
+                            </td>
+                            <td>
+                                @await Html.PartialAsync("_StatusBadge", null, new ViewDataDictionary(ViewData) { { "Status", req.Status.ToString() } })
+                            </td>
+                            <td>@req.SubmittedDate.ToString("MMM d, yyyy")</td>
+                            <td>@req.Tenant.FullName</td>
+                            <td>
+                                <a asp-page="/Maintenance/Details" asp-route-id="@req.Id" class="btn btn-sm btn-outline-primary">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<!-- Inspections -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Inspections</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Inspections.Count == 0)
+        {
+            <p class="text-muted mb-0">None</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Scheduled</th>
+                        <th>Completed</th>
+                        <th>Inspector</th>
+                        <th>Condition</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inspection in Model.Inspections)
+                    {
+                        <tr>
+                            <td>@inspection.InspectionType</td>
+                            <td>@inspection.ScheduledDate.ToString("MMM d, yyyy")</td>
+                            <td>@(inspection.CompletedDate?.ToString("MMM d, yyyy") ?? "—")</td>
+                            <td>@inspection.InspectorName</td>
+                            <td>
+                                @if (inspection.OverallCondition.HasValue)
+                                {
+                                    @await Html.PartialAsync("_StatusBadge", null, new ViewDataDictionary(ViewData) { { "Status", inspection.OverallCondition.Value.ToString() } })
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

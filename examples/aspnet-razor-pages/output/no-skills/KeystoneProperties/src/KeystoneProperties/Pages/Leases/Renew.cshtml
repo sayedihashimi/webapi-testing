@@ -1,0 +1,34 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Leases.RenewModel
+@{ ViewData["Title"] = "Renew Lease"; }
+<h1>Renew Lease #@Model.LeaseId</h1>
+<div class="card mb-3"><div class="card-body">
+    <p><strong>Tenant:</strong> @Model.Lease.Tenant.FullName</p>
+    <p><strong>Unit:</strong> @Model.Lease.Unit.UnitNumber — @Model.Lease.Unit.Property.Name</p>
+    <p><strong>Current Period:</strong> @Model.Lease.StartDate.ToString("MMM dd, yyyy") — @Model.Lease.EndDate.ToString("MMM dd, yyyy")</p>
+    <p><strong>Current Rent:</strong> @Model.Lease.MonthlyRentAmount.ToString("C")</p>
+</div></div>
+<div class="row"><div class="col-md-8">
+    <form method="post">
+        <input type="hidden" asp-for="LeaseId" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3">
+            <label class="form-label">New Start Date</label>
+            <input class="form-control" value="@Model.NewStartDate.ToString("yyyy-MM-dd")" disabled />
+            <span class="form-text">Automatically set to the day after the current lease ends.</span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.NewEndDate" class="form-label"></label>
+            <input asp-for="Input.NewEndDate" class="form-control" type="date" />
+            <span asp-validation-for="Input.NewEndDate" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.NewRentAmount" class="form-label"></label>
+            <input asp-for="Input.NewRentAmount" class="form-control" />
+            <span asp-validation-for="Input.NewRentAmount" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn btn-success">Renew Lease</button>
+        <a asp-page="Details" asp-route-id="@Model.LeaseId" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Horizon HR</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3" aria-label="Main navigation">
+            <div class="container">
+                <a class="navbar-brand fw-bold" asp-page="/Index">🏢 Horizon HR</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Index" ? "active" : "")"
+                               asp-page="/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString() == "/Index" ? "page" : null)">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Employees") == true ? "active" : "")"
+                               asp-page="/Employees/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Employees") == true ? "page" : null)">Employees</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Departments") == true ? "active" : "")"
+                               asp-page="/Departments/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Departments") == true ? "page" : null)">Departments</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Leave") == true ? "active" : "")"
+                               asp-page="/Leave/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Leave") == true ? "page" : null)">Leave</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Reviews") == true ? "active" : "")"
+                               asp-page="/Reviews/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Reviews") == true ? "page" : null)">Reviews</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Skills") == true ? "active" : "")"
+                               asp-page="/Skills/Index"
+                               aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Skills") == true ? "page" : null)">Skills</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @if (TempData["Success"] is string successMsg)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @successMsg
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["Error"] is string errorMsg)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @errorMsg
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted py-3 mt-4">
+        <div class="container text-center">
+            &copy; @DateTime.Now.Year - Horizon HR
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

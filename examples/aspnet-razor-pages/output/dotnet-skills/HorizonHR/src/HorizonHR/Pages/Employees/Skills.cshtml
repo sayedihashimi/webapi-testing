@@ -1,0 +1,104 @@
+@page "/Employees/{id:int}/Skills"
+@model HorizonHR.Pages.Employees.SkillsModel
+@{
+    ViewData["Title"] = $"Skills - {Model.Employee.FullName}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Skills &mdash; @Model.Employee.FullName</h1>
+    <a asp-page="/Employees/Index" class="btn btn-outline-secondary">Back to Employees</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Current Skills</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.EmployeeSkills.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Skill Name</th>
+                            <th>Category</th>
+                            <th>Proficiency</th>
+                            <th>Years of Experience</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var es in Model.EmployeeSkills)
+                        {
+                            <tr>
+                                <td>@es.Skill.Name</td>
+                                <td>@es.Skill.Category</td>
+                                <td><partial name="_StatusBadge" model="@es.ProficiencyLevel.ToString()" /></td>
+                                <td>@(es.YearsOfExperience?.ToString() ?? "—")</td>
+                                <td>
+                                    <form method="post" asp-page-handler="Remove" asp-route-id="@Model.Employee.Id" asp-route-employeeSkillId="@es.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to remove this skill?');">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No skills assigned yet.</p>
+        }
+    </div>
+</div>
+
+@if (Model.AvailableSkills.Any())
+{
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Add Skill</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-page-handler="Add" asp-route-id="@Model.Employee.Id">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label asp-for="Input.SkillId" class="form-label"></label>
+                        <select asp-for="Input.SkillId" class="form-select">
+                            <option value="">-- Select Skill --</option>
+                            @foreach (var skill in Model.AvailableSkills)
+                            {
+                                <option value="@skill.Id">@skill.Name (@skill.Category)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.SkillId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Input.ProficiencyLevel" class="form-label"></label>
+                        <select asp-for="Input.ProficiencyLevel" class="form-select">
+                            @foreach (var level in Enum.GetValues<ProficiencyLevel>())
+                            {
+                                <option value="@level">@level</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.ProficiencyLevel" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Input.YearsOfExperience" class="form-label"></label>
+                        <input asp-for="Input.YearsOfExperience" type="number" class="form-control" min="0" max="50" />
+                        <span asp-validation-for="Input.YearsOfExperience" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">Add</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,92 @@
+@page
+@model SparkEvents.Pages.Events.CreateModel
+@{ ViewData["Title"] = "Create Event"; }
+
+<h1>Create Event</h1>
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <section class="mb-4">
+                <h4>Basic Info</h4>
+                <div class="mb-3">
+                    <label asp-for="Input.Title" class="form-label"></label>
+                    <input asp-for="Input.Title" class="form-control" />
+                    <span asp-validation-for="Input.Title" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.Description" class="form-label"></label>
+                    <textarea asp-for="Input.Description" class="form-control" rows="4"></textarea>
+                    <span asp-validation-for="Input.Description" class="text-danger"></span>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Input.EventCategoryId" class="form-label">Category</label>
+                        <select asp-for="Input.EventCategoryId" class="form-select" asp-items="Model.CategoryList"></select>
+                        <span asp-validation-for="Input.EventCategoryId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-check-label mt-4">
+                            <input asp-for="Input.IsFeatured" class="form-check-input" /> Featured Event
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mb-4">
+                <h4>Venue & Capacity</h4>
+                <div class="mb-3">
+                    <label asp-for="Input.VenueId" class="form-label">Venue</label>
+                    <select asp-for="Input.VenueId" class="form-select" asp-items="Model.VenueList"></select>
+                    <span asp-validation-for="Input.VenueId" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.TotalCapacity" class="form-label"></label>
+                    <input asp-for="Input.TotalCapacity" class="form-control" type="number" min="1" />
+                    <span asp-validation-for="Input.TotalCapacity" class="text-danger"></span>
+                    <small class="text-muted">Cannot exceed venue max capacity.</small>
+                </div>
+            </section>
+
+            <section class="mb-4">
+                <h4>Dates</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Input.StartDate" class="form-label"></label>
+                        <input asp-for="Input.StartDate" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="Input.StartDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Input.EndDate" class="form-label"></label>
+                        <input asp-for="Input.EndDate" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="Input.EndDate" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Input.RegistrationOpenDate" class="form-label"></label>
+                        <input asp-for="Input.RegistrationOpenDate" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="Input.RegistrationOpenDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Input.RegistrationCloseDate" class="form-label"></label>
+                        <input asp-for="Input.RegistrationCloseDate" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="Input.RegistrationCloseDate" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.EarlyBirdDeadline" class="form-label"></label>
+                    <input asp-for="Input.EarlyBirdDeadline" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="Input.EarlyBirdDeadline" class="text-danger"></span>
+                    <small class="text-muted">Optional. Leave blank if no early-bird pricing.</small>
+                </div>
+            </section>
+
+            <button type="submit" class="btn btn-primary">Create Event</button>
+            <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

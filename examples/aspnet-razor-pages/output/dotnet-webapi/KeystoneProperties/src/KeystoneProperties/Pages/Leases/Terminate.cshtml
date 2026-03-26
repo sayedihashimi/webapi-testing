@@ -1,0 +1,103 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Leases.TerminateModel
+@{
+    ViewData["Title"] = "Terminate Lease";
+}
+
+<h1>Terminate Lease</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Lease Information</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Tenant</dt>
+                    <dd class="col-sm-8">@Model.Lease.Tenant.FullName</dd>
+
+                    <dt class="col-sm-4">Unit</dt>
+                    <dd class="col-sm-8">@Model.Lease.Unit.Property.Name - @Model.Lease.Unit.UnitNumber</dd>
+
+                    <dt class="col-sm-4">Lease Period</dt>
+                    <dd class="col-sm-8">@Model.Lease.StartDate.ToString("MMM d, yyyy") – @Model.Lease.EndDate.ToString("MMM d, yyyy")</dd>
+
+                    <dt class="col-sm-4">Monthly Rent</dt>
+                    <dd class="col-sm-8">@Model.Lease.MonthlyRentAmount.ToString("C")</dd>
+
+                    <dt class="col-sm-4">Deposit Amount</dt>
+                    <dd class="col-sm-8">@Model.Lease.DepositAmount.ToString("C")</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", Model.Lease.Status.ToString() } })
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white"><h5 class="mb-0">Termination Details</h5></div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" asp-for="Input.Id" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.TerminationDate" class="form-label"></label>
+                        <input asp-for="Input.TerminationDate" class="form-control" type="date" />
+                        <span asp-validation-for="Input.TerminationDate" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.TerminationReason" class="form-label"></label>
+                        <textarea asp-for="Input.TerminationReason" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="Input.TerminationReason" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.DepositStatus" class="form-label"></label>
+                        <select asp-for="Input.DepositStatus" class="form-select" id="depositStatusSelect">
+                            <option value="@KeystoneProperties.Models.DepositStatus.Returned">Returned</option>
+                            <option value="@KeystoneProperties.Models.DepositStatus.PartiallyReturned">Partially Returned</option>
+                            <option value="@KeystoneProperties.Models.DepositStatus.Forfeited">Forfeited</option>
+                        </select>
+                        <span asp-validation-for="Input.DepositStatus" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3" id="depositReturnAmountGroup">
+                        <label asp-for="Input.DepositReturnAmount" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="Input.DepositReturnAmount" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Input.DepositReturnAmount" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">Confirm Termination</button>
+                        <a asp-page="Details" asp-route-id="@Model.Lease.Id" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const depositStatusSelect = document.getElementById('depositStatusSelect');
+            const depositReturnAmountGroup = document.getElementById('depositReturnAmountGroup');
+
+            function toggleDepositReturnAmount() {
+                const status = depositStatusSelect.value;
+                depositReturnAmountGroup.style.display =
+                    (status === '@((int)KeystoneProperties.Models.DepositStatus.Forfeited)') ? 'none' : 'block';
+            }
+
+            depositStatusSelect.addEventListener('change', toggleDepositReturnAmount);
+            toggleDepositReturnAmount();
+        });
+    </script>
+}

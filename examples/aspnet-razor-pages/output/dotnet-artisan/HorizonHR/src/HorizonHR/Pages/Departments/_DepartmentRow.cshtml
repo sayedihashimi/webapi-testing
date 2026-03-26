@@ -1,0 +1,23 @@
+@model HorizonHR.Models.Department
+@{
+    var level = (int)(ViewData["Level"] ?? 0);
+    var indent = new string('\u00A0', level * 4);
+    var prefix = level > 0 ? "└─ " : "";
+}
+<tr>
+    <td>@indent@prefix<a asp-page="Details" asp-route-id="@Model.Id">@Model.Name</a></td>
+    <td><code>@Model.Code</code></td>
+    <td>@(Model.Manager?.FullName ?? "—")</td>
+    <td>@Model.Employees.Count</td>
+    <td>
+        <a asp-page="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+        <a asp-page="Details" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary">Details</a>
+    </td>
+</tr>
+@if (Model.ChildDepartments?.Any() == true)
+{
+    @foreach (var child in Model.ChildDepartments)
+    {
+        @await Html.PartialAsync("_DepartmentRow", child, new ViewDataDictionary(ViewData) { { "Level", level + 1 } })
+    }
+}

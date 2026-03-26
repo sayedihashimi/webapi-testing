@@ -1,0 +1,35 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.CancelModel
+@{
+    ViewData["Title"] = "Cancel Event";
+}
+
+<section>
+    <h1>Cancel Event</h1>
+    <hr />
+
+    <div class="card border-danger">
+        <div class="card-body">
+            <h5 class="card-title">@Model.Event.Title</h5>
+            <p>@Model.Event.StartDate.ToString("MMM dd, yyyy h:mm tt") at @Model.Event.Venue.Name</p>
+
+            @if (Model.RegistrationCount > 0)
+            {
+                <div class="alert alert-warning" role="alert">
+                    ⚠️ <strong>@Model.RegistrationCount active registration(s)</strong> will be automatically cancelled.
+                </div>
+            }
+
+            <form method="post">
+                <input type="hidden" name="id" value="@Model.Event.Id" />
+                <div class="mb-3">
+                    <label asp-for="CancellationReason" class="form-label">Cancellation Reason (required)</label>
+                    <textarea asp-for="CancellationReason" class="form-control" rows="3" required></textarea>
+                    <span asp-validation-for="CancellationReason" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                <a asp-page="Details" asp-route-id="@Model.Event.Id" class="btn btn-secondary">Go Back</a>
+            </form>
+        </div>
+    </div>
+</section>

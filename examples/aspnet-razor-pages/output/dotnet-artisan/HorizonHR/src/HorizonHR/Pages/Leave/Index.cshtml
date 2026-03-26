@@ -1,0 +1,63 @@
+@page
+@model HorizonHR.Pages.Leave.IndexModel
+@using HorizonHR.Models
+@{ ViewData["Title"] = "Leave Requests"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Leave Requests</h1>
+    <a asp-page="Create" class="btn btn-primary">Submit Request</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <select asp-for="Status" asp-items="Html.GetEnumSelectList<LeaveRequestStatus>()" class="form-select">
+            <option value="">All Statuses</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select asp-for="EmployeeId" asp-items="Model.Employees" class="form-select">
+            <option value="">All Employees</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select asp-for="LeaveTypeId" asp-items="Model.LeaveTypes" class="form-select">
+            <option value="">All Types</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+@if (!Model.Requests.Items.Any())
+{
+    <p class="text-muted">No leave requests found.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead><tr><th>Employee</th><th>Type</th><th>Start</th><th>End</th><th>Days</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+            @foreach (var req in Model.Requests.Items)
+            {
+                <tr>
+                    <td><a asp-page="/Employees/Details" asp-route-id="@req.EmployeeId">@req.Employee.FullName</a></td>
+                    <td>@req.LeaveType.Name</td>
+                    <td>@req.StartDate.ToString("MMM dd")</td>
+                    <td>@req.EndDate.ToString("MMM dd")</td>
+                    <td>@req.TotalDays</td>
+                    <td><partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", req.Status.ToString() } })' /></td>
+                    <td>
+                        <a asp-page="Details" asp-route-id="@req.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                        @if (req.Status == LeaveRequestStatus.Submitted)
+                        {
+                            <a asp-page="Review" asp-route-id="@req.Id" class="btn btn-sm btn-outline-success">Review</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <partial name="/Pages/Shared/_Pagination" model='new { PageNumber = Model.Requests.PageNumber, TotalPages = Model.Requests.TotalPages, PageUrl = $"?Status={Model.Status}&EmployeeId={Model.EmployeeId}&LeaveTypeId={Model.LeaveTypeId}" }' />
+}

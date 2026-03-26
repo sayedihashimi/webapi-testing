@@ -1,0 +1,117 @@
+@page
+@using KeystoneProperties.Models
+@model IndexModel
+@{
+    ViewData["Title"] = "Units";
+}
+
+<h1>Units</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<form method="get" class="mb-4">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label for="PropertyId" class="form-label">Property</label>
+            <select asp-for="PropertyId" class="form-select">
+                <option value="">All Properties</option>
+                @foreach (var property in Model.AllProperties)
+                {
+                    <option value="@property.Id">@property.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="Status" class="form-label">Status</label>
+            <select asp-for="Status" asp-items="Html.GetEnumSelectList<UnitStatus>()" class="form-select">
+                <option value="">All Statuses</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="Bedrooms" class="form-label">Bedrooms</label>
+            <select asp-for="Bedrooms" class="form-select">
+                <option value="">Any</option>
+                <option value="0">Studio</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="MinRent" class="form-label">Min Rent</label>
+            <input asp-for="MinRent" class="form-control" placeholder="Min" />
+        </div>
+        <div class="col-md-2">
+            <label for="MaxRent" class="form-label">Max Rent</label>
+            <input asp-for="MaxRent" class="form-control" placeholder="Max" />
+        </div>
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-4">
+            <label for="SearchTerm" class="form-label">Search</label>
+            <input asp-for="SearchTerm" class="form-control" placeholder="Search units..." />
+        </div>
+        <div class="col-md-4 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a asp-page="/Units/Index" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </div>
+</form>
+
+<div class="mb-3">
+    <a asp-page="/Units/Create" class="btn btn-success">Create New Unit</a>
+</div>
+
+@if (Model.Units.Count == 0)
+{
+    <div class="alert alert-info">No units found.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Unit #</th>
+                <th>Property</th>
+                <th>Floor</th>
+                <th>Bed/Bath</th>
+                <th>Sq Ft</th>
+                <th>Monthly Rent</th>
+                <th>Deposit</th>
+                <th>Status</th>
+                <th>Amenities</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Units)
+            {
+                <tr>
+                    <td>@item.UnitNumber</td>
+                    <td>@item.Property?.Name</td>
+                    <td>@item.Floor</td>
+                    <td>@item.Bedrooms / @item.Bathrooms</td>
+                    <td>@item.SquareFeet.ToString("N0")</td>
+                    <td>@item.MonthlyRent.ToString("C")</td>
+                    <td>@item.DepositAmount.ToString("C")</td>
+                    <td>@await Component.InvokeAsync("StatusBadge", new { status = item.Status.ToString() })</td>
+                    <td>@(item.Amenities != null && item.Amenities.Length > 50 ? item.Amenities[..50] + "..." : item.Amenities)</td>
+                    <td>
+                        <a asp-page="/Units/Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">Details</a>
+                        <a asp-page="/Units/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <partial name="_PaginationPartial" />
+}

@@ -1,0 +1,34 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Categories.DeleteModel
+
+@{
+    ViewData["Title"] = "Delete Category";
+}
+
+<h1>Delete Category</h1>
+
+<div class="alert alert-warning">
+    Are you sure you want to delete this category? This action cannot be undone.
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">@Model.Category.Name</h5>
+        @if (!string.IsNullOrWhiteSpace(Model.Category.Description))
+        {
+            <p class="card-text">@Model.Category.Description</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Category.ColorHex))
+        {
+            <p>
+                <strong>Color:</strong>
+                <span class="badge" style="background-color: @Model.Category.ColorHex;">@Model.Category.ColorHex</span>
+            </p>
+        }
+    </div>
+</div>
+
+<form method="post" asp-route-id="@Model.Category.Id">
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+</form>

@@ -1,0 +1,76 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Properties.DetailsModel
+@{
+    ViewData["Title"] = Model.Property.Name;
+}
+
+<h1>@Model.Property.Name</h1>
+
+<section class="mb-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Address:</strong> @Model.Property.Address, @Model.Property.City, @Model.Property.State @Model.Property.ZipCode</p>
+                    <p><strong>Type:</strong> @Model.Property.PropertyType</p>
+                    <p><strong>Year Built:</strong> @(Model.Property.YearBuilt?.ToString() ?? "N/A")</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Total Units:</strong> @Model.Property.TotalUnits</p>
+                    <p><strong>Status:</strong> @(Model.Property.IsActive ? "Active" : "Inactive")</p>
+                    <p><strong>Occupancy:</strong> @Model.OccupiedCount / @Model.Property.Units.Count units occupied</p>
+                </div>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Property.Description))
+            {
+                <p><strong>Description:</strong> @Model.Property.Description</p>
+            }
+        </div>
+    </div>
+</section>
+
+<div class="d-flex gap-2 mb-3">
+    <a asp-page="Edit" asp-route-id="@Model.Property.Id" class="btn btn-primary">Edit</a>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+</div>
+
+<section>
+    <h3>Units</h3>
+    @if (Model.Property.Units.Any())
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Unit #</th>
+                    <th>Bedrooms</th>
+                    <th>Bathrooms</th>
+                    <th>Sq Ft</th>
+                    <th>Rent</th>
+                    <th>Status</th>
+                    <th>Current Tenant</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var unit in Model.Property.Units.OrderBy(u => u.UnitNumber))
+                {
+                    var activeLease = unit.Leases.FirstOrDefault(l => l.Status == LeaseStatus.Active);
+                    <tr>
+                        <td>@unit.UnitNumber</td>
+                        <td>@(unit.Bedrooms == 0 ? "Studio" : unit.Bedrooms.ToString())</td>
+                        <td>@unit.Bathrooms</td>
+                        <td>@unit.SquareFeet.ToString("N0")</td>
+                        <td>@unit.MonthlyRent.ToString("C")</td>
+                        <td><partial name="_StatusBadge" model="@(unit.Status.ToString(), "unit")" /></td>
+                        <td>@(activeLease?.Tenant?.FullName ?? "—")</td>
+                        <td><a asp-page="/Units/Details" asp-route-id="@unit.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No units for this property.</p>
+    }
+</section>

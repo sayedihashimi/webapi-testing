@@ -1,0 +1,30 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.SelfAssessmentModel
+@{
+    ViewData["Title"] = "Self-Assessment";
+}
+
+@if (Model.Review is null)
+{
+    <p class="text-danger">Review not found.</p>
+}
+else
+{
+    <h1>Self-Assessment</h1>
+    <p class="text-muted">@Model.Review.Employee.FullName — @Model.Review.ReviewPeriodStart.ToString("MMM yyyy") to @Model.Review.ReviewPeriodEnd.ToString("MMM yyyy")</p>
+
+    <div class="row">
+        <div class="col-md-8">
+            <form method="post">
+                <input type="hidden" name="id" value="@Model.Review.Id" />
+                <div class="mb-3">
+                    <label asp-for="SelfAssessmentText" class="form-label">Self-Assessment</label>
+                    <textarea asp-for="SelfAssessmentText" class="form-control" rows="8" placeholder="Describe your accomplishments, challenges, and growth during this review period..."></textarea>
+                    <span asp-validation-for="SelfAssessmentText" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Self-Assessment</button>
+                <a href="/Reviews/Details/@Model.Review.Id" class="btn btn-link">Cancel</a>
+            </form>
+        </div>
+    </div>
+}

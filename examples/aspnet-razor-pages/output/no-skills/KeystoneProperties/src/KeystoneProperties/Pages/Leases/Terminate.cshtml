@@ -1,0 +1,40 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Leases.TerminateModel
+@{ ViewData["Title"] = "Terminate Lease"; }
+<h1>Terminate Lease #@Model.Lease.Id</h1>
+<div class="alert alert-danger" role="alert">
+    You are about to terminate the lease for <strong>@Model.Lease.Tenant.FullName</strong> in <strong>Unit @Model.Lease.Unit.UnitNumber</strong> at <strong>@Model.Lease.Unit.Property.Name</strong>.
+</div>
+<div class="card mb-3"><div class="card-body">
+    <p><strong>Lease Period:</strong> @Model.Lease.StartDate.ToString("MMM dd, yyyy") — @Model.Lease.EndDate.ToString("MMM dd, yyyy")</p>
+    <p><strong>Monthly Rent:</strong> @Model.Lease.MonthlyRentAmount.ToString("C")</p>
+    <p><strong>Deposit Held:</strong> @Model.Lease.DepositAmount.ToString("C")</p>
+</div></div>
+<div class="row"><div class="col-md-8">
+    <form method="post">
+        <input type="hidden" asp-for="LeaseId" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Input.TerminationDate" class="form-label"></label>
+            <input asp-for="Input.TerminationDate" class="form-control" type="date" />
+            <span asp-validation-for="Input.TerminationDate" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.TerminationReason" class="form-label"></label>
+            <textarea asp-for="Input.TerminationReason" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Input.TerminationReason" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.DepositDisposition" class="form-label">Deposit Disposition</label>
+            <select asp-for="Input.DepositDisposition" asp-items="@Html.GetEnumSelectList<DepositStatus>()" class="form-select"></select>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.DepositReturnAmount" class="form-label"></label>
+            <input asp-for="Input.DepositReturnAmount" class="form-control" />
+            <span class="form-text">Leave blank for full deposit return.</span>
+        </div>
+        <button type="submit" class="btn btn-danger">Terminate Lease</button>
+        <a asp-page="Details" asp-route-id="@Model.LeaseId" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

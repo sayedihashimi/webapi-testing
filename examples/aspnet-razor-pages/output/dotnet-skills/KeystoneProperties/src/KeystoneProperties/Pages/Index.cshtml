@@ -1,0 +1,101 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<section>
+    <h1 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h1>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">@Model.Dashboard.TotalProperties</h5>
+                    <p class="card-text small">Properties</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h5 class="card-title text-info">@Model.Dashboard.TotalUnits</h5>
+                    <p class="card-text small">Total Units</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h5 class="card-title text-success">@Model.Dashboard.OccupancyRate.ToString("F1")%</h5>
+                    <p class="card-text small">Occupancy</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h5 class="card-title text-success">@Model.Dashboard.RentCollectedThisMonth.ToString("C")</h5>
+                    <p class="card-text small">Rent This Month</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center @(Model.Dashboard.OverduePaymentsCount > 0 ? "border-danger" : "border-secondary")">
+                <div class="card-body">
+                    <h5 class="card-title @(Model.Dashboard.OverduePaymentsCount > 0 ? "text-danger" : "text-secondary")">@Model.Dashboard.OverduePaymentsCount</h5>
+                    <p class="card-text small">Overdue Payments</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card text-center @(Model.Dashboard.OpenMaintenanceCount > 0 ? "border-warning" : "border-secondary")">
+                <div class="card-body">
+                    <h5 class="card-title @(Model.Dashboard.OpenMaintenanceCount > 0 ? "text-warning" : "text-secondary")">@Model.Dashboard.OpenMaintenanceCount</h5>
+                    <p class="card-text small">Open Maintenance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section>
+        <h3><i class="bi bi-clock-history"></i> Leases Expiring Within 30 Days</h3>
+        @if (Model.Dashboard.ExpiringLeases.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Tenant</th>
+                            <th>Property</th>
+                            <th>Unit</th>
+                            <th>End Date</th>
+                            <th>Monthly Rent</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var lease in Model.Dashboard.ExpiringLeases)
+                        {
+                            <tr>
+                                <td>@lease.Tenant.FullName</td>
+                                <td>@lease.Unit.Property.Name</td>
+                                <td>@lease.Unit.UnitNumber</td>
+                                <td>@lease.EndDate.ToString("MMM dd, yyyy")</td>
+                                <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                                <td>
+                                    <a asp-page="/Leases/Details" asp-route-id="@lease.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                    <a asp-page="/Leases/Renew" asp-route-id="@lease.Id" class="btn btn-sm btn-outline-success">Renew</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted">No leases expiring in the next 30 days.</p>
+        }
+    </section>
+</section>

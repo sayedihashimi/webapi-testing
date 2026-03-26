@@ -1,0 +1,136 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="mb-4">Dashboard</h1>
+
+<section aria-label="Statistics" class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total Employees</h5>
+                <p class="card-text display-6">@Model.Dashboard.TotalEmployees</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total Departments</h5>
+                <p class="card-text display-6">@Model.Dashboard.TotalDepartments</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body">
+                <h5 class="card-title">Pending Leave Requests</h5>
+                <p class="card-text display-6">@Model.Dashboard.PendingLeaveRequests</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body">
+                <h5 class="card-title">Upcoming Reviews</h5>
+                <p class="card-text display-6">@Model.Dashboard.UpcomingReviews</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section aria-label="Recent Hires" class="mb-4">
+    <h2>Recent Hires <small class="text-muted">(Last 30 Days)</small></h2>
+    @if (Model.Dashboard.RecentHires.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Hire Date</th>
+                        <th>Job Title</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var employee in Model.Dashboard.RecentHires)
+                    {
+                        <tr>
+                            <td>@employee.FullName</td>
+                            <td>@employee.Department?.Name</td>
+                            <td>@employee.HireDate.ToString("MMM dd, yyyy")</td>
+                            <td>@employee.JobTitle</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted">No recent hires in the last 30 days.</p>
+    }
+</section>
+
+<section aria-label="Employees On Leave" class="mb-4">
+    <h2>Employees On Leave</h2>
+    @if (Model.Dashboard.EmployeesOnLeave.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Department</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var employee in Model.Dashboard.EmployeesOnLeave)
+                    {
+                        <tr>
+                            <td>@employee.FullName</td>
+                            <td>@employee.Department?.Name</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted">No employees currently on leave.</p>
+    }
+</section>
+
+<section aria-label="Headcount by Department" class="mb-4">
+    <h2>Headcount by Department</h2>
+    @if (Model.Dashboard.HeadcountByDepartment.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Department Name</th>
+                        <th>Employee Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Dashboard.HeadcountByDepartment)
+                    {
+                        <tr>
+                            <td>@item.DepartmentName</td>
+                            <td>@item.Count</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted">No department data available.</p>
+    }
+</section>

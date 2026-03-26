@@ -1,0 +1,105 @@
+@page
+@model HorizonHR.Pages.Leave.IndexModel
+@{
+    ViewData["Title"] = "Leave Requests";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Leave Requests</h1>
+    <a asp-page="/Leave/Create" class="btn btn-primary">Submit Leave Request</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-2">
+                <label for="Status" class="form-label">Status</label>
+                <select asp-for="Status" class="form-select">
+                    <option value="">All Statuses</option>
+                    @foreach (var status in Enum.GetValues<LeaveRequestStatus>())
+                    {
+                        <option value="@status">@System.Text.RegularExpressions.Regex.Replace(status.ToString(), "([a-z])([A-Z])", "$1 $2")</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="EmployeeId" class="form-label">Employee</label>
+                <select asp-for="EmployeeId" class="form-select">
+                    <option value="">All Employees</option>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <option value="@employee.Id">@employee.FullName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="LeaveTypeId" class="form-label">Leave Type</label>
+                <select asp-for="LeaveTypeId" class="form-select">
+                    <option value="">All Types</option>
+                    @foreach (var leaveType in Model.LeaveTypes)
+                    {
+                        <option value="@leaveType.Id">@leaveType.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="StartDate" class="form-label">Start Date</label>
+                <input asp-for="StartDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label for="EndDate" class="form-label">End Date</label>
+                <input asp-for="EndDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-secondary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.LeaveRequests.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Leave Type</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Days</th>
+                    <th>Status</th>
+                    <th>Submitted Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var request in Model.LeaveRequests)
+                {
+                    <tr>
+                        <td>@request.Employee.FullName</td>
+                        <td>@request.LeaveType.Name</td>
+                        <td>@request.StartDate.ToString("MMM dd, yyyy")</td>
+                        <td>@request.EndDate.ToString("MMM dd, yyyy")</td>
+                        <td>@request.TotalDays</td>
+                        <td>
+                            <partial name="_StatusBadge" model="@request.Status.ToString()" />
+                        </td>
+                        <td>@request.SubmittedDate.ToString("MMM dd, yyyy")</td>
+                        <td>
+                            <a asp-page="/Leave/Details" asp-route-id="@request.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="_Pagination" model="Model.Pagination" />
+}
+else
+{
+    <div class="alert alert-info" role="alert">
+        No leave requests found.
+    </div>
+}

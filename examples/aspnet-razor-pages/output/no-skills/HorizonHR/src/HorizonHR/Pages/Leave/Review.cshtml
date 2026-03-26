@@ -1,0 +1,69 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.ReviewModel
+@{
+    ViewData["Title"] = "Review Leave Request";
+}
+
+<section>
+    @if (Model.LeaveRequest == null)
+    {
+        <p class="text-muted">Leave request not found.</p>
+    }
+    else
+    {
+        var lr = Model.LeaveRequest;
+        <h1>Review Leave Request #@lr.Id</h1>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Employee</dt>
+                    <dd class="col-sm-9">@lr.Employee.FullName</dd>
+                    <dt class="col-sm-3">Leave Type</dt>
+                    <dd class="col-sm-9">@lr.LeaveType.Name</dd>
+                    <dt class="col-sm-3">Dates</dt>
+                    <dd class="col-sm-9">@lr.StartDate.ToString("MMM dd, yyyy") – @lr.EndDate.ToString("MMM dd, yyyy")</dd>
+                    <dt class="col-sm-3">Total Days</dt>
+                    <dd class="col-sm-9">@lr.TotalDays</dd>
+                    <dt class="col-sm-3">Reason</dt>
+                    <dd class="col-sm-9">@lr.Reason</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <form method="post" asp-page-handler="Approve">
+                    <div class="mb-3">
+                        <label asp-for="ReviewedById" class="form-label">Reviewer</label>
+                        <select asp-for="ReviewedById" class="form-select" asp-items="Model.ReviewerOptions">
+                            <option value="">Select Reviewer</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="ReviewNotes" class="form-label">Notes</label>
+                        <textarea asp-for="ReviewNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Approve</button>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <form method="post" asp-page-handler="Reject">
+                    <div class="mb-3">
+                        <label class="form-label">Reviewer</label>
+                        <select name="ReviewedById" class="form-select" asp-items="Model.ReviewerOptions">
+                            <option value="">Select Reviewer</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="ReviewNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </form>
+            </div>
+        </div>
+
+        <a asp-page="Details" asp-route-id="@lr.Id" class="btn btn-outline-secondary mt-3">Cancel</a>
+    }
+</section>

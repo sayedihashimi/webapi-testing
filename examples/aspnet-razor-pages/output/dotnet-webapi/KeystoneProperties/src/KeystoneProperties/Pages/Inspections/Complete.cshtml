@@ -1,0 +1,80 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Inspections.CompleteModel
+@{
+    ViewData["Title"] = "Complete Inspection";
+}
+
+<h1>Complete Inspection</h1>
+
+@if (TempData["ErrorMessage"] is string error)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Inspection Summary</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Unit</dt>
+                    <dd class="col-sm-8">@Model.Inspection.Unit.Property.Name - @Model.Inspection.Unit.UnitNumber</dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">@await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", Model.Inspection.InspectionType.ToString() } })</dd>
+
+                    <dt class="col-sm-4">Scheduled Date</dt>
+                    <dd class="col-sm-8">@Model.Inspection.ScheduledDate.ToString("yyyy-MM-dd")</dd>
+
+                    <dt class="col-sm-4">Inspector</dt>
+                    <dd class="col-sm-8">@Model.Inspection.InspectorName</dd>
+                </dl>
+            </div>
+        </div>
+
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.CompletedDate" class="form-label">Completed Date</label>
+                <input asp-for="Input.CompletedDate" type="date" class="form-control" />
+                <span asp-validation-for="Input.CompletedDate" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.OverallCondition" class="form-label">Overall Condition</label>
+                <select asp-for="Input.OverallCondition" class="form-select">
+                    <option value="">— Select Condition —</option>
+                    @foreach (var c in Enum.GetValues<KeystoneProperties.Models.OverallCondition>())
+                    {
+                        <option value="@c">@c</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.OverallCondition" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Notes" class="form-label">Notes</label>
+                <textarea asp-for="Input.Notes" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Input.Notes" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3 form-check">
+                <input asp-for="Input.FollowUpRequired" class="form-check-input" />
+                <label asp-for="Input.FollowUpRequired" class="form-check-label">Follow-Up Required</label>
+            </div>
+
+            <button type="submit" class="btn btn-success">Complete Inspection</button>
+            <a asp-page="./Details" asp-route-id="@Model.Inspection.Id" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

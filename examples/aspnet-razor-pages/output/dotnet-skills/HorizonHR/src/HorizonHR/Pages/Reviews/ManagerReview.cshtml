@@ -1,0 +1,105 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.ManagerReviewModel
+@{
+    ViewData["Title"] = "Complete Manager Review";
+}
+
+<h1>Complete Manager Review</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Review Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl>
+                    <dt>Employee</dt>
+                    <dd>@Model.Review.Employee.FullName</dd>
+                    <dt>Reviewer</dt>
+                    <dd>@Model.Review.Reviewer.FullName</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl>
+                    <dt>Review Period</dt>
+                    <dd>@Model.Review.ReviewPeriodStart.ToString("MMM d, yyyy") &ndash; @Model.Review.ReviewPeriodEnd.ToString("MMM d, yyyy")</dd>
+                    <dt>Status</dt>
+                    <dd><partial name="_StatusBadge" model="@Model.Review.Status.ToString()" /></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Review.SelfAssessment))
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Employee Self-Assessment</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-0" style="white-space: pre-wrap;">@Model.Review.SelfAssessment</p>
+        </div>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-10">
+        <form method="post" asp-route-id="@Model.Review.Id">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.ManagerAssessment" class="form-label"></label>
+                <textarea asp-for="Input.ManagerAssessment" class="form-control" rows="8"
+                          placeholder="Provide your assessment of the employee's performance..."></textarea>
+                <span asp-validation-for="Input.ManagerAssessment" class="text-danger"></span>
+                <div class="form-text">Maximum 5,000 characters.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.OverallRating" class="form-label"></label>
+                <select asp-for="Input.OverallRating" class="form-select">
+                    @foreach (var rating in Enum.GetValues<OverallRating>())
+                    {
+                        <option value="@rating">@System.Text.RegularExpressions.Regex.Replace(rating.ToString(), "([a-z])([A-Z])", "$1 $2")</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.OverallRating" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.StrengthsNoted" class="form-label"></label>
+                <textarea asp-for="Input.StrengthsNoted" class="form-control" rows="4"
+                          placeholder="Note key strengths demonstrated by the employee..."></textarea>
+                <span asp-validation-for="Input.StrengthsNoted" class="text-danger"></span>
+                <div class="form-text">Maximum 2,000 characters.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.AreasForImprovement" class="form-label"></label>
+                <textarea asp-for="Input.AreasForImprovement" class="form-control" rows="4"
+                          placeholder="Identify areas where the employee can improve..."></textarea>
+                <span asp-validation-for="Input.AreasForImprovement" class="text-danger"></span>
+                <div class="form-text">Maximum 2,000 characters.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Goals" class="form-label"></label>
+                <textarea asp-for="Input.Goals" class="form-control" rows="6"
+                          placeholder="Set goals for the next review period..."></textarea>
+                <span asp-validation-for="Input.Goals" class="text-danger"></span>
+                <div class="form-text">Maximum 5,000 characters.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Complete Review</button>
+                <a asp-page="Details" asp-route-id="@Model.Review.Id" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

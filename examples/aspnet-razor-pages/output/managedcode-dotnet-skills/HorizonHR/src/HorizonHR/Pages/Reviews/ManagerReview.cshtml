@@ -1,0 +1,61 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.ManagerReviewModel
+@using HorizonHR.Models.Enums
+@{
+    ViewData["Title"] = "Manager Review";
+}
+
+@if (Model.Review is null)
+{
+    <p class="text-danger">Review not found.</p>
+}
+else
+{
+    <h1>Manager Review</h1>
+    <p class="text-muted">@Model.Review.Employee.FullName — @Model.Review.ReviewPeriodStart.ToString("MMM yyyy") to @Model.Review.ReviewPeriodEnd.ToString("MMM yyyy")</p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Review.SelfAssessment))
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Employee Self-Assessment</h5></div>
+            <div class="card-body">@Model.Review.SelfAssessment</div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <form method="post">
+                <input type="hidden" name="id" value="@Model.Review.Id" />
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.ManagerAssessment" class="form-label">Manager Assessment</label>
+                    <textarea asp-for="Input.ManagerAssessment" class="form-control" rows="6"></textarea>
+                    <span asp-validation-for="Input.ManagerAssessment" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.Rating" class="form-label">Overall Rating</label>
+                    <select asp-for="Input.Rating" class="form-select"
+                            asp-items="@(new SelectList(Enum.GetValues<OverallRating>()))">
+                        <option value="">Select Rating</option>
+                    </select>
+                    <span asp-validation-for="Input.Rating" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.Strengths" class="form-label">Strengths Noted</label>
+                    <textarea asp-for="Input.Strengths" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.AreasForImprovement" class="form-label">Areas for Improvement</label>
+                    <textarea asp-for="Input.AreasForImprovement" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.Goals" class="form-label">Goals for Next Period</label>
+                    <textarea asp-for="Input.Goals" class="form-control" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Complete Review</button>
+                <a href="/Reviews/Details/@Model.Review.Id" class="btn btn-link">Cancel</a>
+            </form>
+        </div>
+    </div>
+}

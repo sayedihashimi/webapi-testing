@@ -1,0 +1,43 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Maintenance.UpdateStatusModel
+@{ ViewData["Title"] = "Update Maintenance Status"; }
+<h1>Update Status — @Model.Request.Title</h1>
+<div class="card mb-3"><div class="card-body">
+    <p><strong>Unit:</strong> @Model.Request.Unit.UnitNumber — @Model.Request.Unit.Property.Name</p>
+    <p><strong>Current Status:</strong> <partial name="_StatusBadge" model="@(Model.Request.Status.ToString(), "maintenance")" /></p>
+    <p><strong>Priority:</strong> <partial name="_StatusBadge" model="@(Model.Request.Priority.ToString(), "priority")" /></p>
+</div></div>
+<div class="row"><div class="col-md-8">
+    <form method="post">
+        <input type="hidden" asp-for="RequestId" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Input.NewStatus" class="form-label">New Status</label>
+            <select asp-for="Input.NewStatus" class="form-select">
+                @foreach (var s in Model.ValidTransitions) { <option value="@s">@s</option> }
+            </select>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.AssignedTo" class="form-label"></label>
+            <input asp-for="Input.AssignedTo" class="form-control" />
+            <span class="form-text">Required when assigning.</span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.CompletionNotes" class="form-label"></label>
+            <textarea asp-for="Input.CompletionNotes" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.EstimatedCost" class="form-label"></label>
+                <input asp-for="Input.EstimatedCost" class="form-control" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.ActualCost" class="form-label"></label>
+                <input asp-for="Input.ActualCost" class="form-control" />
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Status</button>
+        <a asp-page="Details" asp-route-id="@Model.RequestId" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

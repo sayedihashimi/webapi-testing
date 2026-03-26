@@ -1,0 +1,135 @@
+@page "/"
+@model HorizonHR.Pages.Dashboard.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="mb-4">Dashboard</h1>
+
+<section class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card primary shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Total Employees</h5>
+                <h2>@Model.Data.TotalEmployees</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card success shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Departments</h5>
+                <h2>@Model.Data.DepartmentCount</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card warning shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Pending Leave Requests</h5>
+                <h2>@Model.Data.PendingLeaveRequests</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card info shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Active Reviews</h5>
+                <h2>@Model.Data.UpcomingReviews</h2>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">Recent Hires (Last 30 Days)</h5></div>
+            <div class="card-body">
+                @if (Model.Data.RecentHires.Count == 0)
+                {
+                    <p class="text-muted">No recent hires.</p>
+                }
+                else
+                {
+                    <table class="table table-sm">
+                        <thead><tr><th>Name</th><th>Department</th><th>Hire Date</th></tr></thead>
+                        <tbody>
+                            @foreach (var emp in Model.Data.RecentHires)
+                            {
+                                <tr>
+                                    <td><a href="/Employees/Details/@emp.Id">@emp.FullName</a></td>
+                                    <td>@emp.Department.Name</td>
+                                    <td>@emp.HireDate.ToString("MMM d, yyyy")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">Employees On Leave Today</h5></div>
+            <div class="card-body">
+                @if (Model.Data.EmployeesOnLeaveToday.Count == 0)
+                {
+                    <p class="text-muted">No employees on leave today.</p>
+                }
+                else
+                {
+                    <table class="table table-sm">
+                        <thead><tr><th>Name</th><th>Department</th></tr></thead>
+                        <tbody>
+                            @foreach (var emp in Model.Data.EmployeesOnLeaveToday)
+                            {
+                                <tr>
+                                    <td><a href="/Employees/Details/@emp.Id">@emp.FullName</a></td>
+                                    <td>@emp.Department.Name</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row">
+    <div class="col-md-8 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">Headcount by Department</h5></div>
+            <div class="card-body">
+                @if (Model.Data.HeadcountByDepartment.Count == 0)
+                {
+                    <p class="text-muted">No department data available.</p>
+                }
+                else
+                {
+                    <table class="table">
+                        <thead><tr><th>Department</th><th>Headcount</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var dept in Model.Data.HeadcountByDepartment)
+                            {
+                                var maxCount = Model.Data.HeadcountByDepartment.Max(d => d.Count);
+                                var pct = maxCount > 0 ? (int)((double)dept.Count / maxCount * 100) : 0;
+                                <tr>
+                                    <td>@dept.DepartmentName</td>
+                                    <td>@dept.Count</td>
+                                    <td style="width: 50%">
+                                        <div class="progress">
+                                            <div class="progress-bar" style="width: @(pct)%">@dept.Count</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</section>

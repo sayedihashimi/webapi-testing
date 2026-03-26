@@ -1,0 +1,85 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Payments.DetailsModel
+@{
+    ViewData["Title"] = "Payment Details";
+}
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-receipt"></i> Payment Details</h1>
+        <a asp-page="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Payments
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Payment Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Amount</dt>
+                        <dd class="col-sm-7 fs-5 fw-bold text-success">@Model.Payment.Amount.ToString("C")</dd>
+
+                        <dt class="col-sm-5">Payment Date</dt>
+                        <dd class="col-sm-7">@Model.Payment.PaymentDate.ToString("MMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-5">Due Date</dt>
+                        <dd class="col-sm-7">@Model.Payment.DueDate.ToString("MMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-5">Payment Method</dt>
+                        <dd class="col-sm-7">@Model.Payment.PaymentMethod</dd>
+
+                        <dt class="col-sm-5">Payment Type</dt>
+                        <dd class="col-sm-7"><span class="badge bg-info text-dark">@Model.Payment.PaymentType</span></dd>
+
+                        <dt class="col-sm-5">Status</dt>
+                        <dd class="col-sm-7">
+                            <partial name="_StatusBadge" model="@(Model.Payment.Status.ToString(), "PaymentStatus")" />
+                        </dd>
+
+                        <dt class="col-sm-5">Reference #</dt>
+                        <dd class="col-sm-7">@(Model.Payment.ReferenceNumber ?? "—")</dd>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Payment.Notes))
+                        {
+                            <dt class="col-sm-5">Notes</dt>
+                            <dd class="col-sm-7">@Model.Payment.Notes</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Lease Context</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Tenant</dt>
+                        <dd class="col-sm-7">@Model.Payment.Lease.Tenant.FullName</dd>
+
+                        <dt class="col-sm-5">Property</dt>
+                        <dd class="col-sm-7">@Model.Payment.Lease.Unit.Property.Name</dd>
+
+                        <dt class="col-sm-5">Unit</dt>
+                        <dd class="col-sm-7">@Model.Payment.Lease.Unit.UnitNumber</dd>
+
+                        <dt class="col-sm-5">Lease Period</dt>
+                        <dd class="col-sm-7">
+                            @Model.Payment.Lease.StartDate.ToString("MMM dd, yyyy") –
+                            @Model.Payment.Lease.EndDate.ToString("MMM dd, yyyy")
+                        </dd>
+
+                        <dt class="col-sm-5">Monthly Rent</dt>
+                        <dd class="col-sm-7">@Model.Payment.Lease.MonthlyRentAmount.ToString("C")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

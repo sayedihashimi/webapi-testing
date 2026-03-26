@@ -1,0 +1,51 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Skills.EditModel
+@{
+    ViewData["Title"] = "Edit Skill";
+}
+
+<h1>Edit Skill</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Input.Id" />
+
+            <div class="mb-3">
+                <label asp-for="Input.Name" class="form-label"></label>
+                <input asp-for="Input.Name" class="form-control" />
+                <span asp-validation-for="Input.Name" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Category" class="form-label"></label>
+                <input asp-for="Input.Category" class="form-control" list="categorySuggestions" />
+                <datalist id="categorySuggestions">
+                    <option value="Programming Language"></option>
+                    <option value="Framework"></option>
+                    <option value="Tool"></option>
+                    <option value="Soft Skill"></option>
+                    <option value="Database"></option>
+                    <option value="Cloud"></option>
+                </datalist>
+                <span asp-validation-for="Input.Category" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Description" class="form-label"></label>
+                <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Input.Description" class="text-danger"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

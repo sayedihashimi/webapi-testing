@@ -1,0 +1,29 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.CancelModel
+@{
+    ViewData["Title"] = "Cancel Leave Request";
+}
+
+<h1>Cancel Leave Request</h1>
+
+<div class="alert alert-warning" role="alert">
+    Are you sure you want to cancel this leave request?
+    @if (Model.Request.Status == LeaveRequestStatus.Approved)
+    {
+        <strong>This request was already approved. The @Model.Request.TotalDays day(s) will be restored to the employee's balance.</strong>
+    }
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <p><strong>Employee:</strong> @Model.Request.Employee.FirstName @Model.Request.Employee.LastName</p>
+        <p><strong>Leave Type:</strong> @Model.Request.LeaveType.Name</p>
+        <p><strong>Dates:</strong> @Model.Request.StartDate.ToString("MMM dd, yyyy") — @Model.Request.EndDate.ToString("MMM dd, yyyy")</p>
+        <p><strong>Days:</strong> @Model.Request.TotalDays</p>
+    </div>
+</div>
+
+<form method="post">
+    <button type="submit" class="btn btn-danger">Confirm Cancel</button>
+    <a asp-page="Details" asp-route-id="@Model.Request.Id" class="btn btn-secondary">Go Back</a>
+</form>

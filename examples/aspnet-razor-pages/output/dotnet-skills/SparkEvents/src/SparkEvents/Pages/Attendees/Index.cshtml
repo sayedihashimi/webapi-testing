@@ -1,0 +1,41 @@
+@page
+@model SparkEvents.Pages.Attendees.IndexModel
+@{ ViewData["Title"] = "Attendees"; }
+
+<h1>Attendees</h1>
+<a asp-page="Create" class="btn btn-primary mb-3">Add New Attendee</a>
+
+<form method="get" class="row g-3 mb-3">
+    <div class="col-auto">
+        <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search by name or email..." />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+    </div>
+</form>
+
+@if (Model.Attendees.Items.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Name</th><th>Email</th><th>Organization</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var a in Model.Attendees.Items)
+                {
+                    <tr>
+                        <td><a asp-page="Details" asp-route-id="@a.Id">@a.FullName</a></td>
+                        <td>@a.Email</td>
+                        <td>@a.Organization</td>
+                        <td>
+                            <a asp-page="Edit" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">No attendees found.</p>
+}

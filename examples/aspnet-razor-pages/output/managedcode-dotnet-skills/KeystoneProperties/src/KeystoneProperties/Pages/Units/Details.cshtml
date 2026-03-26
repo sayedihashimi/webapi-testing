@@ -1,0 +1,227 @@
+@page "{id:int}"
+@using KeystoneProperties.Models
+@model DetailsModel
+@{
+    ViewData["Title"] = $"Unit {Model.Unit.UnitNumber} at {Model.Unit.Property?.Name}";
+}
+
+<h1>Unit @Model.Unit.UnitNumber at @Model.Unit.Property?.Name</h1>
+
+<p>
+    <a asp-page="/Units/Index" class="btn btn-outline-secondary btn-sm">&larr; Back to Units</a>
+</p>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Unit Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Property</dt>
+                    <dd class="col-sm-8">
+                        <a asp-page="/Properties/Details" asp-route-id="@Model.Unit.PropertyId">@Model.Unit.Property?.Name</a>
+                    </dd>
+
+                    <dt class="col-sm-4">Unit #</dt>
+                    <dd class="col-sm-8">@Model.Unit.UnitNumber</dd>
+
+                    <dt class="col-sm-4">Floor</dt>
+                    <dd class="col-sm-8">@(Model.Unit.Floor?.ToString() ?? "—")</dd>
+
+                    <dt class="col-sm-4">Bed/Bath</dt>
+                    <dd class="col-sm-8">@Model.Unit.Bedrooms / @Model.Unit.Bathrooms</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Sq Ft</dt>
+                    <dd class="col-sm-8">@Model.Unit.SquareFeet.ToString("N0")</dd>
+
+                    <dt class="col-sm-4">Monthly Rent</dt>
+                    <dd class="col-sm-8">@Model.Unit.MonthlyRent.ToString("C")</dd>
+
+                    <dt class="col-sm-4">Deposit</dt>
+                    <dd class="col-sm-8">@Model.Unit.DepositAmount.ToString("C")</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">@await Component.InvokeAsync("StatusBadge", new { status = Model.Unit.Status.ToString() })</dd>
+                </dl>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.Unit.Amenities))
+        {
+            <div class="row">
+                <div class="col-12">
+                    <dt>Amenities</dt>
+                    <dd>@Model.Unit.Amenities</dd>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="card-footer">
+        <a asp-page="/Units/Edit" asp-route-id="@Model.Unit.Id" class="btn btn-warning">Edit</a>
+    </div>
+</div>
+
+@{
+    var activeLease = Model.Unit.Leases?.FirstOrDefault(l => l.Status == LeaseStatus.Active);
+}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Current Lease</h5>
+    </div>
+    <div class="card-body">
+        @if (activeLease != null)
+        {
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Tenant</dt>
+                <dd class="col-sm-9">
+                    <a asp-page="/Tenants/Details" asp-route-id="@activeLease.TenantId">@activeLease.Tenant?.FullName</a>
+                </dd>
+
+                <dt class="col-sm-3">Lease Period</dt>
+                <dd class="col-sm-9">@activeLease.StartDate.ToString("MMM dd, yyyy") &ndash; @activeLease.EndDate.ToString("MMM dd, yyyy")</dd>
+
+                <dt class="col-sm-3">Monthly Rent</dt>
+                <dd class="col-sm-9">@activeLease.MonthlyRentAmount.ToString("C")</dd>
+
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">@await Component.InvokeAsync("StatusBadge", new { status = activeLease.Status.ToString() })</dd>
+            </dl>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No active lease.</p>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Lease History</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Unit.Leases?.Any() == true)
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Tenant</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Rent</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lease in Model.Unit.Leases.OrderByDescending(l => l.StartDate))
+                    {
+                        <tr>
+                            <td>@lease.Tenant?.FullName</td>
+                            <td>@lease.StartDate.ToString("MMM dd, yyyy")</td>
+                            <td>@lease.EndDate.ToString("MMM dd, yyyy")</td>
+                            <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = lease.Status.ToString() })</td>
+                            <td>
+                                <a asp-page="/Leases/Details" asp-route-id="@lease.Id" class="btn btn-sm btn-info">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No lease history.</p>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Maintenance History</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Unit.MaintenanceRequests?.Any() == true)
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th>Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in Model.Unit.MaintenanceRequests)
+                    {
+                        <tr>
+                            <td>@request.Title</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = request.Priority.ToString() })</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = request.Status.ToString() })</td>
+                            <td>@request.SubmittedDate.ToString("MMM dd, yyyy")</td>
+                            <td>@request.Category</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No maintenance history.</p>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Inspections</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Unit.Inspections?.Any() == true)
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Scheduled</th>
+                        <th>Completed</th>
+                        <th>Inspector</th>
+                        <th>Condition</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inspection in Model.Unit.Inspections)
+                    {
+                        <tr>
+                            <td>@inspection.InspectionType</td>
+                            <td>@inspection.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                            <td>@(inspection.CompletedDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                            <td>@inspection.InspectorName</td>
+                            <td>
+                                @if (inspection.OverallCondition.HasValue)
+                                {
+                                    @await Component.InvokeAsync("StatusBadge", new { status = inspection.OverallCondition.Value.ToString() })
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No inspections.</p>
+        }
+    </div>
+</div>

@@ -1,0 +1,58 @@
+@page "/Events/{eventId:int}/TicketTypes/Edit/{id:int}"
+@model SparkEvents.Pages.Events.TicketTypes.EditModel
+@{
+    ViewData["Title"] = $"Edit Ticket Type — {Model.Event.Title}";
+}
+
+<h1 class="mb-4">Edit Ticket Type</h1>
+<p class="text-muted">For: <strong>@Model.Event.Title</strong></p>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <input type="hidden" asp-for="Input.Id" />
+    <input type="hidden" asp-for="Input.EventId" />
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Input.Name" class="form-label"></label>
+            <input asp-for="Input.Name" class="form-control" />
+            <span asp-validation-for="Input.Name" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="Input.Description" class="form-label"></label>
+            <input asp-for="Input.Description" class="form-control" />
+            <span asp-validation-for="Input.Description" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <label asp-for="Input.Price" class="form-label"></label>
+            <input asp-for="Input.Price" class="form-control" type="number" step="0.01" min="0" />
+            <span asp-validation-for="Input.Price" class="text-danger"></span>
+        </div>
+        <div class="col-md-3 mb-3">
+            <label asp-for="Input.EarlyBirdPrice" class="form-label"></label>
+            <input asp-for="Input.EarlyBirdPrice" class="form-control" type="number" step="0.01" min="0" />
+            <span asp-validation-for="Input.EarlyBirdPrice" class="text-danger"></span>
+        </div>
+        <div class="col-md-3 mb-3">
+            <label asp-for="Input.Quantity" class="form-label"></label>
+            <input asp-for="Input.Quantity" class="form-control" type="number" min="1" />
+            <span asp-validation-for="Input.Quantity" class="text-danger"></span>
+        </div>
+        <div class="col-md-3 mb-3">
+            <label asp-for="Input.SortOrder" class="form-label"></label>
+            <input asp-for="Input.SortOrder" class="form-control" type="number" min="0" />
+            <span asp-validation-for="Input.SortOrder" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a asp-page="Index" asp-route-eventId="@Model.Input.EventId" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

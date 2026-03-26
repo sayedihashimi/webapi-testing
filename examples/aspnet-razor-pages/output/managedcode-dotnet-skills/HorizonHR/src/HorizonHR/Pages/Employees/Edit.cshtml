@@ -1,0 +1,96 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.EditModel
+@using HorizonHR.Models.Enums
+@{
+    ViewData["Title"] = "Edit Employee";
+}
+
+<h1>Edit Employee</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <input type="hidden" asp-for="Input.Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.FirstName" class="form-label"></label>
+                    <input asp-for="Input.FirstName" class="form-control" />
+                    <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.LastName" class="form-label"></label>
+                    <input asp-for="Input.LastName" class="form-control" />
+                    <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Email" class="form-label"></label>
+                    <input asp-for="Input.Email" class="form-control" type="email" />
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Phone" class="form-label"></label>
+                    <input asp-for="Input.Phone" class="form-control" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.DepartmentId" class="form-label">Department</label>
+                    <select asp-for="Input.DepartmentId" class="form-select" asp-items="Model.DepartmentOptions"></select>
+                    <span asp-validation-for="Input.DepartmentId" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.JobTitle" class="form-label"></label>
+                    <input asp-for="Input.JobTitle" class="form-control" />
+                    <span asp-validation-for="Input.JobTitle" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.EmploymentType" class="form-label"></label>
+                    <select asp-for="Input.EmploymentType" class="form-select"
+                            asp-items="@(new SelectList(Enum.GetValues<EmploymentType>()))"></select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.Salary" class="form-label"></label>
+                    <input asp-for="Input.Salary" class="form-control" type="number" step="0.01" />
+                    <span asp-validation-for="Input.Salary" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.ManagerId" class="form-label">Manager</label>
+                    <select asp-for="Input.ManagerId" class="form-select" asp-items="Model.ManagerOptions">
+                        <option value="">— None —</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Address" class="form-label"></label>
+                    <input asp-for="Input.Address" class="form-control" />
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Input.City" class="form-label"></label>
+                    <input asp-for="Input.City" class="form-control" />
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Input.State" class="form-label"></label>
+                    <input asp-for="Input.State" class="form-control" maxlength="2" />
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Input.ZipCode" class="form-label"></label>
+                    <input asp-for="Input.ZipCode" class="form-control" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="/Employees/Details/@Model.Input.Id" class="btn btn-link">Cancel</a>
+        </form>
+    </div>
+</div>

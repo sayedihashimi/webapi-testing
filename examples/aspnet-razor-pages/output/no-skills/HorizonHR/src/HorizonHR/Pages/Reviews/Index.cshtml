@@ -1,0 +1,79 @@
+@page
+@model HorizonHR.Pages.Reviews.IndexModel
+@{
+    ViewData["Title"] = "Performance Reviews";
+}
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Performance Reviews</h1>
+        <a asp-page="Create" class="btn btn-primary">Create Review</a>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-2">
+            <select name="status" class="form-select" asp-items="@(new SelectList(Enum.GetValues<ReviewStatus>()))">
+                <option value="">All Statuses</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="rating" class="form-select" asp-items="@(new SelectList(Enum.GetValues<OverallRating>()))">
+                <option value="">All Ratings</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="departmentId" class="form-select" asp-items="Model.DepartmentOptions">
+                <option value="">All Departments</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+        </div>
+    </form>
+
+    @if (!Model.Reviews.Any())
+    {
+        <p class="text-muted">No performance reviews found.</p>
+    }
+    else
+    {
+        <table class="table table-hover">
+            <thead>
+                <tr><th>Employee</th><th>Department</th><th>Reviewer</th><th>Period</th><th>Status</th><th>Rating</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Reviews)
+                {
+                    <tr>
+                        <td><a asp-page="/Employees/Details" asp-route-id="@r.EmployeeId">@r.Employee.FullName</a></td>
+                        <td>@r.Employee.Department.Name</td>
+                        <td>@r.Reviewer.FullName</td>
+                        <td>@r.ReviewPeriodStart.ToString("MMM yyyy") – @r.ReviewPeriodEnd.ToString("MMM yyyy")</td>
+                        <td>
+                            @{ ViewData["StatusText"] = r.Status.ToString(); }
+                            <partial name="Shared/_StatusBadge" />
+                        </td>
+                        <td>
+                            @if (r.OverallRating.HasValue)
+                            {
+                                ViewData["StatusText"] = r.OverallRating.ToString();
+                                <partial name="Shared/_StatusBadge" />
+                            }
+                            else
+                            {
+                                <text>—</text>
+                            }
+                        </td>
+                        <td><a asp-page="Details" asp-route-id="@r.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+    }
+
+    ViewData["CurrentPage"] = Model.PageNumber;
+    ViewData["TotalPages"] = Model.TotalPages;
+    ViewData["PageUrl"] = $"?status={Model.StatusFilter}&rating={Model.RatingFilter}&departmentId={Model.DepartmentFilter}";
+    <partial name="Shared/_Pagination" />
+</section>

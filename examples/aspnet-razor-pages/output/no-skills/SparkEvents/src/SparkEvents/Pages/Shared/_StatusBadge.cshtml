@@ -1,0 +1,15 @@
+@model EventStatus
+
+@{
+    var (badgeClass, label) = Model switch
+    {
+        EventStatus.Draft => ("bg-secondary", "Draft"),
+        EventStatus.Published => ("bg-success", "Published"),
+        EventStatus.SoldOut => ("bg-warning text-dark", "Sold Out"),
+        EventStatus.Completed => ("bg-info", "Completed"),
+        EventStatus.Cancelled => ("bg-danger", "Cancelled"),
+        _ => ("bg-secondary", Model.ToString())
+    };
+}
+
+<span class="badge @badgeClass status-badge">@label</span>

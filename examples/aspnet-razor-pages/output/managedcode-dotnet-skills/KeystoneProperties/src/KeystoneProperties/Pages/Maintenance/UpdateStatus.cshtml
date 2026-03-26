@@ -1,0 +1,92 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Maintenance.UpdateStatusModel
+@using KeystoneProperties.Models
+@{
+    ViewData["Title"] = $"Update Status - {Model.Request.Title}";
+}
+
+<h1>Update Status - @Model.Request.Title</h1>
+
+<p><a asp-page="/Maintenance/Details" asp-route-id="@Model.Request.Id">&larr; Back to Details</a></p>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Current Request Info</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Title</dt>
+                    <dd class="col-sm-8">@Model.Request.Title</dd>
+
+                    <dt class="col-sm-4">Unit</dt>
+                    <dd class="col-sm-8">@Model.Request.Unit.UnitNumber - @Model.Request.Unit.Property.Name</dd>
+
+                    <dt class="col-sm-4">Priority</dt>
+                    <dd class="col-sm-8">@await Component.InvokeAsync("StatusBadge", new { status = Model.Request.Priority.ToString() })</dd>
+
+                    <dt class="col-sm-4">Current Status</dt>
+                    <dd class="col-sm-8">@await Component.InvokeAsync("StatusBadge", new { status = Model.Request.Status.ToString() })</dd>
+
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(m => m.Request.Category)</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.NewStatus" class="form-label"></label>
+                <select asp-for="Input.NewStatus" class="form-select">
+                    <option value="">-- Select New Status --</option>
+                    @foreach (var status in Model.ValidNextStatuses)
+                    {
+                        <option value="@status">@Html.DisplayFor(m => status)</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.NewStatus" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.AssignedTo" class="form-label"></label>
+                <input asp-for="Input.AssignedTo" class="form-control" />
+                <span asp-validation-for="Input.AssignedTo" class="text-danger"></span>
+                @if (Model.ValidNextStatuses.Contains(MaintenanceStatus.Assigned))
+                {
+                    <div class="form-text">Required when assigning a request.</div>
+                }
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.CompletionNotes" class="form-label"></label>
+                <textarea asp-for="Input.CompletionNotes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Input.CompletionNotes" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.EstimatedCost" class="form-label"></label>
+                    <input asp-for="Input.EstimatedCost" class="form-control" type="number" step="0.01" />
+                    <span asp-validation-for="Input.EstimatedCost" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.ActualCost" class="form-label"></label>
+                    <input asp-for="Input.ActualCost" class="form-control" type="number" step="0.01" />
+                    <span asp-validation-for="Input.ActualCost" class="text-danger"></span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Update</button>
+            <a asp-page="/Maintenance/Details" asp-route-id="@Model.Request.Id" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

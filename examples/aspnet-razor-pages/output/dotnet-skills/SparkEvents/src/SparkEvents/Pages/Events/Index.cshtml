@@ -1,0 +1,80 @@
+@page
+@model SparkEvents.Pages.Events.IndexModel
+@{ ViewData["Title"] = "Events"; }
+
+<h1>Events</h1>
+<a asp-page="Create" class="btn btn-primary mb-3">Create New Event</a>
+
+<form method="get" class="row g-3 mb-3">
+    <div class="col-md-3">
+        <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search by title..." />
+    </div>
+    <div class="col-md-2">
+        <select name="categoryId" class="form-select">
+            <option value="">All Categories</option>
+            @foreach (var c in Model.AllCategories)
+            {
+                <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="status" class="form-select">
+            <option value="">All Statuses</option>
+            @foreach (var s in Enum.GetValues<SparkEvents.Models.EventStatus>())
+            {
+                <option value="@s" selected="@(Model.Status == s)">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="fromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" class="form-control" placeholder="From" />
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="toDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" class="form-control" placeholder="To" />
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+    </div>
+</form>
+
+@if (Model.Events.Items.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Title</th><th>Category</th><th>Date</th><th>Venue</th><th>Status</th><th>Registrations</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var evt in Model.Events.Items)
+                {
+                    <tr>
+                        <td>
+                            @if (evt.IsFeatured) { <span class="badge bg-warning text-dark me-1">★</span> }
+                            <a asp-page="Details" asp-route-id="@evt.Id">@evt.Title</a>
+                        </td>
+                        <td>
+                            @if (evt.EventCategory.ColorHex != null)
+                            {
+                                <span class="badge" style="background-color: @evt.EventCategory.ColorHex">@evt.EventCategory.Name</span>
+                            }
+                            else
+                            {
+                                @evt.EventCategory.Name
+                            }
+                        </td>
+                        <td>@evt.StartDate.ToString("MMM dd, yyyy")</td>
+                        <td>@evt.Venue.Name</td>
+                        <td><partial name="_EventStatusBadge" model="evt.Status" /></td>
+                        <td>@evt.CurrentRegistrations / @evt.TotalCapacity</td>
+                        <td>
+                            <a asp-page="Edit" asp-route-id="@evt.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">No events found.</p>
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Keystone Properties</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark" aria-label="Main navigation">
+        <div class="container">
+            <a class="navbar-brand" href="/">🏠 Keystone Properties</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Index" aria-current="@(ViewContext.RouteData.Values["page"]?.ToString() == "/Index" ? "page" : null)">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Properties/Index" aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Properties") == true ? "page" : null)">Properties</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Units/Index" aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Units") == true ? "page" : null)">Units</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Tenants/Index" aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Tenants") == true ? "page" : null)">Tenants</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Leases/Index" aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Leases") == true ? "page" : null)">Leases</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Payments/Index" aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Payments") == true ? "page" : null)">Payments</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Maintenance/Index" aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Maintenance") == true ? "page" : null)">Maintenance</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Inspections/Index" aria-current="@(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Inspections") == true ? "page" : null)">Inspections</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-4">
+        @if (TempData["SuccessMessage"] is string successMsg)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @successMsg
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] is string errorMsg)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @errorMsg
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @RenderBody()
+    </main>
+
+    <footer class="container mt-5 mb-3">
+        <hr />
+        <p class="text-muted text-center">&copy; @DateTime.Now.Year Keystone Properties</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

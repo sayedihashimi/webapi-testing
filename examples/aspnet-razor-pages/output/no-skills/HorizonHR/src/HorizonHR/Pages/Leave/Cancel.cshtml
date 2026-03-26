@@ -1,0 +1,50 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.CancelModel
+@{
+    ViewData["Title"] = "Cancel Leave Request";
+}
+
+<section>
+    @if (Model.LeaveRequest == null)
+    {
+        <p class="text-muted">Leave request not found.</p>
+    }
+    else
+    {
+        var lr = Model.LeaveRequest;
+        <h1>Cancel Leave Request #@lr.Id</h1>
+
+        <div class="alert alert-warning" role="alert">
+            Are you sure you want to cancel this leave request?
+            @if (lr.Status == LeaveRequestStatus.Approved)
+            {
+                <strong>@lr.TotalDays day(s) will be restored to the employee's leave balance.</strong>
+            }
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Employee</dt>
+                    <dd class="col-sm-9">@lr.Employee.FullName</dd>
+                    <dt class="col-sm-3">Leave Type</dt>
+                    <dd class="col-sm-9">@lr.LeaveType.Name</dd>
+                    <dt class="col-sm-3">Dates</dt>
+                    <dd class="col-sm-9">@lr.StartDate.ToString("MMM dd, yyyy") – @lr.EndDate.ToString("MMM dd, yyyy")</dd>
+                    <dt class="col-sm-3">Days</dt>
+                    <dd class="col-sm-9">@lr.TotalDays</dd>
+                    <dt class="col-sm-3">Current Status</dt>
+                    <dd class="col-sm-9">
+                        @{ ViewData["StatusText"] = lr.Status.ToString(); }
+                        <partial name="Shared/_StatusBadge" />
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <form method="post">
+            <button type="submit" class="btn btn-warning">Confirm Cancellation</button>
+            <a asp-page="Details" asp-route-id="@lr.Id" class="btn btn-outline-secondary ms-2">Go Back</a>
+        </form>
+    }
+</section>

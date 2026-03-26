@@ -1,0 +1,199 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Leases.DetailsModel
+@{
+    ViewData["Title"] = "Lease Details";
+}
+
+<h1>Lease Details</h1>
+
+<div class="mb-3">
+    <a asp-page="Index" class="btn btn-outline-secondary">&larr; Back to Leases</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Lease Information</h5>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Tenant</dt>
+            <dd class="col-sm-9">
+                <a asp-page="/Tenants/Details" asp-route-id="@Model.Lease.TenantId">@Model.Lease.Tenant.FullName</a>
+            </dd>
+            <dt class="col-sm-3">Unit</dt>
+            <dd class="col-sm-9">
+                <a asp-page="/Units/Details" asp-route-id="@Model.Lease.UnitId">@Model.Lease.Unit.UnitNumber</a>
+                at @Model.Lease.Unit.Property.Name
+            </dd>
+            <dt class="col-sm-3">Start Date</dt>
+            <dd class="col-sm-9">@Model.Lease.StartDate.ToString("MMM dd, yyyy")</dd>
+            <dt class="col-sm-3">End Date</dt>
+            <dd class="col-sm-9">@Model.Lease.EndDate.ToString("MMM dd, yyyy")</dd>
+            <dt class="col-sm-3">Monthly Rent</dt>
+            <dd class="col-sm-9">@Model.Lease.MonthlyRentAmount.ToString("C")</dd>
+            <dt class="col-sm-3">Deposit Amount</dt>
+            <dd class="col-sm-9">@Model.Lease.DepositAmount.ToString("C")</dd>
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">@await Component.InvokeAsync("StatusBadge", new { status = Model.Lease.Status.ToString() })</dd>
+            <dt class="col-sm-3">Deposit Status</dt>
+            <dd class="col-sm-9">@await Component.InvokeAsync("StatusBadge", new { status = Model.Lease.DepositStatus.ToString() })</dd>
+
+            @if (Model.Lease.Status == LeaseStatus.Terminated)
+            {
+                <dt class="col-sm-3">Termination Date</dt>
+                <dd class="col-sm-9">@Model.Lease.TerminationDate?.ToString("MMM dd, yyyy")</dd>
+                <dt class="col-sm-3">Termination Reason</dt>
+                <dd class="col-sm-9">@Model.Lease.TerminationReason</dd>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.Lease.Notes))
+            {
+                <dt class="col-sm-3">Notes</dt>
+                <dd class="col-sm-9">@Model.Lease.Notes</dd>
+            }
+
+            <dt class="col-sm-3">Created</dt>
+            <dd class="col-sm-9">@Model.Lease.CreatedAt.ToString("MMM dd, yyyy")</dd>
+            <dt class="col-sm-3">Last Updated</dt>
+            <dd class="col-sm-9">@Model.Lease.UpdatedAt.ToString("MMM dd, yyyy")</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="mb-4">
+    @if (Model.Lease.Status == LeaseStatus.Active)
+    {
+        <a asp-page="Terminate" asp-route-id="@Model.Lease.Id" class="btn btn-danger">Terminate</a>
+        <a asp-page="Renew" asp-route-id="@Model.Lease.Id" class="btn btn-success">Renew</a>
+    }
+    @if (Model.Lease.Status == LeaseStatus.Pending)
+    {
+        <a asp-page="Edit" asp-route-id="@Model.Lease.Id" class="btn btn-primary">Edit</a>
+        <a asp-page="Terminate" asp-route-id="@Model.Lease.Id" class="btn btn-danger">Terminate</a>
+    }
+</div>
+
+@if (Model.RenewalChain.Count > 1)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Renewal History</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Monthly Rent</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var chainLease in Model.RenewalChain)
+                    {
+                        <tr class="@(chainLease.Id == Model.Lease.Id ? "table-active" : "")">
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = chainLease.Status.ToString() })</td>
+                            <td>@chainLease.StartDate.ToString("MMM dd, yyyy")</td>
+                            <td>@chainLease.EndDate.ToString("MMM dd, yyyy")</td>
+                            <td>@chainLease.MonthlyRentAmount.ToString("C")</td>
+                            <td>
+                                @if (chainLease.Id != Model.Lease.Id)
+                                {
+                                    <a asp-page="Details" asp-route-id="@chainLease.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Current</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (Model.Lease.Payments.Any())
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Payment History</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Due Date</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Reference #</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in Model.Lease.Payments)
+                    {
+                        <tr>
+                            <td>@payment.PaymentDate.ToString("MMM dd, yyyy")</td>
+                            <td>@payment.DueDate.ToString("MMM dd, yyyy")</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = payment.PaymentType.ToString() })</td>
+                            <td>@payment.Amount.ToString("C")</td>
+                            <td>@payment.PaymentMethod</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = payment.Status.ToString() })</td>
+                            <td>
+                                <a asp-page="/Payments/Details" asp-route-id="@payment.Id">@(payment.ReferenceNumber ?? "—")</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="3">Total</td>
+                        <td>@Model.Lease.Payments.Sum(p => p.Amount).ToString("C")</td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+@if (Model.Lease.Inspections.Any())
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Linked Inspections</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Scheduled Date</th>
+                        <th>Completed Date</th>
+                        <th>Inspector</th>
+                        <th>Condition</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inspection in Model.Lease.Inspections)
+                    {
+                        <tr>
+                            <td>@inspection.InspectionType</td>
+                            <td>@inspection.ScheduledDate.ToString("MMM dd, yyyy")</td>
+                            <td>@(inspection.CompletedDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                            <td>@inspection.InspectorName</td>
+                            <td>
+                                @if (inspection.OverallCondition.HasValue)
+                                {
+                                    @await Component.InvokeAsync("StatusBadge", new { status = inspection.OverallCondition.Value.ToString() })
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

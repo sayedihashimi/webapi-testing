@@ -1,0 +1,108 @@
+@page
+@model HorizonHR.Pages.Employees.IndexModel
+@{
+    ViewData["Title"] = "Employee Directory";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Employee Directory</h1>
+    <a asp-page="Create" class="btn btn-primary">Add Employee</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search name/email/number..." />
+    </div>
+    <div class="col-md-2">
+        <select name="departmentId" class="form-select">
+            <option value="">All Departments</option>
+            @foreach (var d in Model.Departments)
+            {
+                <option value="@d.Id" selected="@(Model.DepartmentId == d.Id)">@d.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="employmentType" class="form-select">
+            <option value="">All Types</option>
+            @foreach (var t in Enum.GetValues<EmploymentType>())
+            {
+                <option value="@t" selected="@(Model.EmploymentType == t)">@t</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select name="status" class="form-select">
+            <option value="">All Statuses</option>
+            @foreach (var s in Enum.GetValues<EmployeeStatus>())
+            {
+                <option value="@s" selected="@(Model.Status == s)">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+@if (Model.Employees.Items.Count == 0)
+{
+    <p>No employees found matching your criteria.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Employee #</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Job Title</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in Model.Employees.Items)
+            {
+                <tr>
+                    <td>@emp.EmployeeNumber</td>
+                    <td><a asp-page="Details" asp-route-id="@emp.Id">@emp.FirstName @emp.LastName</a></td>
+                    <td>@emp.Email</td>
+                    <td>@emp.Department.Name</td>
+                    <td>@emp.JobTitle</td>
+                    <td><partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", emp.EmploymentType.ToString() } })' /></td>
+                    <td><partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", emp.Status.ToString() } })' /></td>
+                    <td>
+                        <a asp-page="Edit" asp-route-id="@emp.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (Model.Employees.TotalPages > 1)
+    {
+        <nav aria-label="Employee list pagination">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.Employees.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link" asp-page="Index" asp-route-pageNumber="@(Model.Employees.PageNumber - 1)" asp-route-search="@Model.Search" asp-route-departmentId="@Model.DepartmentId" asp-route-employmentType="@Model.EmploymentType" asp-route-status="@Model.Status">Previous</a>
+                </li>
+                @for (var i = 1; i <= Model.Employees.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.Employees.PageNumber ? "active" : "")">
+                        <a class="page-link" asp-page="Index" asp-route-pageNumber="@i" asp-route-search="@Model.Search" asp-route-departmentId="@Model.DepartmentId" asp-route-employmentType="@Model.EmploymentType" asp-route-status="@Model.Status">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Employees.HasNextPage ? "" : "disabled")">
+                    <a class="page-link" asp-page="Index" asp-route-pageNumber="@(Model.Employees.PageNumber + 1)" asp-route-search="@Model.Search" asp-route-departmentId="@Model.DepartmentId" asp-route-employmentType="@Model.EmploymentType" asp-route-status="@Model.Status">Next</a>
+                </li>
+            </ul>
+        </nav>
+    }
+
+    <p class="text-muted text-center">Showing @Model.Employees.Items.Count of @Model.Employees.TotalCount employees</p>
+}

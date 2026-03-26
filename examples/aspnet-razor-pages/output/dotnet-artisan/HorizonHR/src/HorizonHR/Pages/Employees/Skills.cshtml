@@ -1,0 +1,79 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.SkillsModel
+@using HorizonHR.Models
+@{ ViewData["Title"] = $"Skills — {Model.Employee.FullName}"; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Employees</a></li>
+        <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Employee.Id">@Model.Employee.FullName</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Skills</li>
+    </ol>
+</nav>
+<h1>Manage Skills — @Model.Employee.FullName</h1>
+
+<section class="mb-4">
+    <h3>Current Skills</h3>
+    @if (Model.EmployeeSkills.Any())
+    {
+        <table class="table table-striped">
+            <thead><tr><th>Skill</th><th>Category</th><th>Proficiency</th><th>Years</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var es in Model.EmployeeSkills)
+                {
+                    <tr>
+                        <td>@es.Skill.Name</td>
+                        <td>@es.Skill.Category</td>
+                        <td><partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", es.ProficiencyLevel.ToString() } })' /></td>
+                        <td>@(es.YearsOfExperience?.ToString() ?? "—")</td>
+                        <td>
+                            <form method="post" asp-page-handler="Remove" style="display:inline">
+                                <input type="hidden" name="employeeSkillId" value="@es.Id" />
+                                <input type="hidden" name="id" value="@Model.Employee.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No skills recorded.</p>
+    }
+</section>
+
+@if (Model.AvailableSkills.Any())
+{
+    <section>
+        <h3>Add Skill</h3>
+        <div class="row">
+            <div class="col-md-8">
+                <form method="post" asp-page-handler="Add">
+                    <input type="hidden" asp-for="Input.EmployeeId" />
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label asp-for="Input.SkillId" class="form-label">Skill</label>
+                            <select asp-for="Input.SkillId" asp-items="Model.AvailableSkills" class="form-select">
+                                <option value="">Select...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="Input.ProficiencyLevel" class="form-label">Proficiency</label>
+                            <select asp-for="Input.ProficiencyLevel" asp-items="Html.GetEnumSelectList<ProficiencyLevel>()" class="form-select"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label asp-for="Input.YearsOfExperience" class="form-label">Years</label>
+                            <input asp-for="Input.YearsOfExperience" class="form-control" type="number" min="0" />
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">Add</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+}

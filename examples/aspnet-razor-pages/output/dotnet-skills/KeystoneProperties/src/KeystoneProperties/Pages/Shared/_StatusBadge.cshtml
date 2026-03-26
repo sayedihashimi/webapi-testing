@@ -1,0 +1,68 @@
+@model (string Status, string Type)
+
+@{
+    var badgeClass = Model.Type switch
+    {
+        "UnitStatus" => Model.Status switch
+        {
+            "Available" => "bg-success",
+            "Occupied" => "bg-primary",
+            "Maintenance" => "bg-warning text-dark",
+            "OffMarket" => "bg-secondary",
+            _ => "bg-secondary"
+        },
+        "LeaseStatus" => Model.Status switch
+        {
+            "Active" => "bg-success",
+            "Pending" => "bg-info text-dark",
+            "Expired" => "bg-secondary",
+            "Renewed" => "bg-primary",
+            "Terminated" => "bg-danger",
+            _ => "bg-secondary"
+        },
+        "PaymentStatus" => Model.Status switch
+        {
+            "Completed" => "bg-success",
+            "Pending" => "bg-warning text-dark",
+            "Failed" => "bg-danger",
+            "Refunded" => "bg-info text-dark",
+            _ => "bg-secondary"
+        },
+        "MaintenanceStatus" => Model.Status switch
+        {
+            "Submitted" => "bg-info text-dark",
+            "Assigned" => "bg-primary",
+            "InProgress" => "bg-warning text-dark",
+            "Completed" => "bg-success",
+            "Cancelled" => "bg-secondary",
+            _ => "bg-secondary"
+        },
+        "MaintenancePriority" => Model.Status switch
+        {
+            "Low" => "bg-success",
+            "Medium" => "bg-info text-dark",
+            "High" => "bg-warning text-dark",
+            "Emergency" => "bg-danger",
+            _ => "bg-secondary"
+        },
+        "OverallCondition" => Model.Status switch
+        {
+            "Excellent" => "bg-success",
+            "Good" => "bg-primary",
+            "Fair" => "bg-warning text-dark",
+            "Poor" => "bg-danger",
+            _ => "bg-secondary"
+        },
+        "DepositStatus" => Model.Status switch
+        {
+            "Held" => "bg-info text-dark",
+            "Returned" => "bg-success",
+            "PartiallyReturned" => "bg-warning text-dark",
+            "Forfeited" => "bg-danger",
+            _ => "bg-secondary"
+        },
+        _ => "bg-secondary"
+    };
+}
+
+<span class="badge @badgeClass">@Model.Status</span>

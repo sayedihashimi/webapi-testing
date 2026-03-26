@@ -1,0 +1,43 @@
+@page "/Events/{eventId:int}/Waitlist"
+@model SparkEvents.Pages.Events.WaitlistModel
+@{
+    ViewData["Title"] = $"Waitlist: {Model.Event.Title}";
+}
+
+<h1>Event Waitlist</h1>
+<h5 class="text-muted mb-4">@Model.Event.Title</h5>
+
+<div class="mb-3">
+    <a asp-page="Roster" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-primary">← Back to Roster</a>
+</div>
+
+@if (Model.WaitlistedRegistrations.Count == 0)
+{
+    <div class="alert alert-info">No one is currently on the waitlist.</div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Position</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Ticket</th>
+                <th>Registration Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var reg in Model.WaitlistedRegistrations)
+            {
+                <tr>
+                    <td><span class="badge bg-warning text-dark">#@reg.WaitlistPosition</span></td>
+                    <td>@reg.Attendee?.FullName</td>
+                    <td>@reg.Attendee?.Email</td>
+                    <td>@reg.TicketType?.Name</td>
+                    <td>@reg.RegistrationDate.ToString("MMM d, yyyy h:mm tt")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

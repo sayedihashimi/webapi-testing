@@ -1,0 +1,21 @@
+@model string
+@{
+    var badgeClass = Model switch
+    {
+        // EventStatus
+        "Draft" => "bg-secondary",
+        "Published" => "bg-success",
+        "SoldOut" => "bg-warning text-dark",
+        "Completed" => "bg-info",
+        "Cancelled" => "bg-danger",
+
+        // RegistrationStatus
+        "Confirmed" => "bg-success",
+        "Waitlisted" => "bg-warning text-dark",
+        "CheckedIn" => "bg-primary",
+        "NoShow" => "bg-dark",
+
+        _ => "bg-secondary"
+    };
+}
+<span class="badge @badgeClass">@Model</span>

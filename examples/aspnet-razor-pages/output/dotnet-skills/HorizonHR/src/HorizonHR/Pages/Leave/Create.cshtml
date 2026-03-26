@@ -1,0 +1,74 @@
+@page
+@model HorizonHR.Pages.Leave.CreateModel
+@{
+    ViewData["Title"] = "Submit Leave Request";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Submit Leave Request</h1>
+    <a asp-page="/Leave/Index" class="btn btn-outline-secondary">Back to List</a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.EmployeeId" class="form-label"></label>
+                        <select asp-for="Input.EmployeeId" class="form-select">
+                            <option value="">-- Select Employee --</option>
+                            @foreach (var employee in Model.Employees)
+                            {
+                                <option value="@employee.Id">@employee.FullName</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.EmployeeId" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.LeaveTypeId" class="form-label"></label>
+                        <select asp-for="Input.LeaveTypeId" class="form-select">
+                            <option value="">-- Select Leave Type --</option>
+                            @foreach (var leaveType in Model.LeaveTypes)
+                            {
+                                <option value="@leaveType.Id">@leaveType.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.LeaveTypeId" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.StartDate" class="form-label"></label>
+                            <input asp-for="Input.StartDate" type="date" class="form-control" />
+                            <span asp-validation-for="Input.StartDate" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.EndDate" class="form-label"></label>
+                            <input asp-for="Input.EndDate" type="date" class="form-control" />
+                            <span asp-validation-for="Input.EndDate" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Reason" class="form-label"></label>
+                        <textarea asp-for="Input.Reason" class="form-control" rows="4" placeholder="Enter reason for leave request..."></textarea>
+                        <span asp-validation-for="Input.Reason" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Submit Request</button>
+                        <a asp-page="/Leave/Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

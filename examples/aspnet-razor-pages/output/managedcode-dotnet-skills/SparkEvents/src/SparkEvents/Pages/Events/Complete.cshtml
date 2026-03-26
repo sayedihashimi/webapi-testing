@@ -1,0 +1,55 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.CompleteModel
+@{
+    ViewData["Title"] = "Complete Event";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Events</a></li>
+        <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Event.Id">@Model.Event.Title</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Complete</li>
+    </ol>
+</nav>
+
+<h1>Complete Event</h1>
+
+<div class="alert alert-info">
+    <h5 class="alert-heading">Mark this event as completed?</h5>
+    <p>This will finalize the event. No further changes will be allowed.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Event Summary</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Title</dt>
+                    <dd class="col-sm-8">@Model.Event.Title</dd>
+                    <dt class="col-sm-4">Date</dt>
+                    <dd class="col-sm-8">
+                        @Model.Event.StartDate.ToString("MMMM dd, yyyy h:mm tt") &ndash;
+                        @Model.Event.EndDate.ToString("MMMM dd, yyyy h:mm tt")
+                    </dd>
+                    <dt class="col-sm-4">Venue</dt>
+                    <dd class="col-sm-8">@Model.Event.Venue.Name</dd>
+                    <dt class="col-sm-4">Registrations</dt>
+                    <dd class="col-sm-8">@Model.Event.CurrentRegistrations / @Model.Event.TotalCapacity</dd>
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <partial name="_StatusBadge" model="@Model.Event.Status.ToString()" />
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <form method="post">
+            <input type="hidden" asp-for="EventId" />
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-info">Confirm Completion</button>
+                <a asp-page="Details" asp-route-id="@Model.EventId" class="btn btn-outline-secondary">Go Back</a>
+            </div>
+        </form>
+    </div>
+</div>

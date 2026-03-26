@@ -1,0 +1,38 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.DirectReportsModel
+@{
+    ViewData["Title"] = $"Direct Reports - {Model.ManagerName}";
+}
+
+<section>
+    <h1>Direct Reports — @Model.ManagerName</h1>
+
+    @if (!Model.DirectReports.Any())
+    {
+        <p class="text-muted">No direct reports found.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr><th>Name</th><th>Title</th><th>Department</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var emp in Model.DirectReports)
+                {
+                    <tr>
+                        <td><a asp-page="Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                        <td>@emp.JobTitle</td>
+                        <td>@emp.Department.Name</td>
+                        <td>
+                            @{ ViewData["StatusText"] = emp.Status.ToString(); }
+                            <partial name="Shared/_StatusBadge" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <a asp-page="Details" asp-route-id="@Model.ManagerId" class="btn btn-outline-secondary mt-3">Back to Profile</a>
+</section>

@@ -1,0 +1,109 @@
+@page
+@model KeystoneProperties.Pages.Payments.IndexModel
+@{
+    ViewData["Title"] = "Payments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Payments</h1>
+    <div>
+        <a asp-page="Overdue" class="btn btn-outline-danger me-2">Overdue Payments</a>
+        <a asp-page="Create" class="btn btn-primary">Record Payment</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Payment Type</label>
+                <select asp-for="PaymentType" class="form-select"
+                        asp-items="Html.GetEnumSelectList<KeystoneProperties.Models.PaymentType>()">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select asp-for="PaymentStatus" class="form-select"
+                        asp-items="Html.GetEnumSelectList<KeystoneProperties.Models.PaymentStatus>()">
+                    <option value="">All Statuses</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input asp-for="FromDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input asp-for="ToDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Property</label>
+                <select asp-for="PropertyId" asp-items="Model.Properties" class="form-select">
+                    <option value="">All Properties</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-outline-primary">Filter</button>
+                <a asp-page="Index" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (Model.Payments.Items.Count == 0)
+        {
+            <p class="text-muted mb-0">No payments found matching the selected filters.</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>
+                            <a asp-page="Index"
+                               asp-route-paymentType="@Model.PaymentType"
+                               asp-route-paymentStatus="@Model.PaymentStatus"
+                               asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                               asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                               asp-route-propertyId="@Model.PropertyId"
+                               asp-route-sortOrder="@(Model.SortOrder == "date_asc" ? "date_desc" : "date_asc")">
+                                Date @(Model.SortOrder == "date_asc" ? "▲" : "▼")
+                            </a>
+                        </th>
+                        <th>Tenant</th>
+                        <th>Property / Unit</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in Model.Payments.Items)
+                    {
+                        <tr>
+                            <td>@payment.PaymentDate.ToShortDateString()</td>
+                            <td>@payment.Lease.Tenant.FullName</td>
+                            <td>@payment.Lease.Unit.Property.Name #@payment.Lease.Unit.UnitNumber</td>
+                            <td>@payment.Amount.ToString("C")</td>
+                            <td>@payment.PaymentType</td>
+                            <td>@payment.PaymentMethod</td>
+                            <td>
+                                @await Html.PartialAsync("_StatusBadgePartial", (payment.Status.ToString(), "PaymentStatus"))
+                            </td>
+                            <td>
+                                <a asp-page="Details" asp-route-id="@payment.Id" class="btn btn-sm btn-outline-primary">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @await Html.PartialAsync("_PaginationPartial", (Model.Payments.PageNumber, Model.Payments.TotalPages, Model.BuildFilterUrl()))
+        }
+    </div>
+</div>

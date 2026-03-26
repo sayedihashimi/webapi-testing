@@ -1,0 +1,97 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Payments.DetailsModel
+@{
+    ViewData["Title"] = "Payment Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Payment Details</h1>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to Payments</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Payment Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Amount</dt>
+                    <dd class="col-sm-7 fw-bold">@Model.Payment.Amount.ToString("C")</dd>
+
+                    <dt class="col-sm-5">Payment Date</dt>
+                    <dd class="col-sm-7">@Model.Payment.PaymentDate.ToShortDateString()</dd>
+
+                    <dt class="col-sm-5">Due Date</dt>
+                    <dd class="col-sm-7">@Model.Payment.DueDate.ToShortDateString()</dd>
+
+                    <dt class="col-sm-5">Payment Type</dt>
+                    <dd class="col-sm-7">@Model.Payment.PaymentType</dd>
+
+                    <dt class="col-sm-5">Payment Method</dt>
+                    <dd class="col-sm-7">@Model.Payment.PaymentMethod</dd>
+
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        @await Html.PartialAsync("_StatusBadgePartial", (Model.Payment.Status.ToString(), "PaymentStatus"))
+                    </dd>
+
+                    <dt class="col-sm-5">Reference Number</dt>
+                    <dd class="col-sm-7">@(Model.Payment.ReferenceNumber ?? "—")</dd>
+
+                    <dt class="col-sm-5">Notes</dt>
+                    <dd class="col-sm-7">@(Model.Payment.Notes ?? "—")</dd>
+
+                    <dt class="col-sm-5">Recorded</dt>
+                    <dd class="col-sm-7">@Model.Payment.CreatedAt.ToShortDateString()</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Lease &amp; Tenant Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Tenant</dt>
+                    <dd class="col-sm-7">
+                        <a asp-page="/Tenants/Details" asp-route-id="@Model.Payment.Lease.TenantId">
+                            @Model.Payment.Lease.Tenant.FullName
+                        </a>
+                    </dd>
+
+                    <dt class="col-sm-5">Property</dt>
+                    <dd class="col-sm-7">
+                        <a asp-page="/Properties/Details" asp-route-id="@Model.Payment.Lease.Unit.PropertyId">
+                            @Model.Payment.Lease.Unit.Property.Name
+                        </a>
+                    </dd>
+
+                    <dt class="col-sm-5">Unit</dt>
+                    <dd class="col-sm-7">
+                        <a asp-page="/Units/Details" asp-route-id="@Model.Payment.Lease.UnitId">
+                            #@Model.Payment.Lease.Unit.UnitNumber
+                        </a>
+                    </dd>
+
+                    <dt class="col-sm-5">Lease Period</dt>
+                    <dd class="col-sm-7">
+                        @Model.Payment.Lease.StartDate.ToShortDateString() — @Model.Payment.Lease.EndDate.ToShortDateString()
+                    </dd>
+
+                    <dt class="col-sm-5">Monthly Rent</dt>
+                    <dd class="col-sm-7">@Model.Payment.Lease.MonthlyRentAmount.ToString("C")</dd>
+
+                    <dt class="col-sm-5">Lease Status</dt>
+                    <dd class="col-sm-7">
+                        @await Html.PartialAsync("_StatusBadgePartial", (Model.Payment.Lease.Status.ToString(), "LeaseStatus"))
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

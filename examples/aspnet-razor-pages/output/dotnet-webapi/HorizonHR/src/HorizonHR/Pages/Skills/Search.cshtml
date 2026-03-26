@@ -1,0 +1,66 @@
+@page
+@model HorizonHR.Pages.Skills.SearchModel
+@{
+    ViewData["Title"] = "Search by Skill";
+}
+
+<h1>Search Employees by Skill</h1>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label class="form-label">Skill</label>
+        <select name="skillId" class="form-select">
+            <option value="">-- Select Skill --</option>
+            @foreach (var s in Model.AllSkills)
+            {
+                <option value="@s.Id" selected="@(Model.SkillId == s.Id)">@s.Name (@s.Category)</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Min Proficiency</label>
+        <select name="minProficiency" class="form-select">
+            <option value="">Any</option>
+            @foreach (var p in Enum.GetValues<ProficiencyLevel>())
+            {
+                <option value="@p" selected="@(Model.MinProficiency == p)">@p</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+</form>
+
+@if (Model.SkillId.HasValue)
+{
+    @if (Model.Results.Count == 0)
+    {
+        <p>No employees found matching the criteria.</p>
+    }
+    else
+    {
+        <h3>Results (@Model.Results.Count employees)</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Employee #</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Job Title</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var emp in Model.Results)
+                {
+                    <tr>
+                        <td>@emp.EmployeeNumber</td>
+                        <td><a asp-page="/Employees/Details" asp-route-id="@emp.Id">@emp.FirstName @emp.LastName</a></td>
+                        <td>@emp.Department.Name</td>
+                        <td>@emp.JobTitle</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}

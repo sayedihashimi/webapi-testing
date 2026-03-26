@@ -1,0 +1,80 @@
+@page
+@model KeystoneProperties.Pages.Properties.CreateModel
+@{
+    ViewData["Title"] = "Create Property";
+}
+
+<h1>Create Property</h1>
+
+<p><a asp-page="/Properties/Index">&larr; Back to Properties</a></p>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Name" class="form-label"></label>
+                <input asp-for="Input.Name" class="form-control" />
+                <span asp-validation-for="Input.Name" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Address" class="form-label"></label>
+                <input asp-for="Input.Address" class="form-control" />
+                <span asp-validation-for="Input.Address" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.City" class="form-label"></label>
+                    <input asp-for="Input.City" class="form-control" />
+                    <span asp-validation-for="Input.City" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.State" class="form-label"></label>
+                    <input asp-for="Input.State" class="form-control" />
+                    <span asp-validation-for="Input.State" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.ZipCode" class="form-label"></label>
+                    <input asp-for="Input.ZipCode" class="form-control" />
+                    <span asp-validation-for="Input.ZipCode" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.PropertyType" class="form-label"></label>
+                    <select asp-for="Input.PropertyType" class="form-select" asp-items="@Html.GetEnumSelectList<PropertyType>()">
+                        <option value="">-- Select Type --</option>
+                    </select>
+                    <span asp-validation-for="Input.PropertyType" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.YearBuilt" class="form-label"></label>
+                    <input asp-for="Input.YearBuilt" class="form-control" />
+                    <span asp-validation-for="Input.YearBuilt" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Input.TotalUnits" class="form-label"></label>
+                    <input asp-for="Input.TotalUnits" class="form-control" />
+                    <span asp-validation-for="Input.TotalUnits" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Description" class="form-label"></label>
+                <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Input.Description" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a asp-page="/Properties/Index" class="btn btn-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

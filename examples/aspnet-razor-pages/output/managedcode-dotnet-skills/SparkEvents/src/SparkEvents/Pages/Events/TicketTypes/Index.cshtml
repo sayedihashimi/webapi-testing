@@ -1,0 +1,82 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.Events.TicketTypes.IndexModel
+@{
+    ViewData["Title"] = $"Ticket Types - {Model.Event.Title}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Events/Index">Events</a></li>
+        <li class="breadcrumb-item"><a asp-page="/Events/Details" asp-route-id="@Model.Event.Id">@Model.Event.Title</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Ticket Types</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Ticket Types &mdash; @Model.Event.Title</h1>
+    <a asp-page="Create" asp-route-eventId="@Model.Event.Id" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Add Ticket Type
+    </a>
+</div>
+
+@if (Model.TicketTypes.Count == 0)
+{
+    <div class="alert alert-info">No ticket types configured for this event.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Early Bird Price</th>
+                    <th>Quantity</th>
+                    <th>Sold</th>
+                    <th>Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tt in Model.TicketTypes)
+                {
+                    <tr>
+                        <td>@tt.Name</td>
+                        <td>@(tt.Description ?? "—")</td>
+                        <td>@tt.Price.ToString("C")</td>
+                        <td>@(tt.EarlyBirdPrice?.ToString("C") ?? "—")</td>
+                        <td>@tt.Quantity</td>
+                        <td>@tt.QuantitySold</td>
+                        <td>
+                            @if (tt.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-page="Edit" asp-route-eventId="@Model.Event.Id" asp-route-id="@tt.Id"
+                               class="btn btn-sm btn-outline-secondary">Edit</a>
+                            @if (tt.IsActive)
+                            {
+                                <form method="post" asp-page-handler="Deactivate" class="d-inline">
+                                    <input type="hidden" name="ticketTypeId" value="@tt.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Deactivate</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<a asp-page="/Events/Details" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary">
+    &larr; Back to Event
+</a>

@@ -1,0 +1,119 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.Events.RegisterModel
+@{
+    ViewData["Title"] = $"Register for {Model.Event.Title}";
+}
+
+<section>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-page="Index">Events</a></li>
+            <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Event.Id">@Model.Event.Title</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Register</li>
+        </ol>
+    </nav>
+
+    <h1>Register for @Model.Event.Title</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Event</dt>
+                <dd class="col-sm-9">@Model.Event.Title</dd>
+
+                <dt class="col-sm-3">Dates</dt>
+                <dd class="col-sm-9">@Model.Event.StartDate.ToString("MMM dd, yyyy h:mm tt") — @Model.Event.EndDate.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    <partial name="_StatusBadge" model="@Model.Event.Status.ToString()" />
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    @if (!Model.RegistrationOpen)
+    {
+        <div class="alert alert-warning" role="alert">
+            @Model.WindowMessage
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.AttendeeId" class="form-label"></label>
+                        <select asp-for="Input.AttendeeId" class="form-select">
+                            <option value="">-- Select Attendee --</option>
+                            @foreach (var attendee in Model.Attendees)
+                            {
+                                <option value="@attendee.Id">@attendee.FullName - @attendee.Email</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.AttendeeId" class="text-danger"></span>
+                        <div class="form-text">
+                            Don't see the attendee? <a asp-page="/Attendees/Create">Create a new attendee</a> first.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.TicketTypeId" class="form-label"></label>
+                        @if (Model.TicketTypes.Count == 0)
+                        {
+                            <p class="text-muted">No ticket types available for this event.</p>
+                        }
+                        else
+                        {
+                            <div class="list-group mb-2">
+                                @foreach (var ticket in Model.TicketTypes.Where(t => t.IsActive))
+                                {
+                                    var available = ticket.Quantity - ticket.QuantitySold;
+                                    var showEarlyBird = Model.Event.EarlyBirdDeadline.HasValue
+                                        && DateTime.UtcNow < Model.Event.EarlyBirdDeadline.Value
+                                        && ticket.EarlyBirdPrice.HasValue;
+                                    <label class="list-group-item">
+                                        <input type="radio" asp-for="Input.TicketTypeId" value="@ticket.Id"
+                                               class="form-check-input me-2" />
+                                        <strong>@ticket.Name</strong>
+                                        @if (showEarlyBird)
+                                        {
+                                            <span class="ms-2 text-success fw-bold">@ticket.EarlyBirdPrice?.ToString("C")</span>
+                                            <span class="ms-1 text-muted text-decoration-line-through">@ticket.Price.ToString("C")</span>
+                                            <span class="badge bg-success ms-1">Early Bird</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="ms-2 fw-bold">@ticket.Price.ToString("C")</span>
+                                        }
+                                        <span class="ms-2 text-muted">(@available available)</span>
+                                    </label>
+                                }
+                            </div>
+                            <span asp-validation-for="Input.TicketTypeId" class="text-danger"></span>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.SpecialRequests" class="form-label"></label>
+                        <textarea asp-for="Input.SpecialRequests" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Input.SpecialRequests" class="text-danger"></span>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Register</button>
+                        <a asp-page="Details" asp-route-id="@Model.Event.Id" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

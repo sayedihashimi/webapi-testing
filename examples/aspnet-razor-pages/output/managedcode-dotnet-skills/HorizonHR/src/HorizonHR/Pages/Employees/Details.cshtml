@@ -1,0 +1,189 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.DetailsModel
+@{
+    ViewData["Title"] = Model.Employee?.FullName ?? "Employee Details";
+}
+
+@if (Model.Employee is null)
+{
+    <p class="text-danger">Employee not found.</p>
+}
+else
+{
+    var emp = Model.Employee;
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>@emp.FullName <small class="text-muted">@emp.EmployeeNumber</small></h1>
+        <div>
+            <a href="/Employees/Edit/@emp.Id" class="btn btn-outline-secondary">Edit</a>
+            @if (emp.Status != HorizonHR.Models.Enums.EmployeeStatus.Terminated)
+            {
+                <a href="/Employees/Terminate/@emp.Id" class="btn btn-outline-danger ms-2">Terminate</a>
+            }
+        </div>
+    </div>
+
+    <section class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Personal Information</h5></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Email</dt><dd class="col-sm-8">@emp.Email</dd>
+                        <dt class="col-sm-4">Phone</dt><dd class="col-sm-8">@(emp.Phone ?? "—")</dd>
+                        <dt class="col-sm-4">Date of Birth</dt><dd class="col-sm-8">@emp.DateOfBirth.ToString("MMM d, yyyy")</dd>
+                        <dt class="col-sm-4">Address</dt>
+                        <dd class="col-sm-8">
+                            @if (!string.IsNullOrWhiteSpace(emp.Address))
+                            {
+                                @emp.Address<br />@emp.City@(emp.City != null && emp.State != null ? ", " : "")@emp.State @emp.ZipCode
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Employment Details</h5></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Department</dt>
+                        <dd class="col-sm-8"><a href="/Departments/Details/@emp.DepartmentId">@emp.Department.Name</a></dd>
+                        <dt class="col-sm-4">Job Title</dt><dd class="col-sm-8">@emp.JobTitle</dd>
+                        <dt class="col-sm-4">Type</dt>
+                        <dd class="col-sm-8">
+                            @{ViewData["Status"] = emp.EmploymentType.ToString();}
+                            <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                        </dd>
+                        <dt class="col-sm-4">Hire Date</dt><dd class="col-sm-8">@emp.HireDate.ToString("MMM d, yyyy")</dd>
+                        <dt class="col-sm-4">Salary</dt><dd class="col-sm-8">@emp.Salary.ToString("C")</dd>
+                        <dt class="col-sm-4">Manager</dt>
+                        <dd class="col-sm-8">
+                            @if (emp.Manager is not null)
+                            {
+                                <a href="/Employees/Details/@emp.Manager.Id">@emp.Manager.FullName</a>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </dd>
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            @{ViewData["Status"] = emp.Status.ToString();}
+                            <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                        </dd>
+                        @if (emp.TerminationDate.HasValue)
+                        {
+                            <dt class="col-sm-4">Terminated</dt>
+                            <dd class="col-sm-8">@emp.TerminationDate.Value.ToString("MMM d, yyyy")</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @if (emp.DirectReports.Any())
+    {
+        <section class="mb-4">
+            <h4>Direct Reports (@emp.DirectReports.Count) <a href="/Employees/@emp.Id/DirectReports" class="btn btn-sm btn-outline-secondary ms-2">View All</a></h4>
+            <div class="row">
+                @foreach (var report in emp.DirectReports.Take(6))
+                {
+                    <div class="col-md-4 mb-2">
+                        <div class="card card-body py-2">
+                            <a href="/Employees/Details/@report.Id">@report.FullName</a>
+                            <small class="text-muted">@report.JobTitle</small>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    <section class="row mb-4">
+        <div class="col-md-6">
+            <h4>Leave Balances <a href="/Leave/Employee/@emp.Id" class="btn btn-sm btn-outline-secondary ms-2">Details</a></h4>
+            @if (!emp.LeaveBalances.Any())
+            {
+                <p class="text-muted">No leave balances.</p>
+            }
+            else
+            {
+                <table class="table table-sm">
+                    <thead><tr><th>Leave Type</th><th>Total</th><th>Used</th><th>Remaining</th></tr></thead>
+                    <tbody>
+                        @foreach (var lb in emp.LeaveBalances)
+                        {
+                            <tr>
+                                <td>@lb.LeaveType.Name</td>
+                                <td>@lb.TotalDays.ToString("F1")</td>
+                                <td>@lb.UsedDays.ToString("F1")</td>
+                                <td class="@(lb.RemainingDays < 2 ? "text-danger fw-bold" : "")">@lb.RemainingDays.ToString("F1")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+        <div class="col-md-6">
+            <h4>Skills <a href="/Employees/@emp.Id/Skills" class="btn btn-sm btn-outline-secondary ms-2">Manage</a></h4>
+            @if (!emp.EmployeeSkills.Any())
+            {
+                <p class="text-muted">No skills recorded.</p>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var es in emp.EmployeeSkills)
+                    {
+                        ViewData["Status"] = es.ProficiencyLevel.ToString();
+                        <span>@es.Skill.Name <partial name="Shared/_StatusBadge" view-data="ViewData" /></span>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    @if (emp.PerformanceReviews.Any())
+    {
+        <section class="mb-4">
+            <h4>Recent Reviews</h4>
+            <table class="table table-sm">
+                <thead><tr><th>Period</th><th>Reviewer</th><th>Status</th><th>Rating</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var review in emp.PerformanceReviews)
+                    {
+                        <tr>
+                            <td>@review.ReviewPeriodStart.ToString("MMM yyyy") — @review.ReviewPeriodEnd.ToString("MMM yyyy")</td>
+                            <td>@review.Reviewer?.FullName</td>
+                            <td>
+                                @{ViewData["Status"] = review.Status.ToString();}
+                                <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                            </td>
+                            <td>
+                                @if (review.OverallRating.HasValue)
+                                {
+                                    ViewData["Status"] = review.OverallRating.Value.ToString();
+                                    <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </td>
+                            <td><a href="/Reviews/Details/@review.Id">View</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+
+    <a href="/Employees" class="btn btn-link">&larr; Back to Directory</a>
+}

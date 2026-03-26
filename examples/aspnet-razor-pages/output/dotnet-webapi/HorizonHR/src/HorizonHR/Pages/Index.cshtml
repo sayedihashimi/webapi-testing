@@ -1,0 +1,89 @@
+@page
+@model HorizonHR.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1>Dashboard</h1>
+
+<section class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">@Model.Stats.TotalEmployees</h5>
+                <p class="card-text">Total Employees</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">@Model.Stats.TotalDepartments</h5>
+                <p class="card-text">Departments</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">@Model.Stats.PendingLeaveRequests</h5>
+                <p class="card-text">Pending Leave Requests</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-secondary">
+            <div class="card-body">
+                <h5 class="card-title">@Model.Stats.UpcomingReviews</h5>
+                <p class="card-text">Upcoming Reviews</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">@Model.Stats.RecentHires</h5>
+                <p class="card-text">Recent Hires (30 days)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">@Model.Stats.EmployeesOnLeaveToday</h5>
+                <p class="card-text">On Leave Today</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h3>Headcount by Department</h3>
+    @if (Model.Stats.HeadcountByDepartment.Count == 0)
+    {
+        <p>No departments found.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Employee Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var dept in Model.Stats.HeadcountByDepartment)
+                {
+                    <tr>
+                        <td>@dept.DepartmentName</td>
+                        <td>@dept.Count</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>

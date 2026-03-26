@@ -1,0 +1,104 @@
+@page
+@model KeystoneProperties.Pages.Properties.IndexModel
+@{
+    ViewData["Title"] = "Properties";
+    var pageUrl = $"/Properties?search={Model.Search}&propertyTypeFilter={Model.PropertyTypeFilter}&isActiveFilter={Model.IsActiveFilter}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Properties</h1>
+    <a asp-page="Create" class="btn btn-primary">+ Add Property</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <input type="text" class="form-control" name="search" value="@Model.Search"
+               placeholder="Search by name or city..." />
+    </div>
+    <div class="col-md-3">
+        <select name="propertyTypeFilter" class="form-select">
+            <option value="">All Types</option>
+            @foreach (var type in Enum.GetValues<PropertyType>())
+            {
+                <option value="@type" selected="@(Model.PropertyTypeFilter == type)">@type</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="isActiveFilter" class="form-select">
+            <option value="">All Status</option>
+            <option value="true" selected="@(Model.IsActiveFilter == true)">Active</option>
+            <option value="false" selected="@(Model.IsActiveFilter == false)">Inactive</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+
+@if (Model.Properties.Items.Count == 0)
+{
+    <div class="alert alert-info">No properties found matching your criteria.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>City</th>
+                    <th>Type</th>
+                    <th>Units</th>
+                    <th>Occupancy</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var property in Model.Properties.Items)
+                {
+                    var occupiedCount = property.Units.Count(u => u.Status == UnitStatus.Occupied);
+                    var occupancyRate = property.TotalUnits > 0
+                        ? (double)occupiedCount / property.TotalUnits
+                        : 0;
+
+                    <tr>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@property.Id">@property.Name</a>
+                        </td>
+                        <td>@property.Address</td>
+                        <td>@property.City</td>
+                        <td>@property.PropertyType</td>
+                        <td>@property.Units.Count / @property.TotalUnits</td>
+                        <td>@occupancyRate.ToString("P0")</td>
+                        <td>
+                            @if (property.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@property.Id"
+                               class="btn btn-sm btn-outline-primary">Details</a>
+                            <a asp-page="Edit" asp-route-id="@property.Id"
+                               class="btn btn-sm btn-outline-secondary">Edit</a>
+                            @if (property.IsActive)
+                            {
+                                <a asp-page="Deactivate" asp-route-id="@property.Id"
+                                   class="btn btn-sm btn-outline-danger">Deactivate</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="_PaginationPartial" model='(Model.Properties.PageNumber, Model.Properties.TotalPages, pageUrl)' />
+}

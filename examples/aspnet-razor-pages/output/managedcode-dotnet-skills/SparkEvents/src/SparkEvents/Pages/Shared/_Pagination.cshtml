@@ -1,0 +1,27 @@
+@model SparkEvents.Models.PaginationModel
+
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.CurrentPage <= 1 ? "disabled" : "")">
+                <a class="page-link" href="@(Model.CurrentPage > 1 ? Model.PageUrl(Model.CurrentPage - 1) : "#")"
+                   aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link" href="@Model.PageUrl(i)">@i</a>
+                </li>
+            }
+            <li class="page-item @(Model.CurrentPage >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="@(Model.CurrentPage < Model.TotalPages ? Model.PageUrl(Model.CurrentPage + 1) : "#")"
+                   aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+}

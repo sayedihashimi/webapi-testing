@@ -1,0 +1,105 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Attendees.DetailsModel
+
+@{
+    ViewData["Title"] = Model.Attendee.FullName;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>@Model.Attendee.FullName</h1>
+    <div>
+        <a asp-page="Edit" asp-route-id="@Model.Attendee.Id" class="btn btn-outline-secondary">Edit</a>
+        <a asp-page="Index" class="btn btn-outline-primary">Back to List</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Attendee Details</strong></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">First Name</dt>
+                    <dd class="col-sm-8">@Model.Attendee.FirstName</dd>
+
+                    <dt class="col-sm-4">Last Name</dt>
+                    <dd class="col-sm-8">@Model.Attendee.LastName</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">
+                        <a href="mailto:@Model.Attendee.Email">@Model.Attendee.Email</a>
+                    </dd>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Attendee.Phone))
+                    {
+                        <dt class="col-sm-4">Phone</dt>
+                        <dd class="col-sm-8">@Model.Attendee.Phone</dd>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Attendee.Organization))
+                    {
+                        <dt class="col-sm-4">Organization</dt>
+                        <dd class="col-sm-8">@Model.Attendee.Organization</dd>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Attendee.DietaryNeeds))
+                    {
+                        <dt class="col-sm-4">Dietary Needs</dt>
+                        <dd class="col-sm-8">@Model.Attendee.DietaryNeeds</dd>
+                    }
+
+                    <dt class="col-sm-4">Registered</dt>
+                    <dd class="col-sm-8">@Model.Attendee.CreatedAt.ToString("MMM dd, yyyy")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Registration History</strong></div>
+            <div class="card-body">
+                @if (Model.Registrations.Count == 0)
+                {
+                    <p class="text-muted mb-0">No registrations yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Ticket Type</th>
+                                    <th>Confirmation #</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var reg in Model.Registrations)
+                                {
+                                    <tr>
+                                        <td>@reg.Event.Title</td>
+                                        <td>@reg.TicketType.Name</td>
+                                        <td>
+                                            <a asp-page="/Registrations/Details" asp-route-id="@reg.Id">
+                                                @reg.ConfirmationNumber
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <partial name="_RegistrationStatusBadge" model="reg.Status" />
+                                        </td>
+                                        <td>@reg.RegistrationDate.ToString("MMM dd, yyyy")</td>
+                                        <td class="text-end">@reg.AmountPaid.ToString("C")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

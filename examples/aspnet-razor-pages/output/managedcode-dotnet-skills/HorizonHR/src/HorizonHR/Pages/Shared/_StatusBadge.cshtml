@@ -1,0 +1,50 @@
+@using HorizonHR.Models.Enums
+
+@{
+    var status = ViewData["Status"]?.ToString();
+    var badgeClass = status switch
+    {
+        // Employee statuses
+        "Active" => "bg-success",
+        "OnLeave" => "bg-warning text-dark",
+        "Terminated" => "bg-danger",
+        // Leave request statuses
+        "Submitted" => "bg-primary",
+        "Approved" => "bg-success",
+        "Rejected" => "bg-danger",
+        "Cancelled" => "bg-secondary",
+        // Review statuses
+        "Draft" => "bg-secondary",
+        "SelfAssessmentPending" => "bg-info text-dark",
+        "ManagerReviewPending" => "bg-warning text-dark",
+        "Completed" => "bg-success",
+        // Ratings
+        "Outstanding" => "bg-success",
+        "ExceedsExpectations" => "bg-primary",
+        "MeetsExpectations" => "bg-info text-dark",
+        "NeedsImprovement" => "bg-warning text-dark",
+        "Unsatisfactory" => "bg-danger",
+        // Proficiency
+        "Expert" => "bg-success",
+        "Advanced" => "bg-primary",
+        "Intermediate" => "bg-info text-dark",
+        "Beginner" => "bg-secondary",
+        _ => "bg-secondary"
+    };
+
+    // Make enum names more readable
+    var displayText = status switch
+    {
+        "OnLeave" => "On Leave",
+        "SelfAssessmentPending" => "Self-Assessment Pending",
+        "ManagerReviewPending" => "Manager Review Pending",
+        "ExceedsExpectations" => "Exceeds Expectations",
+        "MeetsExpectations" => "Meets Expectations",
+        "NeedsImprovement" => "Needs Improvement",
+        "FullTime" => "Full-Time",
+        "PartTime" => "Part-Time",
+        _ => status
+    };
+}
+
+<span class="badge @badgeClass">@displayText</span>

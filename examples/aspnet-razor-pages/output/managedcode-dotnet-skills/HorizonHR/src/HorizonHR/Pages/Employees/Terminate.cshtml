@@ -1,0 +1,49 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.TerminateModel
+@{
+    ViewData["Title"] = "Terminate Employee";
+}
+
+@if (Model.Employee is null)
+{
+    <p class="text-danger">Employee not found.</p>
+}
+else
+{
+    <h1 class="text-danger">Terminate Employee</h1>
+
+    <div class="alert alert-warning" role="alert">
+        <strong>Warning:</strong> Terminating <strong>@Model.Employee.FullName</strong> will:
+        <ul class="mb-0 mt-2">
+            <li>Cancel all pending leave requests</li>
+            <li>Remove them as manager from any departments</li>
+            <li>Remove them as manager from any direct reports</li>
+        </ul>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Employee</dt>
+                <dd class="col-sm-9">@Model.Employee.FullName (@Model.Employee.EmployeeNumber)</dd>
+                <dt class="col-sm-3">Department</dt>
+                <dd class="col-sm-9">@Model.Employee.Department.Name</dd>
+                <dt class="col-sm-3">Job Title</dt>
+                <dd class="col-sm-9">@Model.Employee.JobTitle</dd>
+            </dl>
+        </div>
+    </div>
+
+    <form method="post" class="row">
+        <div class="col-md-4">
+            <div class="mb-3">
+                <label asp-for="TerminationDate" class="form-label">Termination Date</label>
+                <input asp-for="TerminationDate" class="form-control" type="date" />
+                <span asp-validation-for="TerminationDate" class="text-danger"></span>
+            </div>
+            <input type="hidden" name="id" value="@Model.Employee.Id" />
+            <button type="submit" class="btn btn-danger">Confirm Termination</button>
+            <a href="/Employees/Details/@Model.Employee.Id" class="btn btn-link">Cancel</a>
+        </div>
+    </form>
+}

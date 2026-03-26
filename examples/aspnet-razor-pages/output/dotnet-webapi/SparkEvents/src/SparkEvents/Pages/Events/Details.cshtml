@@ -1,0 +1,187 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.DetailsModel
+@{
+    ViewData["Title"] = Model.Event.Title;
+    var evt = Model.Event;
+    var capPct = Model.CapacityPercent;
+    var barColor = capPct >= 90 ? "bg-danger" : capPct >= 70 ? "bg-warning" : "bg-success";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Events</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@evt.Title</li>
+    </ol>
+</nav>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">
+            @evt.Title
+            @if (evt.IsFeatured)
+            {
+                <span class="badge bg-warning text-dark ms-2">⭐ Featured</span>
+            }
+        </h2>
+        <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", evt.Status.ToString() } })' />
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <p class="lead">@evt.Description</p>
+
+                <dl class="row">
+                    <dt class="col-sm-4">Start Date</dt>
+                    <dd class="col-sm-8">@evt.StartDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                    <dt class="col-sm-4">End Date</dt>
+                    <dd class="col-sm-8">@evt.EndDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                    <dt class="col-sm-4">Registration Opens</dt>
+                    <dd class="col-sm-8">@evt.RegistrationOpenDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                    <dt class="col-sm-4">Registration Closes</dt>
+                    <dd class="col-sm-8">@evt.RegistrationCloseDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                    @if (evt.EarlyBirdDeadline.HasValue)
+                    {
+                        <dt class="col-sm-4">Early Bird Deadline</dt>
+                        <dd class="col-sm-8">@evt.EarlyBirdDeadline.Value.ToString("MMMM dd, yyyy h:mm tt")</dd>
+                    }
+
+                    <dt class="col-sm-4">Venue</dt>
+                    <dd class="col-sm-8">@evt.Venue.Name</dd>
+
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">
+                        @if (evt.EventCategory.ColorHex is not null)
+                        {
+                            <span class="badge" style="background-color: @evt.EventCategory.ColorHex">@evt.EventCategory.Name</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">@evt.EventCategory.Name</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Capacity</h5>
+                        <p class="display-6 text-center">@evt.CurrentRegistrations / @evt.TotalCapacity</p>
+                        <div class="progress mb-3" role="progressbar" aria-valuenow="@capPct" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar @barColor" style="width: @(capPct)%">@capPct%</div>
+                        </div>
+                        <ul class="list-unstyled">
+                            <li><strong>Registrations:</strong> @evt.CurrentRegistrations</li>
+                            <li><strong>Waitlist:</strong> @evt.WaitlistCount</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (evt.TicketTypes.Any())
+{
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Ticket Types</h4>
+            <a asp-page="TicketTypes" asp-route-eventId="@evt.Id" class="btn btn-sm btn-outline-primary">Manage Ticket Types</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Early Bird Price</th>
+                            <th>Quantity</th>
+                            <th>Sold</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tt in evt.TicketTypes.OrderBy(t => t.SortOrder))
+                        {
+                            <tr>
+                                <td>@tt.Name</td>
+                                <td>@tt.Price.ToString("C")</td>
+                                <td>@(tt.EarlyBirdPrice?.ToString("C") ?? "—")</td>
+                                <td>@tt.Quantity</td>
+                                <td>@tt.QuantitySold</td>
+                                <td>
+                                    @if (tt.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            <p class="text-muted mb-2">No ticket types configured yet.</p>
+            <a asp-page="TicketTypes" asp-route-eventId="@evt.Id" class="btn btn-primary">Manage Ticket Types</a>
+        </div>
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h4 class="mb-0">Actions</h4>
+    </div>
+    <div class="card-body d-flex flex-wrap gap-2">
+        @if (evt.Status == EventStatus.Published || evt.Status == EventStatus.SoldOut)
+        {
+            <a asp-page="/Registrations/Create" asp-route-eventId="@evt.Id" class="btn btn-success">Register</a>
+            <a asp-page="/Registrations/Index" asp-route-eventId="@evt.Id" class="btn btn-outline-primary">View Roster</a>
+            <a asp-page="/Registrations/Waitlist" asp-route-eventId="@evt.Id" class="btn btn-outline-info">View Waitlist</a>
+            <a asp-page="/CheckIn/Index" asp-route-eventId="@evt.Id" class="btn btn-outline-success">Check-In</a>
+        }
+
+        @if (evt.Status == EventStatus.Draft)
+        {
+            <a asp-page="Edit" asp-route-id="@evt.Id" class="btn btn-warning">Edit</a>
+            <form method="post" asp-page-handler="Publish" asp-route-id="@evt.Id" class="d-inline">
+                <button type="submit" class="btn btn-success">Publish</button>
+            </form>
+        }
+
+        @if (evt.Status == EventStatus.Published)
+        {
+            <a asp-page="Edit" asp-route-id="@evt.Id" class="btn btn-warning">Edit</a>
+            <a asp-page="Cancel" asp-route-id="@evt.Id" class="btn btn-danger">Cancel</a>
+            @if (evt.EndDate < DateTime.UtcNow)
+            {
+                <a asp-page="Complete" asp-route-id="@evt.Id" class="btn btn-info">Complete</a>
+            }
+        }
+
+        @if (evt.Status == EventStatus.SoldOut)
+        {
+            <a asp-page="Cancel" asp-route-id="@evt.Id" class="btn btn-danger">Cancel</a>
+            @if (evt.EndDate < DateTime.UtcNow)
+            {
+                <a asp-page="Complete" asp-route-id="@evt.Id" class="btn btn-info">Complete</a>
+            }
+        }
+
+        <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</div>

@@ -1,0 +1,93 @@
+@page
+@model KeystoneProperties.Pages.Leases.IndexModel
+@{
+    ViewData["Title"] = "Leases";
+    var pageUrl = $"/Leases?statusFilter={Model.StatusFilter}&propertyFilter={Model.PropertyFilter}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Leases</h1>
+    <a asp-page="Create" class="btn btn-primary">+ New Lease</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <select name="statusFilter" class="form-select">
+            <option value="">All Statuses</option>
+            @foreach (var status in Enum.GetValues<LeaseStatus>())
+            {
+                <option value="@status" selected="@(Model.StatusFilter == status)">@status</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <select name="propertyFilter" class="form-select">
+            <option value="">All Properties</option>
+            @foreach (var prop in Model.PropertyOptions)
+            {
+                <option value="@prop.Value" selected="@(Model.PropertyFilter.ToString() == prop.Value)">@prop.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+
+@if (Model.Leases.Items.Count == 0)
+{
+    <div class="alert alert-info">No leases found matching your criteria.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Tenant</th>
+                    <th>Property</th>
+                    <th>Unit</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Monthly Rent</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var lease in Model.Leases.Items)
+                {
+                    <tr>
+                        <td>@lease.Tenant.FullName</td>
+                        <td>@lease.Unit.Property.Name</td>
+                        <td>@lease.Unit.UnitNumber</td>
+                        <td>@lease.StartDate.ToShortDateString()</td>
+                        <td>@lease.EndDate.ToShortDateString()</td>
+                        <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                        <td>
+                            <partial name="_StatusBadgePartial" model='(lease.Status.ToString(), "LeaseStatus")' />
+                        </td>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@lease.Id"
+                               class="btn btn-sm btn-outline-primary">Details</a>
+                            @if (lease.Status is LeaseStatus.Pending or LeaseStatus.Active)
+                            {
+                                <a asp-page="Edit" asp-route-id="@lease.Id"
+                                   class="btn btn-sm btn-outline-secondary">Edit</a>
+                            }
+                            @if (lease.Status == LeaseStatus.Active)
+                            {
+                                <a asp-page="Renew" asp-route-id="@lease.Id"
+                                   class="btn btn-sm btn-outline-success">Renew</a>
+                                <a asp-page="Terminate" asp-route-id="@lease.Id"
+                                   class="btn btn-sm btn-outline-danger">Terminate</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="_PaginationPartial" model='(Model.Leases.PageNumber, Model.Leases.TotalPages, pageUrl)' />
+}

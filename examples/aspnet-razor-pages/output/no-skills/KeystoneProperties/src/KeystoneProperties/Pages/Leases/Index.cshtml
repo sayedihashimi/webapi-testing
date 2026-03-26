@@ -1,0 +1,58 @@
+@page
+@model KeystoneProperties.Pages.Leases.IndexModel
+@{
+    ViewData["Title"] = "Leases";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Leases</h1>
+    <a asp-page="Create" class="btn btn-primary">Create Lease</a>
+</div>
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <select name="status" class="form-select">
+            <option value="">All Status</option>
+            @foreach (var s in Enum.GetValues<LeaseStatus>())
+            { <option value="@s" selected="@(Model.StatusFilter == s)">@s</option> }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <select name="propertyId" class="form-select">
+            <option value="">All Properties</option>
+            @foreach (var p in Model.PropertyList)
+            { <option value="@p.Id" selected="@(Model.PropertyId == p.Id)">@p.Name</option> }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+@if (Model.Leases.Any())
+{
+    <table class="table table-striped">
+        <thead><tr><th>Tenant</th><th>Property</th><th>Unit</th><th>Start</th><th>End</th><th>Rent</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+            @foreach (var l in Model.Leases)
+            {
+                <tr>
+                    <td>@l.Tenant.FullName</td>
+                    <td>@l.Unit.Property.Name</td>
+                    <td>@l.Unit.UnitNumber</td>
+                    <td>@l.StartDate.ToString("MMM dd, yyyy")</td>
+                    <td>@l.EndDate.ToString("MMM dd, yyyy")</td>
+                    <td>@l.MonthlyRentAmount.ToString("C")</td>
+                    <td><partial name="_StatusBadge" model="@(l.Status.ToString(), "lease")" /></td>
+                    <td>
+                        <a asp-page="Details" asp-route-id="@l.Id" class="btn btn-sm btn-outline-primary">View</a>
+                        @if (l.Status == LeaseStatus.Active)
+                        {
+                            <a asp-page="Renew" asp-route-id="@l.Id" class="btn btn-sm btn-outline-success">Renew</a>
+                            <a asp-page="Terminate" asp-route-id="@l.Id" class="btn btn-sm btn-outline-danger">Terminate</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <partial name="_PaginationPartial" model="@(Model.CurrentPage, Model.TotalPages, $"?status={Model.StatusFilter}&propertyId={Model.PropertyId}")" />
+}
+else { <p class="text-muted">No leases found.</p> }

@@ -1,0 +1,97 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Venues.DetailsModel
+
+@{
+    ViewData["Title"] = Model.Venue.Name;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>@Model.Venue.Name</h1>
+    <div>
+        <a asp-page="Edit" asp-route-id="@Model.Venue.Id" class="btn btn-outline-secondary">Edit</a>
+        <a asp-page="Index" class="btn btn-outline-primary">Back to List</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Venue Details</strong></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Address</dt>
+                    <dd class="col-sm-8">@Model.Venue.Address</dd>
+
+                    <dt class="col-sm-4">City</dt>
+                    <dd class="col-sm-8">@Model.Venue.City</dd>
+
+                    <dt class="col-sm-4">State</dt>
+                    <dd class="col-sm-8">@Model.Venue.State</dd>
+
+                    <dt class="col-sm-4">Zip Code</dt>
+                    <dd class="col-sm-8">@Model.Venue.ZipCode</dd>
+
+                    <dt class="col-sm-4">Max Capacity</dt>
+                    <dd class="col-sm-8">@Model.Venue.MaxCapacity.ToString("N0")</dd>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Venue.ContactEmail))
+                    {
+                        <dt class="col-sm-4">Email</dt>
+                        <dd class="col-sm-8">
+                            <a href="mailto:@Model.Venue.ContactEmail">@Model.Venue.ContactEmail</a>
+                        </dd>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Venue.ContactPhone))
+                    {
+                        <dt class="col-sm-4">Phone</dt>
+                        <dd class="col-sm-8">@Model.Venue.ContactPhone</dd>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Venue.Notes))
+                    {
+                        <dt class="col-sm-4">Notes</dt>
+                        <dd class="col-sm-8">@Model.Venue.Notes</dd>
+                    }
+
+                    <dt class="col-sm-4">Created</dt>
+                    <dd class="col-sm-8">@Model.Venue.CreatedAt.ToString("MMM dd, yyyy")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Upcoming Events</strong></div>
+            <div class="card-body">
+                @if (Model.UpcomingEvents.Count == 0)
+                {
+                    <p class="text-muted mb-0">No upcoming events at this venue.</p>
+                }
+                else
+                {
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Date</th>
+                                <th>Category</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var evt in Model.UpcomingEvents)
+                            {
+                                <tr>
+                                    <td>@evt.Title</td>
+                                    <td>@evt.StartDate.ToString("MMM dd, yyyy")</td>
+                                    <td>@evt.EventCategory.Name</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</div>

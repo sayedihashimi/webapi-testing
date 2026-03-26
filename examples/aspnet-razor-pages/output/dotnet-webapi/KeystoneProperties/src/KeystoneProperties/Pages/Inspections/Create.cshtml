@@ -1,0 +1,84 @@
+@page
+@model KeystoneProperties.Pages.Inspections.CreateModel
+@{
+    ViewData["Title"] = "Schedule Inspection";
+}
+
+<h1>Schedule Inspection</h1>
+
+@if (TempData["ErrorMessage"] is string error)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.UnitId" class="form-label">Unit</label>
+                <select asp-for="Input.UnitId" class="form-select">
+                    <option value="">— Select Unit —</option>
+                    @foreach (var u in Model.Units)
+                    {
+                        <option value="@u.Id">@u.Property.Name - @u.UnitNumber</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.UnitId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.InspectionType" class="form-label">Inspection Type</label>
+                <select asp-for="Input.InspectionType" class="form-select">
+                    <option value="">— Select Type —</option>
+                    @foreach (var t in Enum.GetValues<KeystoneProperties.Models.InspectionType>())
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.InspectionType" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.ScheduledDate" class="form-label">Scheduled Date</label>
+                <input asp-for="Input.ScheduledDate" type="date" class="form-control" />
+                <span asp-validation-for="Input.ScheduledDate" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.InspectorName" class="form-label">Inspector Name</label>
+                <input asp-for="Input.InspectorName" class="form-control" />
+                <span asp-validation-for="Input.InspectorName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.LeaseId" class="form-label">Linked Lease (optional)</label>
+                <select asp-for="Input.LeaseId" class="form-select">
+                    <option value="">— None —</option>
+                    @foreach (var lease in Model.ActiveLeases)
+                    {
+                        <option value="@lease.Id">@lease.Tenant.FullName - @lease.Unit.Property.Name @lease.Unit.UnitNumber</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.LeaseId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Notes" class="form-label">Notes</label>
+                <textarea asp-for="Input.Notes" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Input.Notes" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Schedule Inspection</button>
+            <a asp-page="./Index" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

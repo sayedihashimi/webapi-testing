@@ -1,0 +1,111 @@
+@page "/Events/{eventId:int}/CheckIn"
+@model SparkEvents.Pages.CheckIn.IndexModel
+
+@{
+    ViewData["Title"] = $"Check-In — {Model.Event.Title}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1>Check-In</h1>
+        <h5 class="text-muted">@Model.Event.Title — @Model.Event.StartDate.ToString("MMM dd, yyyy")</h5>
+    </div>
+    <a asp-page="/Events/Roster" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-primary">View Roster</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Check-In Progress</h5>
+        <div class="d-flex justify-content-between mb-1">
+            <span>@Model.CheckedInCount of @Model.TotalConfirmed checked in</span>
+            <span>
+                @if (Model.TotalConfirmed > 0)
+                {
+                    @($"{(double)Model.CheckedInCount / Model.TotalConfirmed:P0}")
+                }
+                else
+                {
+                    @("0%")
+                }
+            </span>
+        </div>
+        <div class="progress" style="height: 24px;">
+            @{
+                var percent = Model.TotalConfirmed > 0
+                    ? (int)Math.Round((double)Model.CheckedInCount / Model.TotalConfirmed * 100)
+                    : 0;
+            }
+            <div class="progress-bar bg-success" role="progressbar"
+                 style="width: @(percent)%"
+                 aria-valuenow="@percent" aria-valuemin="0" aria-valuemax="100">
+                @(percent)%
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="mb-4" asp-route-eventId="@Model.Event.Id">
+    <div class="input-group" style="max-width: 500px;">
+        <input type="text" name="Query" value="@Model.Query" class="form-control"
+               placeholder="Search by confirmation # or attendee name..." autofocus />
+        <button type="submit" class="btn btn-outline-secondary">Search</button>
+        @if (!string.IsNullOrWhiteSpace(Model.Query))
+        {
+            <a asp-page="/CheckIn/Index" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-danger">Clear</a>
+        }
+    </div>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.Query))
+{
+    @if (Model.SearchResults.Count == 0)
+    {
+        <div class="alert alert-info">No registrations found matching "@Model.Query".</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Confirmation #</th>
+                        <th>Ticket Type</th>
+                        <th>Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var reg in Model.SearchResults)
+                    {
+                        <tr>
+                            <td>@reg.Attendee.FullName</td>
+                            <td>@reg.ConfirmationNumber</td>
+                            <td>@reg.TicketType.Name</td>
+                            <td>
+                                <partial name="_RegistrationStatusBadge" model="reg.Status" />
+                            </td>
+                            <td class="text-end">
+                                @if (reg.Status == SparkEvents.Models.RegistrationStatus.Confirmed)
+                                {
+                                    <a asp-page="/CheckIn/Process"
+                                       asp-route-eventId="@Model.Event.Id"
+                                       asp-route-registrationId="@reg.Id"
+                                       class="btn btn-sm btn-success">Check In</a>
+                                }
+                                else if (reg.Status == SparkEvents.Models.RegistrationStatus.CheckedIn)
+                                {
+                                    <span class="text-success">✓ Already checked in</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

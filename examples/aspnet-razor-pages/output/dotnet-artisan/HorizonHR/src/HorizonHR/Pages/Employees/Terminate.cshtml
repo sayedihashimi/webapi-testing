@@ -1,0 +1,38 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.TerminateModel
+@{ ViewData["Title"] = "Terminate Employee"; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Employees</a></li>
+        <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Employee.Id">@Model.Employee.FullName</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Terminate</li>
+    </ol>
+</nav>
+
+<h1 class="text-danger">Terminate Employee</h1>
+
+<div class="alert alert-warning" role="alert">
+    <strong>Warning:</strong> Terminating <strong>@Model.Employee.FullName</strong> (@Model.Employee.EmployeeNumber) will:
+    <ul class="mb-0 mt-2">
+        <li>Cancel all submitted leave requests</li>
+        <li>Remove them as manager from any departments</li>
+        <li>Remove them as manager from any direct reports</li>
+    </ul>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="post">
+            <input type="hidden" asp-for="Input.Id" />
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="Input.TerminationDate" class="form-label"></label>
+                <input asp-for="Input.TerminationDate" class="form-control" type="date" />
+                <span asp-validation-for="Input.TerminationDate" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-danger">Confirm Termination</button>
+            <a asp-page="Details" asp-route-id="@Model.Employee.Id" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

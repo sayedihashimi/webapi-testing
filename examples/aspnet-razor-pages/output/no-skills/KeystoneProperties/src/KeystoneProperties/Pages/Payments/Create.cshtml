@@ -1,0 +1,60 @@
+@page
+@model KeystoneProperties.Pages.Payments.CreateModel
+@{ ViewData["Title"] = "Record Payment"; }
+<h1>Record Payment</h1>
+<div class="row"><div class="col-md-8">
+    <form method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Input.LeaseId" class="form-label">Lease</label>
+            <select asp-for="Input.LeaseId" class="form-select">
+                <option value="">Select lease...</option>
+                @foreach (var l in Model.ActiveLeases)
+                {
+                    <option value="@l.Id">@l.Tenant.FullName — Unit @l.Unit.UnitNumber (@l.Unit.Property.Name) — @l.MonthlyRentAmount.ToString("C")/mo</option>
+                }
+            </select>
+            <span asp-validation-for="Input.LeaseId" class="text-danger"></span>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.Amount" class="form-label"></label>
+                <input asp-for="Input.Amount" class="form-control" />
+                <span asp-validation-for="Input.Amount" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.PaymentType" class="form-label"></label>
+                <select asp-for="Input.PaymentType" asp-items="@Html.GetEnumSelectList<PaymentType>()" class="form-select"></select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.PaymentDate" class="form-label"></label>
+                <input asp-for="Input.PaymentDate" class="form-control" type="date" />
+                <span asp-validation-for="Input.PaymentDate" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.DueDate" class="form-label"></label>
+                <input asp-for="Input.DueDate" class="form-control" type="date" />
+                <span asp-validation-for="Input.DueDate" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.PaymentMethod" class="form-label"></label>
+                <select asp-for="Input.PaymentMethod" asp-items="@Html.GetEnumSelectList<PaymentMethod>()" class="form-select"></select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Input.ReferenceNumber" class="form-label"></label>
+                <input asp-for="Input.ReferenceNumber" class="form-control" />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.Notes" class="form-label"></label>
+            <textarea asp-for="Input.Notes" class="form-control" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Record Payment</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

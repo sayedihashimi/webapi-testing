@@ -1,0 +1,83 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.Events.TicketTypesModel
+@{ ViewData["Title"] = $"Ticket Types — {Model.Event!.Title}"; }
+
+<h1>Ticket Types for @Model.Event.Title</h1>
+<a asp-page="Details" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary mb-3">← Back to Event</a>
+
+<h4>Add Ticket Type</h4>
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label asp-for="Input.Name" class="form-label"></label>
+                    <input asp-for="Input.Name" class="form-control" />
+                    <span asp-validation-for="Input.Name" class="text-danger"></span>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Input.Price" class="form-label"></label>
+                    <input asp-for="Input.Price" class="form-control" type="number" step="0.01" min="0" />
+                    <span asp-validation-for="Input.Price" class="text-danger"></span>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Input.EarlyBirdPrice" class="form-label"></label>
+                    <input asp-for="Input.EarlyBirdPrice" class="form-control" type="number" step="0.01" min="0" />
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label asp-for="Input.Quantity" class="form-label"></label>
+                    <input asp-for="Input.Quantity" class="form-control" type="number" min="1" />
+                    <span asp-validation-for="Input.Quantity" class="text-danger"></span>
+                </div>
+                <div class="col-md-1 mb-3">
+                    <label asp-for="Input.SortOrder" class="form-label"></label>
+                    <input asp-for="Input.SortOrder" class="form-control" type="number" />
+                </div>
+                <div class="col-md-2 mb-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Description" class="form-label"></label>
+                <input asp-for="Input.Description" class="form-control" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<h4>Existing Ticket Types</h4>
+@if (Model.TicketTypes.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Name</th><th>Description</th><th>Price</th><th>Early Bird</th><th>Quantity</th><th>Sold</th><th>Order</th><th>Active</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var tt in Model.TicketTypes)
+                {
+                    <tr class="@(!tt.IsActive ? "table-secondary" : "")">
+                        <td>@tt.Name</td>
+                        <td>@tt.Description</td>
+                        <td>@tt.Price.ToString("C")</td>
+                        <td>@(tt.EarlyBirdPrice?.ToString("C") ?? "—")</td>
+                        <td>@tt.Quantity</td>
+                        <td>@tt.QuantitySold</td>
+                        <td>@tt.SortOrder</td>
+                        <td>@(tt.IsActive ? "✅" : "❌")</td>
+                        <td>
+                            <form method="post" asp-page-handler="ToggleActive" asp-route-ticketTypeId="@tt.Id" style="display:inline">
+                                <button type="submit" class="btn btn-sm btn-outline-warning">@(tt.IsActive ? "Deactivate" : "Activate")</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">No ticket types defined yet.</p>
+}
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

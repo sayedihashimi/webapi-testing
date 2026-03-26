@@ -1,0 +1,92 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Payments.DetailsModel
+@{
+    ViewData["Title"] = "Payment Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Payment Details</h1>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to Payments</a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Payment Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Payment ID</dt>
+                    <dd class="col-sm-7">@Model.Payment.Id</dd>
+
+                    <dt class="col-sm-5">Amount</dt>
+                    <dd class="col-sm-7">@Model.Payment.Amount.ToString("C")</dd>
+
+                    <dt class="col-sm-5">Payment Date</dt>
+                    <dd class="col-sm-7">@Model.Payment.PaymentDate.ToString("MMM d, yyyy")</dd>
+
+                    <dt class="col-sm-5">Due Date</dt>
+                    <dd class="col-sm-7">@Model.Payment.DueDate.ToString("MMM d, yyyy")</dd>
+
+                    <dt class="col-sm-5">Payment Method</dt>
+                    <dd class="col-sm-7">@Model.Payment.PaymentMethod</dd>
+
+                    <dt class="col-sm-5">Payment Type</dt>
+                    <dd class="col-sm-7">
+                        @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", Model.Payment.PaymentType.ToString() } })
+                    </dd>
+
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", Model.Payment.Status.ToString() } })
+                    </dd>
+
+                    <dt class="col-sm-5">Reference Number</dt>
+                    <dd class="col-sm-7">@(Model.Payment.ReferenceNumber ?? "—")</dd>
+
+                    <dt class="col-sm-5">Notes</dt>
+                    <dd class="col-sm-7">@(Model.Payment.Notes ?? "—")</dd>
+
+                    <dt class="col-sm-5">Created At</dt>
+                    <dd class="col-sm-7">@Model.Payment.CreatedAt.ToString("g")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Lease &amp; Tenant Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Lease ID</dt>
+                    <dd class="col-sm-7">
+                        <a asp-page="/Leases/Details" asp-route-id="@Model.Payment.LeaseId">@Model.Payment.LeaseId</a>
+                    </dd>
+
+                    <dt class="col-sm-5">Tenant</dt>
+                    <dd class="col-sm-7">
+                        <a asp-page="/Tenants/Details" asp-route-id="@Model.Payment.Lease.TenantId">@Model.Payment.Lease.Tenant.FullName</a>
+                    </dd>
+
+                    <dt class="col-sm-5">Property</dt>
+                    <dd class="col-sm-7">@Model.Payment.Lease.Unit.Property.Name</dd>
+
+                    <dt class="col-sm-5">Unit</dt>
+                    <dd class="col-sm-7">@Model.Payment.Lease.Unit.UnitNumber</dd>
+
+                    <dt class="col-sm-5">Monthly Rent</dt>
+                    <dd class="col-sm-7">@Model.Payment.Lease.MonthlyRentAmount.ToString("C")</dd>
+
+                    <dt class="col-sm-5">Lease Status</dt>
+                    <dd class="col-sm-7">
+                        @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", Model.Payment.Lease.Status.ToString() } })
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

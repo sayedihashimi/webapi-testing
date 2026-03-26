@@ -1,0 +1,84 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.Events.RosterModel
+@{
+    ViewData["Title"] = $"Roster - {Model.Event.Title}";
+}
+
+<section>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-page="Index">Events</a></li>
+            <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Event.Id">@Model.Event.Title</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Roster</li>
+        </ol>
+    </nav>
+
+    <h1>Roster — @Model.Event.Title</h1>
+
+    <p class="text-muted">Showing @Model.Registrations.Count of @Model.TotalCount registrations</p>
+
+    <form method="get" class="mb-3">
+        <input type="hidden" name="eventId" value="@Model.Event.Id" />
+        <div class="input-group">
+            <input type="text" name="search" value="@Model.Search" class="form-control"
+                   placeholder="Search by attendee name or email..." />
+            <button type="submit" class="btn btn-outline-secondary">Search</button>
+            @if (!string.IsNullOrEmpty(Model.Search))
+            {
+                <a asp-page="Roster" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-danger">Clear</a>
+            }
+        </div>
+    </form>
+
+    @if (Model.Registrations.Count == 0)
+    {
+        <p class="text-muted">No registrations found.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Confirmation #</th>
+                    <th>Attendee Name</th>
+                    <th>Email</th>
+                    <th>Ticket Type</th>
+                    <th>Status</th>
+                    <th>Check-in Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var reg in Model.Registrations)
+                {
+                    <tr>
+                        <td>@reg.ConfirmationNumber</td>
+                        <td>@reg.Attendee.FullName</td>
+                        <td>@reg.Attendee.Email</td>
+                        <td>@reg.TicketType.Name</td>
+                        <td>
+                            <partial name="_StatusBadge" model="@reg.Status.ToString()" />
+                        </td>
+                        <td>
+                            @if (reg.Status == RegistrationStatus.CheckedIn)
+                            {
+                                <span class="text-success">✓</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-page="/Registrations/Details" asp-route-id="@reg.Id"
+                               class="btn btn-sm btn-outline-info">Details</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <partial name="_Pagination" model="Model.Pagination" />
+    }
+</section>

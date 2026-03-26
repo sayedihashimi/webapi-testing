@@ -1,0 +1,52 @@
+@page
+@model KeystoneProperties.Pages.Payments.OverdueModel
+@{
+    ViewData["Title"] = "Overdue Payments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Overdue Payments</h1>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to Payments</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (Model.OverdueLeases.Count == 0)
+        {
+            <p class="text-muted mb-0">No overdue payments found. All tenants are up to date!</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Tenant</th>
+                        <th>Property</th>
+                        <th>Unit</th>
+                        <th>Monthly Rent</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lease in Model.OverdueLeases)
+                    {
+                        <tr>
+                            <td>@lease.Tenant.FullName</td>
+                            <td>@lease.Unit.Property.Name</td>
+                            <td>#@lease.Unit.UnitNumber</td>
+                            <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                            <td>
+                                @await Html.PartialAsync("_StatusBadgePartial", (lease.Status.ToString(), "LeaseStatus"))
+                            </td>
+                            <td>
+                                <a asp-page="/Leases/Details" asp-route-id="@lease.Id" class="btn btn-sm btn-outline-primary">View Lease</a>
+                                <a asp-page="Create" class="btn btn-sm btn-outline-success">Record Payment</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

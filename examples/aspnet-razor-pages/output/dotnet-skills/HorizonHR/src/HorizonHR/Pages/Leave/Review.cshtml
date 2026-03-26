@@ -1,0 +1,129 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.ReviewModel
+@{
+    ViewData["Title"] = "Review Leave Request";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Review Leave Request</h1>
+    <a asp-page="/Leave/Details" asp-route-id="@Model.LeaveRequest.Id" class="btn btn-outline-secondary">Back to Details</a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Request Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Employee</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.Employee.FullName</dd>
+
+                    <dt class="col-sm-4">Leave Type</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.LeaveType.Name</dd>
+
+                    <dt class="col-sm-4">Start Date</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.StartDate.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-4">End Date</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.EndDate.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-4">Total Days</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.TotalDays</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <partial name="_StatusBadge" model="@Model.LeaveRequest.Status.ToString()" />
+                    </dd>
+
+                    <dt class="col-sm-4">Reason</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.Reason</dd>
+
+                    <dt class="col-sm-4">Submitted Date</dt>
+                    <dd class="col-sm-8">@Model.LeaveRequest.SubmittedDate.ToString("MMM dd, yyyy HH:mm")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Review Decision</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.ReviewerId" class="form-label"></label>
+                        <select asp-for="Input.ReviewerId" class="form-select">
+                            <option value="">-- Select Reviewer --</option>
+                            @foreach (var reviewer in Model.Reviewers)
+                            {
+                                <option value="@reviewer.Id">@reviewer.FullName</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.ReviewerId" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.ReviewNotes" class="form-label"></label>
+                        <textarea asp-for="Input.ReviewNotes" class="form-control" rows="4" placeholder="Enter review notes (optional)..."></textarea>
+                        <span asp-validation-for="Input.ReviewNotes" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" asp-page-handler="Approve" class="btn btn-success">Approve</button>
+                        <button type="submit" asp-page-handler="Reject" class="btn btn-danger">Reject</button>
+                        <a asp-page="/Leave/Details" asp-route-id="@Model.LeaveRequest.Id" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Balance Impact</h5>
+            </div>
+            <div class="card-body">
+                @{
+                    var relevantBalance = Model.LeaveBalances.FirstOrDefault(b => b.LeaveTypeId == Model.LeaveRequest.LeaveTypeId);
+                }
+                @if (relevantBalance != null)
+                {
+                    <dl class="row mb-0">
+                        <dt class="col-sm-6">Leave Type</dt>
+                        <dd class="col-sm-6">@relevantBalance.LeaveType.Name</dd>
+
+                        <dt class="col-sm-6">Total Days</dt>
+                        <dd class="col-sm-6">@(relevantBalance.TotalDays + relevantBalance.CarriedOverDays)</dd>
+
+                        <dt class="col-sm-6">Used Days</dt>
+                        <dd class="col-sm-6">@relevantBalance.UsedDays</dd>
+
+                        <dt class="col-sm-6">Current Remaining</dt>
+                        <dd class="col-sm-6 fw-bold">@relevantBalance.RemainingDays days</dd>
+
+                        <dt class="col-sm-6">Requested Days</dt>
+                        <dd class="col-sm-6 text-warning fw-bold">@Model.LeaveRequest.TotalDays days</dd>
+
+                        <dt class="col-sm-6">After Approval</dt>
+                        <dd class="col-sm-6 @(relevantBalance.RemainingDays - Model.LeaveRequest.TotalDays >= 0 ? "text-success" : "text-danger") fw-bold">
+                            @(relevantBalance.RemainingDays - Model.LeaveRequest.TotalDays) days
+                        </dd>
+                    </dl>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No balance information available for this leave type.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

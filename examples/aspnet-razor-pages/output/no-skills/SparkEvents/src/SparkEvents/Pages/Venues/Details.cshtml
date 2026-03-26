@@ -1,0 +1,71 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Venues.DetailsModel
+@{
+    ViewData["Title"] = Model.Venue.Name;
+}
+
+<section>
+    <h1>@Model.Venue.Name</h1>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-6">
+            <dl class="row">
+                <dt class="col-sm-4">Address</dt>
+                <dd class="col-sm-8">@Model.Venue.Address</dd>
+
+                <dt class="col-sm-4">City</dt>
+                <dd class="col-sm-8">@Model.Venue.City, @Model.Venue.State @Model.Venue.ZipCode</dd>
+
+                <dt class="col-sm-4">Max Capacity</dt>
+                <dd class="col-sm-8">@Model.Venue.MaxCapacity</dd>
+
+                <dt class="col-sm-4">Contact Email</dt>
+                <dd class="col-sm-8">@(Model.Venue.ContactEmail ?? "N/A")</dd>
+
+                <dt class="col-sm-4">Contact Phone</dt>
+                <dd class="col-sm-8">@(Model.Venue.ContactPhone ?? "N/A")</dd>
+
+                <dt class="col-sm-4">Notes</dt>
+                <dd class="col-sm-8">@(Model.Venue.Notes ?? "N/A")</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <a asp-page="Edit" asp-route-id="@Model.Venue.Id" class="btn btn-primary">Edit</a>
+        <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+    </div>
+</section>
+
+<section>
+    <h3>Upcoming Events at this Venue</h3>
+    @if (Model.UpcomingEvents.Any())
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var evt in Model.UpcomingEvents)
+                {
+                    <tr>
+                        <td><a asp-page="/Events/Details" asp-route-id="@evt.Id">@evt.Title</a></td>
+                        <td>@evt.EventCategory.Name</td>
+                        <td>@evt.StartDate.ToString("MMM dd, yyyy")</td>
+                        <td><partial name="_StatusBadge" model="evt.Status" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No upcoming events at this venue.</p>
+    }
+</section>

@@ -1,0 +1,63 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.ReviewModel
+@{
+    ViewData["Title"] = "Review Leave Request";
+}
+
+@if (Model.Request is null)
+{
+    <p class="text-danger">Leave request not found.</p>
+}
+else
+{
+    var req = Model.Request;
+    <h1>Review Leave Request #@req.Id</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Employee</dt>
+                <dd class="col-sm-9">@req.Employee.FullName</dd>
+                <dt class="col-sm-3">Leave Type</dt>
+                <dd class="col-sm-9">@req.LeaveType.Name</dd>
+                <dt class="col-sm-3">Dates</dt>
+                <dd class="col-sm-9">@req.StartDate.ToString("MMM d") — @req.EndDate.ToString("MMM d, yyyy")</dd>
+                <dt class="col-sm-3">Total Days</dt>
+                <dd class="col-sm-9">@req.TotalDays.ToString("F1")</dd>
+                <dt class="col-sm-3">Reason</dt>
+                <dd class="col-sm-9">@req.Reason</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label asp-for="ReviewerId" class="form-label">Reviewer</label>
+                <select asp-for="ReviewerId" class="form-select" asp-items="Model.ReviewerOptions">
+                    <option value="">Select Reviewer</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ReviewNotes" class="form-label">Notes</label>
+                <textarea asp-for="ReviewNotes" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="d-flex gap-2">
+                <form method="post" asp-page-handler="Approve">
+                    <input type="hidden" name="id" value="@req.Id" />
+                    <input type="hidden" asp-for="ReviewerId" />
+                    <input type="hidden" asp-for="ReviewNotes" />
+                    <button type="submit" class="btn btn-success">Approve</button>
+                </form>
+                <form method="post" asp-page-handler="Reject">
+                    <input type="hidden" name="id" value="@req.Id" />
+                    <input type="hidden" asp-for="ReviewerId" />
+                    <input type="hidden" asp-for="ReviewNotes" />
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </form>
+                <a href="/Leave/Details/@req.Id" class="btn btn-link">Cancel</a>
+            </div>
+        </div>
+    </div>
+}

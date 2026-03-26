@@ -1,0 +1,58 @@
+@* Pass pagination info via ViewData: PageIndex, TotalPages, PageUrl *@
+
+@{
+    var pageIndex = (int)ViewData["PageIndex"]!;
+    var totalPages = (int)ViewData["TotalPages"]!;
+    var pageUrl = (string)ViewData["PageUrl"]!;
+}
+
+@if (totalPages > 1)
+{
+    var startPage = Math.Max(1, pageIndex - 4);
+    var endPage = Math.Min(totalPages, startPage + 9);
+    if (endPage - startPage < 9)
+    {
+        startPage = Math.Max(1, endPage - 9);
+    }
+
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(pageIndex <= 1 ? "disabled" : "")">
+                <a class="page-link" href="@pageUrl&pageNumber=@(pageIndex - 1)">Previous</a>
+            </li>
+            @if (startPage > 1)
+            {
+                <li class="page-item">
+                    <a class="page-link" href="@pageUrl&pageNumber=1">1</a>
+                </li>
+                @if (startPage > 2)
+                {
+                    <li class="page-item disabled">
+                        <span class="page-link">&hellip;</span>
+                    </li>
+                }
+            }
+            @for (int i = startPage; i <= endPage; i++)
+            {
+                <li class="page-item @(i == pageIndex ? "active" : "")">
+                    <a class="page-link" href="@pageUrl&pageNumber=@i">@i</a>
+                </li>
+            }
+            @if (endPage < totalPages)
+            {
+                @if (endPage < totalPages - 1)
+                {
+                    <li class="page-item disabled">
+                        <span class="page-link">&hellip;</span>
+                    </li>
+                }
+                <li class="page-item">
+                    <a class="page-link" href="@pageUrl&pageNumber=@totalPages">@totalPages</a>
+                </li>
+            }
+            <li class="page-item @(pageIndex >= totalPages ? "disabled" : "")">
+                <a class="page-link" href="@pageUrl&pageNumber=@(pageIndex + 1)">Next</a>
+            </li>
+        </ul>
+    </nav>
+}

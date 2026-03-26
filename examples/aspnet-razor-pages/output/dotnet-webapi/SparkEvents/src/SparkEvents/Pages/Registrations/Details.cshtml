@@ -1,0 +1,75 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Registrations.DetailsModel
+@{
+    ViewData["Title"] = $"Registration: {Model.Registration.ConfirmationNumber}";
+}
+
+<h1>Registration Details</h1>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            Confirmation #: <code>@Model.Registration.ConfirmationNumber</code>
+        </h5>
+        <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Registration.Status.ToString() } })' />
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Event</dt>
+            <dd class="col-sm-9">@Model.Registration.Event?.Title</dd>
+
+            <dt class="col-sm-3">Attendee</dt>
+            <dd class="col-sm-9">@Model.Registration.Attendee?.FullName (@Model.Registration.Attendee?.Email)</dd>
+
+            <dt class="col-sm-3">Ticket Type</dt>
+            <dd class="col-sm-9">@Model.Registration.TicketType?.Name</dd>
+
+            <dt class="col-sm-3">Amount Paid</dt>
+            <dd class="col-sm-9">@Model.Registration.AmountPaid.ToString("C")</dd>
+
+            <dt class="col-sm-3">Registration Date</dt>
+            <dd class="col-sm-9">@Model.Registration.RegistrationDate.ToString("MMMM d, yyyy h:mm tt")</dd>
+
+            @if (Model.Registration.CheckInTime.HasValue)
+            {
+                <dt class="col-sm-3">Check-In Time</dt>
+                <dd class="col-sm-9">@Model.Registration.CheckInTime.Value.ToString("MMMM d, yyyy h:mm tt")</dd>
+            }
+
+            @if (Model.Registration.SpecialRequests is not null)
+            {
+                <dt class="col-sm-3">Special Requests</dt>
+                <dd class="col-sm-9">@Model.Registration.SpecialRequests</dd>
+            }
+
+            @if (Model.Registration.WaitlistPosition.HasValue)
+            {
+                <dt class="col-sm-3">Waitlist Position</dt>
+                <dd class="col-sm-9">@Model.Registration.WaitlistPosition</dd>
+            }
+
+            @if (Model.Registration.CancellationDate.HasValue)
+            {
+                <dt class="col-sm-3">Cancellation Date</dt>
+                <dd class="col-sm-9">@Model.Registration.CancellationDate.Value.ToString("MMMM d, yyyy h:mm tt")</dd>
+            }
+
+            @if (Model.Registration.CancellationReason is not null)
+            {
+                <dt class="col-sm-3">Cancellation Reason</dt>
+                <dd class="col-sm-9">@Model.Registration.CancellationReason</dd>
+            }
+        </dl>
+    </div>
+    <div class="card-footer">
+        @if (Model.Registration.Status == RegistrationStatus.Confirmed || Model.Registration.Status == RegistrationStatus.Waitlisted)
+        {
+            <a asp-page="/Registrations/Cancel" asp-route-id="@Model.Registration.Id" class="btn btn-danger">Cancel Registration</a>
+        }
+        @if (Model.Registration.EventId > 0)
+        {
+            <a asp-page="/Events/Roster" asp-route-eventId="@Model.Registration.EventId" class="btn btn-outline-secondary">Event Roster</a>
+        }
+        <a asp-page="/Attendees/Details" asp-route-id="@Model.Registration.AttendeeId" class="btn btn-outline-secondary">View Attendee</a>
+    </div>
+</div>

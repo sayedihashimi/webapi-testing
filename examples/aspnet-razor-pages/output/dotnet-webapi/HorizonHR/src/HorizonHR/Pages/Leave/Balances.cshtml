@@ -1,0 +1,68 @@
+@page
+@model HorizonHR.Pages.Leave.BalancesModel
+@{
+    ViewData["Title"] = "Leave Balances";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Leave Balances (@Model.Year)</h1>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <select name="departmentId" class="form-select">
+            <option value="">All Departments</option>
+            @foreach (var d in Model.Departments)
+            {
+                <option value="@d.Id" selected="@(Model.DepartmentId == d.Id)">@d.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+    </div>
+</form>
+
+@if (Model.Balances.Count == 0)
+{
+    <p>No leave balances found.</p>
+}
+else
+{
+    var grouped = Model.Balances.GroupBy(b => new { b.EmployeeId, b.Employee.FirstName, b.Employee.LastName, b.Employee.Department.Name });
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Department</th>
+                <th>Leave Type</th>
+                <th>Total</th>
+                <th>Used</th>
+                <th>Remaining</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var g in grouped)
+            {
+                var first = true;
+                @foreach (var b in Model.Balances.Where(x => x.EmployeeId == g.Key.EmployeeId))
+                {
+                    <tr>
+                        @if (first)
+                        {
+                            <td rowspan="@Model.Balances.Count(x => x.EmployeeId == g.Key.EmployeeId)">
+                                <a asp-page="/Employees/Details" asp-route-id="@g.Key.EmployeeId">@g.Key.FirstName @g.Key.LastName</a>
+                            </td>
+                            <td rowspan="@Model.Balances.Count(x => x.EmployeeId == g.Key.EmployeeId)">@g.Key.Name</td>
+                            first = false;
+                        }
+                        <td>@b.LeaveType.Name</td>
+                        <td>@b.TotalDays</td>
+                        <td>@b.UsedDays</td>
+                        <td><strong>@b.RemainingDays</strong></td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}

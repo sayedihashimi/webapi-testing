@@ -1,0 +1,95 @@
+@page
+@model KeystoneProperties.Pages.Tenants.IndexModel
+@{
+    ViewData["Title"] = "Tenants";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Tenants</h1>
+    <a asp-page="Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Add Tenant
+    </a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-5">
+        <input type="text" asp-for="Search" class="form-control" placeholder="Search by name or email..." />
+    </div>
+    <div class="col-md-3">
+        <select asp-for="IsActive" class="form-select">
+            <option value="">All Statuses</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-secondary w-100">Search</button>
+    </div>
+    <div class="col-md-2">
+        <a asp-page="Index" class="btn btn-outline-dark w-100">Clear</a>
+    </div>
+</form>
+
+@{
+    var queryString = "?";
+    if (!string.IsNullOrWhiteSpace(Model.Search))
+    {
+        queryString += $"search={Uri.EscapeDataString(Model.Search)}&";
+    }
+    if (Model.IsActive.HasValue)
+    {
+        queryString += $"isActive={Model.IsActive.Value}&";
+    }
+}
+
+@if (Model.Tenants.Items.Count == 0)
+{
+    <div class="alert alert-info">No tenants found matching your criteria.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tenant in Model.Tenants.Items)
+                {
+                    <tr>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@tenant.Id">@tenant.FullName</a>
+                        </td>
+                        <td>@tenant.Email</td>
+                        <td>@tenant.Phone</td>
+                        <td>
+                            @if (tenant.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <a asp-page="Edit" asp-route-id="@tenant.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                            @if (tenant.IsActive)
+                            {
+                                <a asp-page="Deactivate" asp-route-id="@tenant.Id" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="_PaginationPartial" model="@(Model.Tenants.PageNumber, Model.Tenants.TotalPages, $"/Tenants{queryString}")" />
+}

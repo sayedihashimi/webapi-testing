@@ -1,0 +1,104 @@
+﻿@page
+@model KeystoneProperties.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="mb-4">Dashboard</h1>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <h5 class="card-title text-primary">Properties</h5>
+                <p class="display-6">@Model.Dashboard.TotalProperties</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center border-info">
+            <div class="card-body">
+                <h5 class="card-title text-info">Units</h5>
+                <p class="display-6">@Model.Dashboard.TotalUnits</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <h5 class="card-title text-success">Occupancy</h5>
+                <p class="display-6">@Model.Dashboard.OccupancyRate%</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <h5 class="card-title text-success">Rent (Month)</h5>
+                <p class="display-6">@Model.Dashboard.RentCollectedThisMonth.ToString("C0")</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center border-danger">
+            <div class="card-body">
+                <h5 class="card-title text-danger">Overdue</h5>
+                <p class="display-6">@Model.Dashboard.OverduePaymentsCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <h5 class="card-title text-warning">Maintenance</h5>
+                <p class="display-6">@Model.Dashboard.OpenMaintenanceCount</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section>
+    <h3>Upcoming Lease Expirations (Next 30 Days)</h3>
+    @if (Model.Dashboard.UpcomingExpirations.Any())
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Tenant</th>
+                    <th>Unit</th>
+                    <th>End Date</th>
+                    <th>Days Left</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Dashboard.UpcomingExpirations)
+                {
+                    <tr>
+                        <td>@item.TenantName</td>
+                        <td>@item.UnitInfo</td>
+                        <td>@item.EndDate.ToString("MMM dd, yyyy")</td>
+                        <td>
+                            @if (item.DaysUntilExpiration <= 7)
+                            {
+                                <span class="badge bg-danger">@item.DaysUntilExpiration days</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">@item.DaysUntilExpiration days</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-page="/Leases/Details" asp-route-id="@item.LeaseId" class="btn btn-sm btn-outline-primary">View</a>
+                            <a asp-page="/Leases/Renew" asp-route-id="@item.LeaseId" class="btn btn-sm btn-outline-success">Renew</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No leases expiring in the next 30 days.</p>
+    }
+</section>

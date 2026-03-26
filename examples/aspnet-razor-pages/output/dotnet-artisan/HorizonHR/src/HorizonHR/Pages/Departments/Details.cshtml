@@ -1,0 +1,97 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Departments.DetailsModel
+@{ ViewData["Title"] = Model.Department.Name; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Departments</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@Model.Department.Name</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>@Model.Department.Name <code>(@Model.Department.Code)</code></h1>
+    <a asp-page="Edit" asp-route-id="@Model.Department.Id" class="btn btn-outline-secondary">Edit</a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <section>
+            <h4>Details</h4>
+            <dl class="row">
+                <dt class="col-sm-4">Description</dt>
+                <dd class="col-sm-8">@(Model.Department.Description ?? "—")</dd>
+                <dt class="col-sm-4">Manager</dt>
+                <dd class="col-sm-8">
+                    @if (Model.Department.Manager is not null)
+                    {
+                        <a asp-page="/Employees/Details" asp-route-id="@Model.Department.Manager.Id">@Model.Department.Manager.FullName</a>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </dd>
+                <dt class="col-sm-4">Parent Department</dt>
+                <dd class="col-sm-8">
+                    @if (Model.Department.ParentDepartment is not null)
+                    {
+                        <a asp-page="Details" asp-route-id="@Model.Department.ParentDepartment.Id">@Model.Department.ParentDepartment.Name</a>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </dd>
+                <dt class="col-sm-4">Status</dt>
+                <dd class="col-sm-8">@(Model.Department.IsActive ? "Active" : "Inactive")</dd>
+            </dl>
+        </section>
+    </div>
+    <div class="col-md-6">
+        <section>
+            <h4>Child Departments</h4>
+            @if (Model.Department.ChildDepartments.Any())
+            {
+                <ul class="list-group">
+                    @foreach (var child in Model.Department.ChildDepartments)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a asp-page="Details" asp-route-id="@child.Id">@child.Name</a>
+                            <span class="badge bg-primary rounded-pill">@child.Code</span>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-muted">No child departments.</p>
+            }
+        </section>
+    </div>
+</div>
+
+<section class="mt-4">
+    <h4>Employees (@Model.Department.Employees.Count)</h4>
+    @if (Model.Department.Employees.Any())
+    {
+        <table class="table table-striped">
+            <thead><tr><th>Employee #</th><th>Name</th><th>Job Title</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var emp in Model.Department.Employees)
+                {
+                    <tr>
+                        <td>@emp.EmployeeNumber</td>
+                        <td><a asp-page="/Employees/Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                        <td>@emp.JobTitle</td>
+                        <td><partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", emp.Status.ToString() } })' /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No employees in this department.</p>
+    }
+</section>

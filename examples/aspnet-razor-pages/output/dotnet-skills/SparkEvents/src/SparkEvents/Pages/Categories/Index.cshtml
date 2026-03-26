@@ -1,0 +1,33 @@
+@page
+@model SparkEvents.Pages.Categories.IndexModel
+@{ ViewData["Title"] = "Categories"; }
+
+<h1>Event Categories</h1>
+<a asp-page="Create" class="btn btn-primary mb-3">Create New Category</a>
+
+@if (Model.Categories.Items.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Name</th><th>Description</th><th>Color</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var cat in Model.Categories.Items)
+                {
+                    <tr>
+                        <td>@cat.Name</td>
+                        <td>@cat.Description</td>
+                        <td>@if (cat.ColorHex != null) { <span class="badge" style="background-color: @cat.ColorHex">@cat.ColorHex</span> }</td>
+                        <td>
+                            <a asp-page="Edit" asp-route-id="@cat.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a asp-page="Delete" asp-route-id="@cat.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">No categories found.</p>
+}

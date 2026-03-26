@@ -1,0 +1,60 @@
+@page
+@model HorizonHR.Pages.Skills.SearchModel
+@using HorizonHR.Models.Enums
+@{
+    ViewData["Title"] = "Search by Skill";
+}
+
+<h1>Search Employees by Skill</h1>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label class="form-label">Skill</label>
+        <select name="skillId" class="form-select" asp-items="Model.SkillOptions">
+            <option value="">Select Skill</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Min Proficiency</label>
+        <select name="minLevel" class="form-select">
+            <option value="">Any Level</option>
+            @foreach (var lvl in Enum.GetValues<ProficiencyLevel>())
+            {
+                <option value="@lvl" selected="@(Model.MinLevel == lvl)">@lvl</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+</form>
+
+@if (Model.SkillId.HasValue)
+{
+    @if (!Model.Results.Any())
+    {
+        <p class="text-muted">No employees found with the selected skill criteria.</p>
+    }
+    else
+    {
+        <table class="table table-hover">
+            <thead><tr><th>Employee</th><th>Department</th><th>Proficiency</th><th>Experience</th></tr></thead>
+            <tbody>
+                @foreach (var es in Model.Results)
+                {
+                    <tr>
+                        <td><a href="/Employees/Details/@es.EmployeeId">@es.Employee.FullName</a></td>
+                        <td>@es.Employee.Department.Name</td>
+                        <td>
+                            @{ViewData["Status"] = es.ProficiencyLevel.ToString();}
+                            <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                        </td>
+                        <td>@(es.YearsOfExperience.HasValue ? $"{es.YearsOfExperience} years" : "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+<a href="/Skills" class="btn btn-link">&larr; Back to Skills</a>

@@ -1,0 +1,78 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Attendees.DetailsModel
+@{
+    ViewData["Title"] = $"Attendee: {Model.Attendee.FullName}";
+}
+
+<h1>Attendee Details</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">@Model.Attendee.FullName</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">First Name</dt>
+            <dd class="col-sm-9">@Model.Attendee.FirstName</dd>
+
+            <dt class="col-sm-3">Last Name</dt>
+            <dd class="col-sm-9">@Model.Attendee.LastName</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Attendee.Email</dd>
+
+            <dt class="col-sm-3">Phone</dt>
+            <dd class="col-sm-9">@(Model.Attendee.Phone ?? "—")</dd>
+
+            <dt class="col-sm-3">Organization</dt>
+            <dd class="col-sm-9">@(Model.Attendee.Organization ?? "—")</dd>
+
+            <dt class="col-sm-3">Dietary Needs</dt>
+            <dd class="col-sm-9">@(Model.Attendee.DietaryNeeds ?? "—")</dd>
+
+            <dt class="col-sm-3">Registered Since</dt>
+            <dd class="col-sm-9">@Model.Attendee.CreatedAt.ToString("MMMM d, yyyy")</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-page="Edit" asp-route-id="@Model.Attendee.Id" class="btn btn-primary">Edit</a>
+        <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</div>
+
+<h3>Registration History</h3>
+
+@if (Model.Attendee.Registrations?.Any() == true)
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Event</th>
+                <th>Ticket</th>
+                <th>Status</th>
+                <th>Confirmation #</th>
+                <th>Date</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var reg in Model.Attendee.Registrations.OrderByDescending(r => r.RegistrationDate))
+            {
+                <tr>
+                    <td>@reg.Event?.Title</td>
+                    <td>@reg.TicketType?.Name</td>
+                    <td>
+                        <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", reg.Status.ToString() } })' />
+                    </td>
+                    <td><code>@reg.ConfirmationNumber</code></td>
+                    <td>@reg.RegistrationDate.ToString("MMM d, yyyy")</td>
+                    <td>@reg.AmountPaid.ToString("C")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="alert alert-info">No registrations found for this attendee.</div>
+}

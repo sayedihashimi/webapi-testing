@@ -1,0 +1,104 @@
+@page "/Events/{eventId:int}/CheckIn"
+@model SparkEvents.Pages.Events.CheckInModel
+@{
+    ViewData["Title"] = $"Check-In: {Model.Event.Title}";
+    var progressPercent = Model.TotalConfirmedCount > 0
+        ? (int)Math.Round((double)Model.CheckedInCount / Model.TotalConfirmedCount * 100)
+        : 0;
+}
+
+<h1>Check-In Dashboard</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">@Model.Event.Title</h5>
+    </div>
+    <div class="card-body">
+        <p><strong>Date:</strong> @Model.Event.StartDate.ToString("MMMM d, yyyy h:mm tt")</p>
+
+        <h6>Check-In Progress</h6>
+        <div class="d-flex align-items-center mb-2">
+            <div class="progress flex-grow-1 me-3" style="height: 25px;">
+                <div class="progress-bar bg-success" role="progressbar"
+                     style="width: @progressPercent%"
+                     aria-valuenow="@Model.CheckedInCount"
+                     aria-valuemin="0"
+                     aria-valuemax="@Model.TotalConfirmedCount">
+                    @progressPercent%
+                </div>
+            </div>
+            <strong>@Model.CheckedInCount / @Model.TotalConfirmedCount</strong>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Look Up Attendee</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="d-flex mb-3">
+            <input type="text" name="search" value="@Model.Search" class="form-control me-2"
+                   placeholder="Search by confirmation number or attendee name..." />
+            <button type="submit" class="btn btn-primary me-2">Search</button>
+            @if (!string.IsNullOrEmpty(Model.Search))
+            {
+                <a asp-page="CheckIn" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-secondary">Clear</a>
+            }
+        </form>
+
+        @if (!string.IsNullOrEmpty(Model.Search))
+        {
+            @if (Model.SearchResults.Count == 0)
+            {
+                <div class="alert alert-warning">No registrations found matching "@Model.Search".</div>
+            }
+            else
+            {
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Confirmation #</th>
+                            <th>Ticket</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reg in Model.SearchResults)
+                        {
+                            <tr>
+                                <td>@reg.Attendee?.FullName</td>
+                                <td>@reg.Attendee?.Email</td>
+                                <td><code>@reg.ConfirmationNumber</code></td>
+                                <td>@reg.TicketType?.Name</td>
+                                <td>
+                                    <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", reg.Status.ToString() } })' />
+                                </td>
+                                <td>
+                                    @if (reg.Status == RegistrationStatus.Confirmed)
+                                    {
+                                        <a asp-page="ProcessCheckIn"
+                                           asp-route-eventId="@Model.Event.Id"
+                                           asp-route-registrationId="@reg.Id"
+                                           class="btn btn-sm btn-success">Check In</a>
+                                    }
+                                    else if (reg.Status == RegistrationStatus.CheckedIn)
+                                    {
+                                        <span class="text-success">✓ Already checked in</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">N/A</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        }
+    </div>
+</div>

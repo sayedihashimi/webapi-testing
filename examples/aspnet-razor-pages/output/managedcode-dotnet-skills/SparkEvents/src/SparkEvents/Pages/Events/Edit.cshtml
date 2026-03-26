@@ -1,0 +1,124 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.EditModel
+@{
+    ViewData["Title"] = "Edit Event";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Events</a></li>
+        <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.EventId">@Model.Input.Title</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Edit</li>
+    </ol>
+</nav>
+
+<h1>Edit Event</h1>
+
+@if (Model.CapacityWarning is not null)
+{
+    <div class="alert alert-warning">@Model.CapacityWarning</div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <input type="hidden" asp-for="EventId" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0">Basic Information</h5></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Input.Title" class="form-label"></label>
+                        <input asp-for="Input.Title" class="form-control" />
+                        <span asp-validation-for="Input.Title" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Description" class="form-label"></label>
+                        <textarea asp-for="Input.Description" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="Input.Description" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.EventCategoryId" class="form-label">Category</label>
+                        <select asp-for="Input.EventCategoryId" class="form-select"
+                                asp-items="@(new Microsoft.AspNetCore.Mvc.Rendering.SelectList(Model.Categories, "Id", "Name"))">
+                            <option value="">-- Select Category --</option>
+                        </select>
+                        <span asp-validation-for="Input.EventCategoryId" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input asp-for="Input.IsFeatured" class="form-check-input" />
+                        <label asp-for="Input.IsFeatured" class="form-check-label"></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0">Venue &amp; Capacity</h5></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Input.VenueId" class="form-label">Venue</label>
+                        <select asp-for="Input.VenueId" class="form-select">
+                            <option value="">-- Select Venue --</option>
+                            @foreach (var v in Model.Venues)
+                            {
+                                <option value="@v.Id">@v.Name - Max: @v.MaxCapacity</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.VenueId" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.TotalCapacity" class="form-label"></label>
+                        <input asp-for="Input.TotalCapacity" class="form-control" type="number" min="1" />
+                        <span asp-validation-for="Input.TotalCapacity" class="text-danger"></span>
+                        <div class="form-text">Must not exceed the venue's maximum capacity.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0">Dates</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.StartDate" class="form-label"></label>
+                            <input asp-for="Input.StartDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="Input.StartDate" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.EndDate" class="form-label"></label>
+                            <input asp-for="Input.EndDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="Input.EndDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.RegistrationOpenDate" class="form-label"></label>
+                            <input asp-for="Input.RegistrationOpenDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="Input.RegistrationOpenDate" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.RegistrationCloseDate" class="form-label"></label>
+                            <input asp-for="Input.RegistrationCloseDate" class="form-control" type="datetime-local" />
+                            <span asp-validation-for="Input.RegistrationCloseDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.EarlyBirdDeadline" class="form-label"></label>
+                        <input asp-for="Input.EarlyBirdDeadline" class="form-control" type="datetime-local" />
+                        <span asp-validation-for="Input.EarlyBirdDeadline" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a asp-page="Details" asp-route-id="@Model.EventId" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

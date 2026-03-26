@@ -1,0 +1,65 @@
+@page
+@model KeystoneProperties.Pages.Payments.OverdueModel
+@{
+    ViewData["Title"] = "Overdue Payments";
+}
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-exclamation-triangle text-warning"></i> Overdue Payments</h1>
+        <div>
+            <a asp-page="Index" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Back to Payments
+            </a>
+            <a asp-page="Create" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Record Payment
+            </a>
+        </div>
+    </div>
+
+    @if (Model.OverduePayments.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Tenant</th>
+                        <th>Property</th>
+                        <th>Unit</th>
+                        <th>Due Date</th>
+                        <th>Amount Due</th>
+                        <th>Days Overdue</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.OverduePayments)
+                    {
+                        <tr>
+                            <td>@item.Lease.Tenant.FullName</td>
+                            <td>@item.Lease.Unit.Property.Name</td>
+                            <td>@item.Lease.Unit.UnitNumber</td>
+                            <td>@item.DueDate.ToString("MMM dd, yyyy")</td>
+                            <td class="fw-bold text-danger">@item.AmountDue.ToString("C")</td>
+                            <td>
+                                <span class="badge bg-danger">@item.DaysOverdue days</span>
+                            </td>
+                            <td>
+                                <a asp-page="Create" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-plus-lg"></i> Record Payment
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-check-circle display-4 text-success"></i>
+            <p class="mt-3">No overdue payments.</p>
+        </div>
+    }
+</section>

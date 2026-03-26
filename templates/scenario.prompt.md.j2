@@ -1,0 +1,141 @@
+---
+mode: agent
+description: "Create a [App Name] using [Technology Stack]"
+tools: ["changes", "codebase", "fetch", "findTestFiles", "githubRepo", "problems", "runner", "selection", "terminalLastCommand", "terminalSelection", "usages", "visionScreenshot"]
+---
+
+# {{ scenario_name }}
+
+<!-- Scenario prompt template. For the full authoring guide, see docs/authoring-guide.md -->
+<!-- Key principle: describe WHAT, never HOW — define entities, rules, and endpoints,
+     but never prescribe code patterns or architectural decisions. -->
+
+## App Overview
+
+<!-- 2–4 sentences: what the app does, who uses it, and its purpose.
+     Include a fictional business name (e.g., "Zenith Fitness Studio").
+     Name every entity the system manages to set scope expectations. -->
+
+## Technical Requirements
+
+<!-- Bulleted list of technology choices. Be specific about versions.
+     Include: framework, ORM/database, auth stance (None), API docs,
+     project structure expectations, validation approach, error handling
+     approach, and project output location. -->
+
+- **Framework**:
+- **Database**:
+- **Authentication**: None — no authentication or authorization required
+- **Documentation**: OpenAPI/Swagger documentation enabled
+- **Project Structure**: Structured with separation of concerns — **Models**, **DTOs**, **Services** (interface + implementation), and **API layer**
+- **Validation**: Use Data Annotations and/or FluentValidation for input validation
+- **Error Handling**: Global error handling middleware that returns consistent **ProblemDetails** responses
+- **Project Location**: Create the project at `./src/{{ scenario_name }}/`
+
+## Entities & Relationships
+
+<!-- Define EVERY entity with full detail. For each entity include:
+     - Field name, type, and constraints (required, max length, unique, ranges, defaults)
+     - Primary keys and auto-generation
+     - Foreign keys with explicit target entity
+     - Computed fields and how they're derived
+     - Enum values listed inline (e.g., Status: Active, Expired, Cancelled)
+     - Relationship descriptions (one-to-many, many-to-many via join entity)
+     - CreatedAt/UpdatedAt timestamp fields
+
+     Use tables or bulleted lists — just be consistent across all entities.
+
+     Example table format:
+     | Field    | Type   | Constraints                  |
+     |----------|--------|------------------------------|
+     | Id       | int    | PK, auto-generated           |
+     | Name     | string | Required, max length 100     |
+
+     Example list format:
+     - **Id** (int, PK, auto-generated)
+     - **Name** (string, required, max 100)
+-->
+
+## Business Rules
+
+<!-- Numbered rules. Each rule should be:
+     - SPECIFIC: not "validate bookings" but "up to 7 days in advance, no less than 30 minutes before start"
+     - ENFORCEABLE: maps to a concrete validation or computation
+     - INDEPENDENT: understandable without reading other rules
+
+     Cover: access control, state transitions, capacity management,
+     time-based constraints, cascade effects, computed values.
+
+     Aim for 8–12 rules per app. -->
+
+## API Endpoints
+
+<!-- Complete endpoint listing grouped by resource. Use tables:
+
+     | Method | Endpoint              | Description                              |
+     |--------|-----------------------|------------------------------------------|
+     | GET    | /api/items            | List items (search, filter, pagination)  |
+     | POST   | /api/items            | Create a new item                        |
+
+     Include: filters/search/pagination notes, side effects,
+     failure conditions, and convenience/aggregate endpoints.
+     Use POST for action endpoints (e.g., /cancel, /check-in). -->
+
+## Seed Data
+
+<!-- Specify minimum quantities and state variety for each entity.
+     Be explicit about:
+     - Exact values for plans/tiers/pricing
+     - State variety (entities in every status)
+     - Internal consistency (computed fields match related data)
+     - Only seed when database is empty
+
+     Example: At least 8 members, at least 15 bookings in various
+     states (confirmed, waitlisted, attended, cancelled, no-show) -->
+
+The application **MUST** seed the database on startup with realistic dummy data for demo and testing purposes. Ensure the seed data only runs when the database is empty to avoid duplicates.
+
+## HTTP File
+
+<!-- Instructions for creating a .http test file. -->
+
+Create a `.http` file in the same folder as `Program.cs`. This file should:
+
+- Use a `@baseUrl` variable set to `http://localhost:{{port}}`
+- Include sample requests for **ALL** endpoints listed above
+- Group requests by resource with comment headers
+- Include realistic request bodies for POST and PUT operations
+- Include query parameter examples for search/filter/pagination endpoints
+- Use IDs that correspond to the seed data so requests work out of the box
+- Include examples that test business rules
+
+## Cross-Cutting Concerns
+
+### Error Handling
+- Global exception handler returning RFC 7807 **ProblemDetails** responses
+- Business rule violations → **400 Bad Request** or **409 Conflict** with descriptive messages
+- Not-found → **404 Not Found**
+
+### Validation
+- Validate all input DTOs
+- Return **400 Bad Request** with structured validation error details
+
+### Logging
+- Use the built-in logger
+- Log key operations at **Information** level
+- Log errors at **Error** level
+
+### OpenAPI / Swagger
+- Swagger UI accessible at root or `/swagger`
+- Descriptive operation summaries and response types
+
+### Pagination
+- Consistent pattern across all list endpoints
+- Accept page number and page size with sensible defaults
+- Return pagination metadata (total count, total pages, current page)
+
+## Project Location
+
+Create the project at: `./src/{{ scenario_name }}/`
+
+The project should be a standalone project with no dependencies on other projects in this repository.

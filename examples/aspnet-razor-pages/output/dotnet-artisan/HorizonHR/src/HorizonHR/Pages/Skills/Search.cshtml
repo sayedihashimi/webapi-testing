@@ -1,0 +1,54 @@
+@page
+@model HorizonHR.Pages.Skills.SearchModel
+@using HorizonHR.Models
+@{ ViewData["Title"] = "Search by Skill"; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Skills</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Search</li>
+    </ol>
+</nav>
+<h1>Search Employees by Skill</h1>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label asp-for="SkillId" class="form-label">Skill</label>
+        <select asp-for="SkillId" asp-items="Model.AllSkills" class="form-select">
+            <option value="">Select Skill...</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label asp-for="MinProficiency" class="form-label">Minimum Proficiency</label>
+        <select asp-for="MinProficiency" asp-items="Html.GetEnumSelectList<ProficiencyLevel>()" class="form-select">
+            <option value="">Any Level</option>
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+</form>
+
+@if (Model.HasSearched)
+{
+    if (!Model.Results.Any())
+    {
+        <p class="text-muted">No employees found with the selected criteria.</p>
+    }
+    else
+    {
+        <table class="table table-hover">
+            <thead><tr><th>Name</th><th>Department</th><th>Job Title</th></tr></thead>
+            <tbody>
+                @foreach (var emp in Model.Results)
+                {
+                    <tr>
+                        <td><a asp-page="/Employees/Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                        <td>@emp.Department.Name</td>
+                        <td>@emp.JobTitle</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}

@@ -1,0 +1,70 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.SkillsModel
+@{
+    ViewData["Title"] = $"Skills - {Model.EmployeeName}";
+}
+
+<section>
+    <h1>Skills — @Model.EmployeeName</h1>
+
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">Add Skill</h5></div>
+        <div class="card-body">
+            <form method="post" asp-page-handler="Add" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label asp-for="Input.SkillId" class="form-label">Skill</label>
+                    <select asp-for="Input.SkillId" class="form-select" asp-items="Model.SkillOptions">
+                        <option value="">Select Skill</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Input.ProficiencyLevel" class="form-label">Proficiency</label>
+                    <select asp-for="Input.ProficiencyLevel" class="form-select" asp-items="@(new SelectList(Enum.GetValues<ProficiencyLevel>()))"></select>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="Input.YearsOfExperience" class="form-label">Years</label>
+                    <input asp-for="Input.YearsOfExperience" class="form-control" type="number" min="0" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (!Model.EmployeeSkills.Any())
+    {
+        <p class="text-muted">No skills assigned.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr><th>Skill</th><th>Category</th><th>Proficiency</th><th>Years</th><th>Last Assessed</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var es in Model.EmployeeSkills)
+                {
+                    <tr>
+                        <td>@es.Skill.Name</td>
+                        <td>@es.Skill.Category</td>
+                        <td>
+                            @{ ViewData["StatusText"] = es.ProficiencyLevel.ToString(); }
+                            <partial name="Shared/_StatusBadge" />
+                        </td>
+                        <td>@(es.YearsOfExperience?.ToString() ?? "—")</td>
+                        <td>@(es.LastAssessedDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                        <td>
+                            <form method="post" asp-page-handler="Remove" class="d-inline">
+                                <input type="hidden" name="employeeSkillId" value="@es.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <a asp-page="Details" asp-route-id="@Model.EmployeeId" class="btn btn-outline-secondary mt-3">Back to Profile</a>
+</section>

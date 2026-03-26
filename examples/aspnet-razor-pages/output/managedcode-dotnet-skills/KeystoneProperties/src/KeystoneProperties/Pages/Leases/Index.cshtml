@@ -1,0 +1,77 @@
+@page
+@model KeystoneProperties.Pages.Leases.IndexModel
+@{
+    ViewData["Title"] = "Leases";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Leases</h1>
+    <a asp-page="Create" class="btn btn-primary">Create New Lease</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label for="Status" class="form-label">Status</label>
+        <select asp-for="Status" asp-items="Html.GetEnumSelectList<LeaseStatus>()" class="form-select">
+            <option value="">All</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label for="PropertyId" class="form-label">Property</label>
+        <select asp-for="PropertyId" asp-items="@(new SelectList(Model.AllProperties, "Id", "Name"))" class="form-select">
+            <option value="">All</option>
+        </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+@if (Model.Leases.Count == 0)
+{
+    <div class="alert alert-info">No leases found.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Tenant</th>
+                <th>Unit</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Monthly Rent</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Leases)
+            {
+                <tr>
+                    <td><a asp-page="/Tenants/Details" asp-route-id="@item.TenantId">@item.Tenant.FullName</a></td>
+                    <td>@item.Unit.UnitNumber - @item.Unit.Property.Name</td>
+                    <td>@item.StartDate.ToString("MMM dd, yyyy")</td>
+                    <td>@item.EndDate.ToString("MMM dd, yyyy")</td>
+                    <td>@item.MonthlyRentAmount.ToString("C")</td>
+                    <td>@await Component.InvokeAsync("StatusBadge", new { status = item.Status.ToString() })</td>
+                    <td>
+                        <a asp-page="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                        @if (item.Status == LeaseStatus.Active)
+                        {
+                            <a asp-page="Terminate" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Terminate</a>
+                            <a asp-page="Renew" asp-route-id="@item.Id" class="btn btn-sm btn-outline-success">Renew</a>
+                        }
+                        @if (item.Status == LeaseStatus.Pending)
+                        {
+                            <a asp-page="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <partial name="_PaginationPartial" />
+}

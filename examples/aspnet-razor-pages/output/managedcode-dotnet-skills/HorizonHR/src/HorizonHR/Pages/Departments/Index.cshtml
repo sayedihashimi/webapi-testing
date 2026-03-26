@@ -1,0 +1,53 @@
+@page
+@model HorizonHR.Pages.Departments.IndexModel
+@{
+    ViewData["Title"] = "Departments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Departments</h1>
+    <a href="/Departments/Create" class="btn btn-primary">+ New Department</a>
+</div>
+
+@if (!Model.Departments.Any())
+{
+    <p class="text-muted">No departments found.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr><th>Code</th><th>Name</th><th>Parent</th><th>Manager</th><th>Employees</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var dept in Model.Departments.Where(d => d.ParentDepartmentId == null))
+            {
+                await RenderDepartmentRow(dept, 0);
+            }
+        </tbody>
+    </table>
+}
+
+@functions {
+    async Task RenderDepartmentRow(HorizonHR.Models.Department dept, int level)
+    {
+        var indent = new string('\u00A0', level * 4);
+        var prefix = level > 0 ? "└─ " : "";
+        <tr>
+            <td><code>@dept.Code</code></td>
+            <td>@Html.Raw(indent)@prefix<a href="/Departments/Details/@dept.Id">@dept.Name</a></td>
+            <td>@(dept.ParentDepartment?.Name ?? "—")</td>
+            <td>@(dept.Manager?.FullName ?? "—")</td>
+            <td>@dept.Employees.Count</td>
+            <td>
+                @{ViewData["Status"] = dept.IsActive ? "Active" : "Terminated";}
+                <partial name="Shared/_StatusBadge" view-data="ViewData" />
+            </td>
+            <td><a href="/Departments/Edit/@dept.Id" class="btn btn-sm btn-outline-secondary">Edit</a></td>
+        </tr>
+        @foreach (var child in Model.Departments.Where(d => d.ParentDepartmentId == dept.Id))
+        {
+            await RenderDepartmentRow(child, level + 1);
+        }
+    }
+}

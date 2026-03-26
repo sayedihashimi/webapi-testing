@@ -1,0 +1,67 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.CancelModel
+@{
+    ViewData["Title"] = "Cancel Event";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Events</a></li>
+        <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Event.Id">@Model.Event.Title</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Cancel</li>
+    </ol>
+</nav>
+
+<h1>Cancel Event</h1>
+
+<div class="alert alert-danger">
+    <h5 class="alert-heading">Are you sure you want to cancel this event?</h5>
+    <p>This action cannot be undone. All registrations will be cancelled.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Event Details</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Title</dt>
+                    <dd class="col-sm-8">@Model.Event.Title</dd>
+                    <dt class="col-sm-4">Date</dt>
+                    <dd class="col-sm-8">@Model.Event.StartDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+                    <dt class="col-sm-4">Venue</dt>
+                    <dd class="col-sm-8">@Model.Event.Venue.Name</dd>
+                    <dt class="col-sm-4">Current Registrations</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-warning text-dark">@Model.Event.CurrentRegistrations registrations will be cancelled</span>
+                    </dd>
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <partial name="_StatusBadge" model="@Model.Event.Status.ToString()" />
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="EventId" />
+
+            <div class="mb-3">
+                <label asp-for="Input.CancellationReason" class="form-label"></label>
+                <textarea asp-for="Input.CancellationReason" class="form-control" rows="4"
+                          placeholder="Please provide a reason for cancelling this event..."></textarea>
+                <span asp-validation-for="Input.CancellationReason" class="text-danger"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                <a asp-page="Details" asp-route-id="@Model.EventId" class="btn btn-outline-secondary">Go Back</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

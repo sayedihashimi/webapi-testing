@@ -1,0 +1,137 @@
+@page
+@model KeystoneProperties.Pages.Inspections.IndexModel
+@{
+    ViewData["Title"] = "Inspections";
+}
+
+<h1>Inspections</h1>
+
+@if (TempData["SuccessMessage"] is string success)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @success
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] is string error)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-2">
+        <label for="type" class="form-label">Type</label>
+        <select name="type" id="type" class="form-select">
+            <option value="">All Types</option>
+            @foreach (var t in Enum.GetValues<KeystoneProperties.Models.InspectionType>())
+            {
+                <option value="@t" selected="@(Model.CurrentType?.ToString() == t.ToString())">@t</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label for="unitId" class="form-label">Unit</label>
+        <select name="unitId" id="unitId" class="form-select">
+            <option value="">All Units</option>
+            @foreach (var u in Model.Units)
+            {
+                <option value="@u.Id" selected="@(Model.CurrentUnitId == u.Id)">@u.Property.Name - @u.UnitNumber</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label for="fromDate" class="form-label">From Date</label>
+        <input type="date" name="fromDate" id="fromDate" class="form-control" value="@Model.CurrentFromDate?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-md-2">
+        <label for="toDate" class="form-label">To Date</label>
+        <input type="date" name="toDate" id="toDate" class="form-control" value="@Model.CurrentToDate?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="col-md-3 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-page="./Index" class="btn btn-outline-secondary">Clear</a>
+        <a asp-page="./Create" class="btn btn-success">New Inspection</a>
+    </div>
+</form>
+
+@if (Model.Inspections.Items.Count == 0)
+{
+    <p class="text-muted">No inspections found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Unit</th>
+                <th>Type</th>
+                <th>Scheduled</th>
+                <th>Completed</th>
+                <th>Inspector</th>
+                <th>Condition</th>
+                <th>Follow-Up</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Inspections.Items)
+            {
+                <tr>
+                    <td>@item.Unit.Property.Name - @item.Unit.UnitNumber</td>
+                    <td>@await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", item.InspectionType.ToString() } })</td>
+                    <td>@item.ScheduledDate.ToString("yyyy-MM-dd")</td>
+                    <td>
+                        @if (item.CompletedDate.HasValue)
+                        {
+                            @item.CompletedDate.Value.ToString("yyyy-MM-dd")
+                        }
+                        else
+                        {
+                            <span class="text-muted">Pending</span>
+                        }
+                    </td>
+                    <td>@item.InspectorName</td>
+                    <td>
+                        @if (item.OverallCondition.HasValue)
+                        {
+                            @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", item.OverallCondition.Value.ToString() } })
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    <td>
+                        @if (item.FollowUpRequired)
+                        {
+                            <span class="badge bg-warning text-dark">Yes</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-page="./Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">View</a>
+                        @if (!item.CompletedDate.HasValue)
+                        {
+                            <a asp-page="./Complete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-success">Complete</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @await Html.PartialAsync("_Pagination", Model.Inspections, new ViewDataDictionary(ViewData)
+    {
+        { "PageUrl", Url.Page("./Index") },
+        { "type", Model.CurrentType?.ToString() ?? "" },
+        { "unitId", Model.CurrentUnitId?.ToString() ?? "" },
+        { "fromDate", Model.CurrentFromDate?.ToString("yyyy-MM-dd") ?? "" },
+        { "toDate", Model.CurrentToDate?.ToString("yyyy-MM-dd") ?? "" }
+    })
+}

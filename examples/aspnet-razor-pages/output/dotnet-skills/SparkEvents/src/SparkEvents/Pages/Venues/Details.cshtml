@@ -1,0 +1,46 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Venues.DetailsModel
+@{ ViewData["Title"] = Model.Venue!.Name; }
+
+<h1>@Model.Venue.Name</h1>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <p><strong>Address:</strong> @Model.Venue.Address, @Model.Venue.City, @Model.Venue.State @Model.Venue.ZipCode</p>
+                <p><strong>Max Capacity:</strong> @Model.Venue.MaxCapacity</p>
+                @if (Model.Venue.ContactEmail != null) { <p><strong>Email:</strong> @Model.Venue.ContactEmail</p> }
+                @if (Model.Venue.ContactPhone != null) { <p><strong>Phone:</strong> @Model.Venue.ContactPhone</p> }
+                @if (Model.Venue.Notes != null) { <p><strong>Notes:</strong> @Model.Venue.Notes</p> }
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3>Upcoming Events at this Venue</h3>
+@if (Model.Venue.Events.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Event</th><th>Date</th><th>Category</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var evt in Model.Venue.Events)
+                {
+                    <tr>
+                        <td><a asp-page="/Events/Details" asp-route-id="@evt.Id">@evt.Title</a></td>
+                        <td>@evt.StartDate.ToString("MMM dd, yyyy")</td>
+                        <td>@evt.EventCategory.Name</td>
+                        <td><partial name="_EventStatusBadge" model="evt.Status" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">No upcoming events at this venue.</p>
+}
+
+<a asp-page="Index" class="btn btn-secondary">Back to Venues</a>

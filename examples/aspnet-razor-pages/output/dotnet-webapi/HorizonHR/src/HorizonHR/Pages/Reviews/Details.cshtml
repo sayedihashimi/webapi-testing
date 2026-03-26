@@ -1,0 +1,95 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.DetailsModel
+@{
+    ViewData["Title"] = "Review Details";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Reviews</a></li>
+        <li class="breadcrumb-item active">Review #@Model.Review.Id</li>
+    </ol>
+</nav>
+
+<h1>Performance Review
+    <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Review.Status.ToString() } })' />
+</h1>
+
+<section class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <p><strong>Employee:</strong> <a asp-page="/Employees/Details" asp-route-id="@Model.Review.EmployeeId">@Model.Review.Employee.FirstName @Model.Review.Employee.LastName</a></p>
+                <p><strong>Department:</strong> @Model.Review.Employee.Department.Name</p>
+                <p><strong>Reviewer:</strong> @Model.Review.Reviewer.FirstName @Model.Review.Reviewer.LastName</p>
+                <p><strong>Period:</strong> @Model.Review.ReviewPeriodStart.ToString("MMM dd, yyyy") — @Model.Review.ReviewPeriodEnd.ToString("MMM dd, yyyy")</p>
+                @if (Model.Review.OverallRating.HasValue)
+                {
+                    <p><strong>Rating:</strong> <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Review.OverallRating.Value.ToString() } })' /></p>
+                }
+                @if (Model.Review.CompletedDate.HasValue)
+                {
+                    <p><strong>Completed:</strong> @Model.Review.CompletedDate.Value.ToString("MMM dd, yyyy")</p>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (!string.IsNullOrEmpty(Model.Review.SelfAssessment))
+{
+    <section class="mb-3">
+        <h4>Self-Assessment</h4>
+        <div class="card"><div class="card-body">@Model.Review.SelfAssessment</div></div>
+    </section>
+}
+
+@if (!string.IsNullOrEmpty(Model.Review.ManagerAssessment))
+{
+    <section class="mb-3">
+        <h4>Manager Assessment</h4>
+        <div class="card"><div class="card-body">@Model.Review.ManagerAssessment</div></div>
+    </section>
+}
+
+@if (!string.IsNullOrEmpty(Model.Review.StrengthsNoted))
+{
+    <section class="mb-3">
+        <h4>Strengths</h4>
+        <p>@Model.Review.StrengthsNoted</p>
+    </section>
+}
+
+@if (!string.IsNullOrEmpty(Model.Review.AreasForImprovement))
+{
+    <section class="mb-3">
+        <h4>Areas for Improvement</h4>
+        <p>@Model.Review.AreasForImprovement</p>
+    </section>
+}
+
+@if (!string.IsNullOrEmpty(Model.Review.Goals))
+{
+    <section class="mb-3">
+        <h4>Goals</h4>
+        <p>@Model.Review.Goals</p>
+    </section>
+}
+
+<div class="d-flex gap-2 mt-3">
+    @if (Model.Review.Status == ReviewStatus.Draft)
+    {
+        <form method="post" asp-page-handler="StartSelfAssessment">
+            <button type="submit" class="btn btn-primary">Start Self-Assessment</button>
+        </form>
+    }
+    @if (Model.Review.Status == ReviewStatus.SelfAssessmentPending)
+    {
+        <a asp-page="SelfAssessment" asp-route-id="@Model.Review.Id" class="btn btn-primary">Submit Self-Assessment</a>
+    }
+    @if (Model.Review.Status == ReviewStatus.ManagerReviewPending)
+    {
+        <a asp-page="ManagerReview" asp-route-id="@Model.Review.Id" class="btn btn-primary">Complete Manager Review</a>
+    }
+    <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+</div>

@@ -1,0 +1,42 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.CompleteModel
+@{
+    ViewData["Title"] = "Complete Event";
+}
+
+<h1 class="mb-4">Complete Event</h1>
+
+<div class="alert alert-info">
+    <h5 class="alert-heading">Mark this event as completed?</h5>
+    <p class="mb-0">This will mark the event as completed and finalize all registrations.</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">Event Details</h5></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Title</dt>
+            <dd class="col-sm-8">@Model.Event.Title</dd>
+
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8"><partial name="_StatusBadge" model="Model.Event.Status" /></dd>
+
+            <dt class="col-sm-4">Date</dt>
+            <dd class="col-sm-8">@Model.Event.StartDate.ToString("MMMM dd, yyyy h:mm tt") — @Model.Event.EndDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+            <dt class="col-sm-4">Venue</dt>
+            <dd class="col-sm-8">@Model.Event.Venue.Name</dd>
+
+            <dt class="col-sm-4">Registrations</dt>
+            <dd class="col-sm-8">@Model.Event.CurrentRegistrations / @Model.Event.TotalCapacity</dd>
+        </dl>
+    </div>
+</div>
+
+<form method="post">
+    <input type="hidden" asp-for="Id" />
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-info">Confirm Completion</button>
+        <a asp-page="Details" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary">Go Back</a>
+    </div>
+</form>

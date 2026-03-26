@@ -1,0 +1,98 @@
+@page
+@model HorizonHR.Pages.Reviews.IndexModel
+@{
+    ViewData["Title"] = "Performance Reviews";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Performance Reviews</h1>
+    <a asp-page="Create" class="btn btn-primary">Create Review</a>
+</div>
+
+<form method="get" class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="Status" class="form-label">Status</label>
+                <select asp-for="Status" class="form-select">
+                    <option value="">All Statuses</option>
+                    @foreach (var status in Enum.GetValues<ReviewStatus>())
+                    {
+                        <option value="@status">@System.Text.RegularExpressions.Regex.Replace(status.ToString(), "([a-z])([A-Z])", "$1 $2")</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="Rating" class="form-label">Rating</label>
+                <select asp-for="Rating" class="form-select">
+                    <option value="">All Ratings</option>
+                    @foreach (var rating in Enum.GetValues<OverallRating>())
+                    {
+                        <option value="@rating">@System.Text.RegularExpressions.Regex.Replace(rating.ToString(), "([a-z])([A-Z])", "$1 $2")</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="DepartmentId" class="form-label">Department</label>
+                <select asp-for="DepartmentId" class="form-select">
+                    <option value="">All Departments</option>
+                    @foreach (var dept in Model.Departments)
+                    {
+                        <option value="@dept.Id">@dept.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@if (Model.Reviews.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Reviewer</th>
+                    <th>Period</th>
+                    <th>Status</th>
+                    <th>Rating</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var review in Model.Reviews)
+                {
+                    <tr>
+                        <td>@review.Employee.FullName</td>
+                        <td>@review.Reviewer.FullName</td>
+                        <td>@review.ReviewPeriodStart.ToString("MMM d, yyyy") &ndash; @review.ReviewPeriodEnd.ToString("MMM d, yyyy")</td>
+                        <td><partial name="_StatusBadge" model="@review.Status.ToString()" /></td>
+                        <td>
+                            @if (review.OverallRating.HasValue)
+                            {
+                                <partial name="_StatusBadge" model="@review.OverallRating.Value.ToString()" />
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@review.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="_Pagination" model="@Model.Pagination" />
+}
+else
+{
+    <div class="alert alert-info">No reviews found matching the selected filters.</div>
+}

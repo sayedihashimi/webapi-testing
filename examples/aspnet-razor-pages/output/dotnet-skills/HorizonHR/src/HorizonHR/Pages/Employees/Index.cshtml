@@ -1,0 +1,118 @@
+@page
+@model HorizonHR.Pages.Employees.IndexModel
+@{
+    ViewData["Title"] = "Employees";
+}
+
+<section class="py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Employees</h1>
+        <a asp-page="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Create Employee
+        </a>
+    </div>
+
+    <form method="get" class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="SearchTerm" class="form-label">Search</label>
+                    <input type="text" id="SearchTerm" name="SearchTerm" value="@Model.SearchTerm"
+                           class="form-control" placeholder="Name, email, or employee number" />
+                </div>
+                <div class="col-md-2">
+                    <label for="DepartmentId" class="form-label">Department</label>
+                    <select id="DepartmentId" name="DepartmentId" class="form-select">
+                        <option value="">All Departments</option>
+                        @foreach (var dept in Model.Departments)
+                        {
+                            <option value="@dept.Id" selected="@(Model.DepartmentId == dept.Id)">@dept.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="EmploymentType" class="form-label">Employment Type</label>
+                    <select id="EmploymentType" name="EmploymentType" class="form-select">
+                        <option value="">All Types</option>
+                        @foreach (var type in Enum.GetValues<EmploymentType>())
+                        {
+                            <option value="@type" selected="@(Model.EmploymentType == type)">@type</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="Status" class="form-label">Status</label>
+                    <select id="Status" name="Status" class="form-select">
+                        <option value="">All Statuses</option>
+                        @foreach (var status in Enum.GetValues<EmployeeStatus>())
+                        {
+                            <option value="@status" selected="@(Model.Status == status)">@status</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-outline-primary">Search</button>
+                    <a asp-page="Index" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Employees.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Employee Number</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Job Title</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <tr>
+                            <td>@employee.EmployeeNumber</td>
+                            <td>
+                                <a asp-page="Details" asp-route-id="@employee.Id">@employee.FullName</a>
+                            </td>
+                            <td>@employee.Email</td>
+                            <td>@employee.Department?.Name</td>
+                            <td>@employee.JobTitle</td>
+                            <td>
+                                <partial name="_StatusBadge" model="@employee.Status.ToString()" />
+                            </td>
+                            <td>
+                                <a asp-page="Details" asp-route-id="@employee.Id" class="btn btn-sm btn-outline-info" title="Details">Details</a>
+                                <a asp-page="Edit" asp-route-id="@employee.Id" class="btn btn-sm btn-outline-warning" title="Edit">Edit</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center">
+            <p class="text-muted mb-0">
+                Showing @((Model.PageNumber - 1) * Model.PageSize + 1)–@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)) of @Model.TotalCount employees
+            </p>
+            <partial name="_Pagination" model="@(new PaginationModel
+            {
+                CurrentPage = Model.PageNumber,
+                TotalPages = Model.TotalPages,
+                PageUrl = "/Employees/Index"
+            })" />
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info" role="alert">
+            No employees found. Try adjusting your search criteria or <a asp-page="Create" class="alert-link">create a new employee</a>.
+        </div>
+    }
+</section>

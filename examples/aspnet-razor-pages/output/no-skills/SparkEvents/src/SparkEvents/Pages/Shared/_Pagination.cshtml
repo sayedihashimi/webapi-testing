@@ -1,0 +1,29 @@
+@model dynamic
+
+@{
+    int pageIndex = (int)Model.PageIndex;
+    int totalPages = (int)Model.TotalPages;
+    bool hasPreviousPage = (bool)Model.HasPreviousPage;
+    bool hasNextPage = (bool)Model.HasNextPage;
+    string pageUrl = (string)Model.PageUrl;
+}
+
+@if (totalPages > 1)
+{
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(hasPreviousPage ? "" : "disabled")">
+                <a class="page-link" href="@pageUrl&pageNumber=@(pageIndex - 1)">Previous</a>
+            </li>
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(i == pageIndex ? "active" : "")">
+                    <a class="page-link" href="@pageUrl&pageNumber=@i">@i</a>
+                </li>
+            }
+            <li class="page-item @(hasNextPage ? "" : "disabled")">
+                <a class="page-link" href="@pageUrl&pageNumber=@(pageIndex + 1)">Next</a>
+            </li>
+        </ul>
+    </nav>
+}

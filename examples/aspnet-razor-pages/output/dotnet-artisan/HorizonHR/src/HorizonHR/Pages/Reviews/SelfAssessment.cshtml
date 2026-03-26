@@ -1,0 +1,29 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.SelfAssessmentModel
+@{ ViewData["Title"] = "Self Assessment"; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Reviews</a></li>
+        <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Review.Id">Details</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Self Assessment</li>
+    </ol>
+</nav>
+<h1>Self Assessment — @Model.Review.Employee.FullName</h1>
+<p class="text-muted">Review Period: @Model.Review.ReviewPeriodStart.ToString("MMM dd, yyyy") — @Model.Review.ReviewPeriodEnd.ToString("MMM dd, yyyy")</p>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <input type="hidden" asp-for="Input.Id" />
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="Input.SelfAssessment" class="form-label">Your Assessment</label>
+                <textarea asp-for="Input.SelfAssessment" class="form-control" rows="8"></textarea>
+                <span asp-validation-for="Input.SelfAssessment" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Self-Assessment</button>
+            <a asp-page="Details" asp-route-id="@Model.Review.Id" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

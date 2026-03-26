@@ -1,0 +1,50 @@
+@page
+@model HorizonHR.Pages.Skills.IndexModel
+@{
+    ViewData["Title"] = "Skills Catalog";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Skills Catalog</h1>
+    <div>
+        <a href="/Skills/Search" class="btn btn-outline-info me-2">Search by Skill</a>
+        <a href="/Skills/Create" class="btn btn-primary">+ New Skill</a>
+    </div>
+</div>
+
+@if (!Model.Skills.Any())
+{
+    <p class="text-muted">No skills found.</p>
+}
+else
+{
+    var grouped = Model.Skills.GroupBy(s => s.Category).OrderBy(g => g.Key);
+    @foreach (var group in grouped)
+    {
+        <section class="mb-4">
+            <h4>@group.Key</h4>
+            <div class="row">
+                @foreach (var skill in group)
+                {
+                    <div class="col-md-4 mb-2">
+                        <div class="card card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@skill.Name</strong>
+                                    @if (!string.IsNullOrWhiteSpace(skill.Description))
+                                    {
+                                        <br /><small class="text-muted">@skill.Description</small>
+                                    }
+                                </div>
+                                <div>
+                                    <span class="badge bg-secondary">@skill.EmployeeSkills.Count employees</span>
+                                    <a href="/Skills/Edit/@skill.Id" class="btn btn-sm btn-outline-secondary ms-1">Edit</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+}

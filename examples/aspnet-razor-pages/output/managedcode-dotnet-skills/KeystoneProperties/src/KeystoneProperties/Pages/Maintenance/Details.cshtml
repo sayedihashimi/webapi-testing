@@ -1,0 +1,151 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Maintenance.DetailsModel
+@using KeystoneProperties.Models
+@{
+    ViewData["Title"] = Model.Request.Title;
+}
+
+<h1>@Model.Request.Title</h1>
+
+<p><a asp-page="/Maintenance/Index">&larr; Back to Maintenance Requests</a></p>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Request Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Unit</dt>
+                    <dd class="col-sm-8">
+                        <a asp-page="/Units/Details" asp-route-id="@Model.Request.UnitId">@Model.Request.Unit.UnitNumber</a>
+                        at @Model.Request.Unit.Property.Name
+                    </dd>
+
+                    <dt class="col-sm-4">Submitted By</dt>
+                    <dd class="col-sm-8">
+                        <a asp-page="/Tenants/Details" asp-route-id="@Model.Request.TenantId">@Model.Request.Tenant.FullName</a>
+                    </dd>
+
+                    <dt class="col-sm-4">Priority</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Request.Priority == MaintenancePriority.Emergency)
+                        {
+                            <span class="badge bg-danger fs-6"><strong>⚠ Emergency</strong></span>
+                        }
+                        else
+                        {
+                            @await Component.InvokeAsync("StatusBadge", new { status = Model.Request.Priority.ToString() })
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">@await Component.InvokeAsync("StatusBadge", new { status = Model.Request.Status.ToString() })</dd>
+
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(m => m.Request.Category)</dd>
+
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@Model.Request.Description</dd>
+
+                    <dt class="col-sm-4">Submitted Date</dt>
+                    <dd class="col-sm-8">@Model.Request.SubmittedDate.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                    @if (Model.Request.AssignedTo is not null)
+                    {
+                        <dt class="col-sm-4">Assigned To</dt>
+                        <dd class="col-sm-8">@Model.Request.AssignedTo</dd>
+
+                        <dt class="col-sm-4">Assigned Date</dt>
+                        <dd class="col-sm-8">@Model.Request.AssignedDate?.ToString("MMM dd, yyyy h:mm tt")</dd>
+                    }
+
+                    @if (Model.Request.Status == MaintenanceStatus.Completed)
+                    {
+                        <dt class="col-sm-4">Completed Date</dt>
+                        <dd class="col-sm-8">@Model.Request.CompletedDate?.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                        <dt class="col-sm-4">Completion Notes</dt>
+                        <dd class="col-sm-8">@(Model.Request.CompletionNotes ?? "—")</dd>
+                    }
+
+                    @if (Model.Request.EstimatedCost.HasValue)
+                    {
+                        <dt class="col-sm-4">Estimated Cost</dt>
+                        <dd class="col-sm-8">@Model.Request.EstimatedCost.Value.ToString("C")</dd>
+                    }
+
+                    @if (Model.Request.ActualCost.HasValue)
+                    {
+                        <dt class="col-sm-4">Actual Cost</dt>
+                        <dd class="col-sm-8">@Model.Request.ActualCost.Value.ToString("C")</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Status Timeline</h5>
+            </div>
+            <div class="card-body">
+                @{
+                    var statuses = new[]
+                    {
+                        (Name: "Submitted", Date: (DateTime?)Model.Request.SubmittedDate, IsCurrent: Model.Request.Status == MaintenanceStatus.Submitted),
+                        (Name: "Assigned", Date: Model.Request.AssignedDate, IsCurrent: Model.Request.Status == MaintenanceStatus.Assigned),
+                        (Name: "In Progress", Date: (DateTime?)null, IsCurrent: Model.Request.Status == MaintenanceStatus.InProgress),
+                        (Name: "Completed", Date: (DateTime?)Model.Request.CompletedDate, IsCurrent: Model.Request.Status == MaintenanceStatus.Completed)
+                    };
+
+                    var currentStatusIndex = Model.Request.Status switch
+                    {
+                        MaintenanceStatus.Submitted => 0,
+                        MaintenanceStatus.Assigned => 1,
+                        MaintenanceStatus.InProgress => 2,
+                        MaintenanceStatus.Completed => 3,
+                        MaintenanceStatus.Cancelled => -1,
+                        _ => -1
+                    };
+                }
+
+                @if (Model.Request.Status == MaintenanceStatus.Cancelled)
+                {
+                    <div class="alert alert-secondary mb-3">
+                        <strong>This request has been cancelled.</strong>
+                    </div>
+                }
+
+                <div class="list-group">
+                    @for (int i = 0; i < statuses.Length; i++)
+                    {
+                        var status = statuses[i];
+                        var isCompleted = i <= currentStatusIndex && currentStatusIndex >= 0;
+                        var bgClass = isCompleted ? "list-group-item-success" : "";
+                        var icon = isCompleted ? "✓" : "○";
+
+                        <div class="list-group-item @bgClass d-flex justify-content-between align-items-center">
+                            <span>
+                                <strong>@icon @status.Name</strong>
+                            </span>
+                            @if (status.Date.HasValue && isCompleted)
+                            {
+                                <small class="text-muted">@status.Date.Value.ToString("MMM dd, yyyy h:mm tt")</small>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Request.Status != MaintenanceStatus.Completed && Model.Request.Status != MaintenanceStatus.Cancelled)
+        {
+            <div class="mt-3">
+                <a asp-page="/Maintenance/UpdateStatus" asp-route-id="@Model.Request.Id" class="btn btn-primary">Update Status</a>
+            </div>
+        }
+    </div>
+</div>

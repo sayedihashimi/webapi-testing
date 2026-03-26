@@ -1,0 +1,66 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Registrations.CancelModel
+
+@{
+    ViewData["Title"] = "Cancel Registration";
+}
+
+<h1>Cancel Registration</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="alert alert-warning">
+            <strong>Cancellation Policy:</strong> Registrations can be cancelled up to 24 hours before the event start time.
+            Waitlisted registrations may be cancelled at any time.
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><strong>Registration Details</strong></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Confirmation #</dt>
+                    <dd class="col-sm-7">@Model.Registration.ConfirmationNumber</dd>
+
+                    <dt class="col-sm-5">Event</dt>
+                    <dd class="col-sm-7">@Model.Registration.Event.Title</dd>
+
+                    <dt class="col-sm-5">Attendee</dt>
+                    <dd class="col-sm-7">@Model.Registration.Attendee.FullName</dd>
+
+                    <dt class="col-sm-5">Ticket Type</dt>
+                    <dd class="col-sm-7">@Model.Registration.TicketType.Name</dd>
+
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        <partial name="_RegistrationStatusBadge" model="Model.Registration.Status" />
+                    </dd>
+
+                    <dt class="col-sm-5">Amount Paid</dt>
+                    <dd class="col-sm-7">@Model.Registration.AmountPaid.ToString("C")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <input type="hidden" asp-for="Input.RegistrationId" />
+
+            <div class="mb-3">
+                <label asp-for="Input.Reason" class="form-label"></label>
+                <textarea asp-for="Input.Reason" class="form-control" rows="3"
+                          placeholder="Please provide a reason for cancellation (optional)"></textarea>
+                <span asp-validation-for="Input.Reason" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-danger"
+                    onclick="return confirm('Are you sure you want to cancel this registration?');">
+                Confirm Cancellation
+            </button>
+            <a asp-page="Details" asp-route-id="@Model.Registration.Id" class="btn btn-outline-secondary">Go Back</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

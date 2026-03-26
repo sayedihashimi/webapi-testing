@@ -1,0 +1,77 @@
+@page "/Events/{eventId:int}/Roster"
+@model SparkEvents.Pages.Events.RosterModel
+@{
+    ViewData["Title"] = $"Roster: {Model.Event.Title}";
+}
+
+<h1>Event Roster</h1>
+<h5 class="text-muted mb-4">@Model.Event.Title</h5>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form method="get" class="d-flex">
+            <input type="text" name="search" value="@Model.Search" class="form-control me-2" placeholder="Search by name or confirmation #..." />
+            <button type="submit" class="btn btn-primary me-2">Search</button>
+            @if (!string.IsNullOrEmpty(Model.Search))
+            {
+                <a asp-page="Roster" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-secondary">Clear</a>
+            }
+        </form>
+    </div>
+    <div class="col-md-6 text-end">
+        <a asp-page="Register" asp-route-eventId="@Model.Event.Id" class="btn btn-success">+ Register Attendee</a>
+        <a asp-page="Waitlist" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-warning">View Waitlist</a>
+    </div>
+</div>
+
+@if (Model.Registrations.Items.Count == 0)
+{
+    <div class="alert alert-info">No confirmed registrations found.</div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Ticket</th>
+                <th>Confirmation #</th>
+                <th>Status</th>
+                <th>Check-In</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var reg in Model.Registrations.Items)
+            {
+                <tr>
+                    <td>@reg.Attendee?.FullName</td>
+                    <td>@reg.Attendee?.Email</td>
+                    <td>@reg.TicketType?.Name</td>
+                    <td><code>@reg.ConfirmationNumber</code></td>
+                    <td>
+                        <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", reg.Status.ToString() } })' />
+                    </td>
+                    <td>
+                        @if (reg.CheckInTime.HasValue)
+                        {
+                            <span class="text-success">✓ @reg.CheckInTime.Value.ToString("h:mm tt")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Not checked in</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <partial name="_Pagination" view-data='@(new ViewDataDictionary(ViewData) {
+        { "PageNumber", Model.Registrations.PageNumber },
+        { "TotalPages", Model.Registrations.TotalPages },
+        { "HasPreviousPage", Model.Registrations.HasPreviousPage },
+        { "HasNextPage", Model.Registrations.HasNextPage },
+        { "PageUrl", $"/Events/{Model.Event.Id}/Roster?search={Model.Search}&pageSize={Model.PageSize}" }
+    })' />
+}

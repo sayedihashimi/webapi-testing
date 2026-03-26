@@ -1,0 +1,70 @@
+@page
+@model KeystoneProperties.Pages.Inspections.CreateModel
+@{
+    ViewData["Title"] = "Schedule Inspection";
+}
+
+<section>
+    <h1 class="mb-4"><i class="bi bi-plus-circle"></i> Schedule Inspection</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Input.UnitId" class="form-label"></label>
+                        <select asp-for="Input.UnitId" asp-items="Model.UnitOptions" class="form-select">
+                            <option value="">— Select Unit —</option>
+                        </select>
+                        <span asp-validation-for="Input.UnitId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Input.InspectionType" class="form-label"></label>
+                        <select asp-for="Input.InspectionType" asp-items="Html.GetEnumSelectList<InspectionType>()" class="form-select"></select>
+                        <span asp-validation-for="Input.InspectionType" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Input.ScheduledDate" class="form-label"></label>
+                        <input asp-for="Input.ScheduledDate" type="date" class="form-control" />
+                        <span asp-validation-for="Input.ScheduledDate" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Input.InspectorName" class="form-label"></label>
+                        <input asp-for="Input.InspectorName" class="form-control" placeholder="Inspector name" />
+                        <span asp-validation-for="Input.InspectorName" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Input.LeaseId" class="form-label"></label>
+                        <select asp-for="Input.LeaseId" asp-items="Model.LeaseOptions" class="form-select">
+                            <option value="">— None —</option>
+                        </select>
+                        <span asp-validation-for="Input.LeaseId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Input.Notes" class="form-label"></label>
+                        <textarea asp-for="Input.Notes" class="form-control" rows="3" placeholder="Optional notes"></textarea>
+                        <span asp-validation-for="Input.Notes" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Schedule Inspection
+                    </button>
+                    <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

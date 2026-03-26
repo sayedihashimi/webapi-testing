@@ -1,0 +1,32 @@
+@{
+    var statusText = ViewData["StatusText"]?.ToString() ?? "";
+    var badgeClass = statusText switch
+    {
+        "Active" => "bg-success",
+        "OnLeave" => "bg-warning text-dark",
+        "Terminated" => "bg-secondary",
+        "Submitted" => "bg-info text-dark",
+        "Approved" => "bg-success",
+        "Rejected" => "bg-danger",
+        "Cancelled" => "bg-secondary",
+        "Draft" => "bg-light text-dark border",
+        "SelfAssessmentPending" => "bg-info text-dark",
+        "ManagerReviewPending" => "bg-warning text-dark",
+        "Completed" => "bg-success",
+        "Outstanding" => "bg-success",
+        "ExceedsExpectations" => "bg-primary",
+        "MeetsExpectations" => "bg-info text-dark",
+        "NeedsImprovement" => "bg-warning text-dark",
+        "Unsatisfactory" => "bg-danger",
+        "Beginner" => "bg-light text-dark border",
+        "Intermediate" => "bg-info text-dark",
+        "Advanced" => "bg-primary",
+        "Expert" => "bg-success",
+        "FullTime" => "bg-primary",
+        "PartTime" => "bg-info text-dark",
+        "Contract" => "bg-warning text-dark",
+        "Intern" => "bg-light text-dark border",
+        _ => "bg-secondary"
+    };
+}
+<span class="badge @badgeClass">@statusText</span>

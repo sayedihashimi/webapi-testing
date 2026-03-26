@@ -1,0 +1,114 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.DetailsModel
+@{
+    ViewData["Title"] = "Review Details";
+}
+
+@if (Model.Review is null)
+{
+    <p class="text-danger">Review not found.</p>
+}
+else
+{
+    var r = Model.Review;
+    <h1>Performance Review</h1>
+    <p class="text-muted">@r.Employee.FullName — @r.ReviewPeriodStart.ToString("MMM yyyy") to @r.ReviewPeriodEnd.ToString("MMM yyyy")</p>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Employee</dt>
+                        <dd class="col-sm-9"><a href="/Employees/Details/@r.EmployeeId">@r.Employee.FullName</a></dd>
+                        <dt class="col-sm-3">Department</dt>
+                        <dd class="col-sm-9">@r.Employee.Department.Name</dd>
+                        <dt class="col-sm-3">Reviewer</dt>
+                        <dd class="col-sm-9"><a href="/Employees/Details/@r.ReviewerId">@r.Reviewer.FullName</a></dd>
+                        <dt class="col-sm-3">Status</dt>
+                        <dd class="col-sm-9">
+                            @{ViewData["Status"] = r.Status.ToString();}
+                            <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                        </dd>
+                        <dt class="col-sm-3">Rating</dt>
+                        <dd class="col-sm-9">
+                            @if (r.OverallRating.HasValue)
+                            {
+                                ViewData["Status"] = r.OverallRating.Value.ToString();
+                                <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </dd>
+                        @if (r.CompletedDate.HasValue)
+                        {
+                            <dt class="col-sm-3">Completed</dt>
+                            <dd class="col-sm-9">@r.CompletedDate.Value.ToString("MMM d, yyyy")</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(r.SelfAssessment))
+    {
+        <section class="mb-3">
+            <h5>Self-Assessment</h5>
+            <div class="card card-body bg-light">@r.SelfAssessment</div>
+        </section>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(r.ManagerAssessment))
+    {
+        <section class="mb-3">
+            <h5>Manager Assessment</h5>
+            <div class="card card-body bg-light">@r.ManagerAssessment</div>
+        </section>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(r.StrengthsNoted))
+    {
+        <section class="mb-3">
+            <h5>Strengths</h5>
+            <p>@r.StrengthsNoted</p>
+        </section>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(r.AreasForImprovement))
+    {
+        <section class="mb-3">
+            <h5>Areas for Improvement</h5>
+            <p>@r.AreasForImprovement</p>
+        </section>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(r.Goals))
+    {
+        <section class="mb-3">
+            <h5>Goals</h5>
+            <p>@r.Goals</p>
+        </section>
+    }
+
+    <div class="d-flex gap-2">
+        @if (r.Status == HorizonHR.Models.Enums.ReviewStatus.SelfAssessmentPending)
+        {
+            <a href="/Reviews/SelfAssessment/@r.Id" class="btn btn-primary">Submit Self-Assessment</a>
+        }
+        @if (r.Status == HorizonHR.Models.Enums.ReviewStatus.ManagerReviewPending)
+        {
+            <a href="/Reviews/ManagerReview/@r.Id" class="btn btn-primary">Complete Manager Review</a>
+        }
+        @if (r.Status == HorizonHR.Models.Enums.ReviewStatus.Draft)
+        {
+            <form method="post">
+                <input type="hidden" name="id" value="@r.Id" />
+                <button type="submit" class="btn btn-outline-primary">Start Review (Move to Self-Assessment)</button>
+            </form>
+        }
+        <a href="/Reviews" class="btn btn-link">&larr; Back to Reviews</a>
+    </div>
+}

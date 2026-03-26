@@ -1,0 +1,212 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Tenants.DetailsModel
+@{
+    ViewData["Title"] = $"Tenant — {Model.Tenant.FullName}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>@Model.Tenant.FullName</h1>
+    <div>
+        <a asp-page="Edit" asp-route-id="@Model.Tenant.Id" class="btn btn-outline-primary">Edit</a>
+        @if (Model.Tenant.IsActive)
+        {
+            <a asp-page="Deactivate" asp-route-id="@Model.Tenant.Id" class="btn btn-outline-danger">Deactivate</a>
+        }
+        <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between">
+        <strong>Tenant Information</strong>
+        @if (Model.Tenant.IsActive)
+        {
+            <span class="badge bg-success">Active</span>
+        }
+        else
+        {
+            <span class="badge bg-secondary">Inactive</span>
+        }
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl>
+                    <dt>Email</dt>
+                    <dd><a href="mailto:@Model.Tenant.Email">@Model.Tenant.Email</a></dd>
+                    <dt>Phone</dt>
+                    <dd>@Model.Tenant.Phone</dd>
+                    <dt>Date of Birth</dt>
+                    <dd>@Model.Tenant.DateOfBirth.ToString("MMMM d, yyyy")</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl>
+                    <dt>Emergency Contact</dt>
+                    <dd>@Model.Tenant.EmergencyContactName</dd>
+                    <dt>Emergency Phone</dt>
+                    <dd>@Model.Tenant.EmergencyContactPhone</dd>
+                    <dt>Member Since</dt>
+                    <dd>@Model.Tenant.CreatedAt.ToString("MMMM d, yyyy")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    var activeLeases = Model.Tenant.Leases.Where(l => l.Status == LeaseStatus.Active).ToList();
+    var pastLeases = Model.Tenant.Leases.Where(l => l.Status != LeaseStatus.Active).ToList();
+}
+
+<div class="card mb-4">
+    <div class="card-header"><strong>Current Leases</strong> <span class="badge bg-primary">@activeLeases.Count</span></div>
+    <div class="card-body p-0">
+        @if (activeLeases.Count == 0)
+        {
+            <p class="p-3 mb-0 text-muted">No active leases.</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Unit</th>
+                        <th>Property</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Monthly Rent</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lease in activeLeases)
+                    {
+                        <tr>
+                            <td>@lease.Unit.UnitNumber</td>
+                            <td>@lease.Unit.Property.Name</td>
+                            <td>@lease.StartDate.ToString("MMM d, yyyy")</td>
+                            <td>@lease.EndDate.ToString("MMM d, yyyy")</td>
+                            <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                            <td><partial name="_StatusBadgePartial" model="@(lease.Status.ToString(), "LeaseStatus")" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><strong>Past Leases</strong> <span class="badge bg-secondary">@pastLeases.Count</span></div>
+    <div class="card-body p-0">
+        @if (pastLeases.Count == 0)
+        {
+            <p class="p-3 mb-0 text-muted">No past leases.</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Unit</th>
+                        <th>Property</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Monthly Rent</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lease in pastLeases)
+                    {
+                        <tr>
+                            <td>@lease.Unit.UnitNumber</td>
+                            <td>@lease.Unit.Property.Name</td>
+                            <td>@lease.StartDate.ToString("MMM d, yyyy")</td>
+                            <td>@lease.EndDate.ToString("MMM d, yyyy")</td>
+                            <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                            <td><partial name="_StatusBadgePartial" model="@(lease.Status.ToString(), "LeaseStatus")" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@{
+    var payments = Model.Tenant.Leases.SelectMany(l => l.Payments).OrderByDescending(p => p.PaymentDate).ToList();
+}
+
+<div class="card mb-4">
+    <div class="card-header"><strong>Payment History</strong> <span class="badge bg-primary">@payments.Count</span></div>
+    <div class="card-body p-0">
+        @if (payments.Count == 0)
+        {
+            <p class="p-3 mb-0 text-muted">No payments recorded.</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in payments)
+                    {
+                        <tr>
+                            <td>@payment.PaymentDate.ToString("MMM d, yyyy")</td>
+                            <td>@payment.Amount.ToString("C")</td>
+                            <td>@payment.PaymentType</td>
+                            <td>@payment.PaymentMethod</td>
+                            <td><partial name="_StatusBadgePartial" model="@(payment.Status.ToString(), "PaymentStatus")" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><strong>Maintenance Requests</strong> <span class="badge bg-primary">@Model.Tenant.MaintenanceRequests.Count</span></div>
+    <div class="card-body p-0">
+        @if (Model.Tenant.MaintenanceRequests.Count == 0)
+        {
+            <p class="p-3 mb-0 text-muted">No maintenance requests.</p>
+        }
+        else
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Unit</th>
+                        <th>Priority</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in Model.Tenant.MaintenanceRequests.OrderByDescending(m => m.SubmittedDate))
+                    {
+                        <tr>
+                            <td>@request.Title</td>
+                            <td>@request.Unit.UnitNumber</td>
+                            <td><partial name="_StatusBadgePartial" model="@(request.Priority.ToString(), "MaintenancePriority")" /></td>
+                            <td>@request.SubmittedDate.ToString("MMM d, yyyy")</td>
+                            <td><partial name="_StatusBadgePartial" model="@(request.Status.ToString(), "MaintenanceStatus")" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

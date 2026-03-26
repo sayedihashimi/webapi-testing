@@ -1,0 +1,172 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Maintenance.DetailsModel
+@{
+    ViewData["Title"] = "Maintenance Request Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Maintenance Request Details</h1>
+    <div>
+        @if (Model.Request.Status is not (MaintenanceStatus.Completed or MaintenanceStatus.Cancelled))
+        {
+            <a asp-page="UpdateStatus" asp-route-id="@Model.Request.Id" class="btn btn-warning">Update Status</a>
+        }
+        <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMsg)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @successMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">@Model.Request.Title</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Priority:</strong>
+                        <partial name="_StatusBadgePartial" model="@(Model.Request.Priority.ToString(), "MaintenancePriority")" />
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status:</strong>
+                        <partial name="_StatusBadgePartial" model="@(Model.Request.Status.ToString(), "MaintenanceStatus")" />
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Category:</strong> @Model.Request.Category
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Assigned To:</strong> @(Model.Request.AssignedTo ?? "Unassigned")
+                    </div>
+                </div>
+
+                <h6 class="mt-4">Description</h6>
+                <p class="border rounded p-3 bg-light">@Model.Request.Description</p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Unit &amp; Property</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Property:</strong> @Model.Request.Unit.Property.Name
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Unit:</strong> #@Model.Request.Unit.UnitNumber
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Tenant</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Name:</strong> @Model.Request.Tenant.FullName
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Email:</strong> @Model.Request.Tenant.Email
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <strong>Phone:</strong> @Model.Request.Tenant.Phone
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Request.CompletionNotes is not null)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Completion Notes</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">@Model.Request.CompletionNotes</p>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Dates</h5>
+            </div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Submitted</dt>
+                    <dd>@Model.Request.SubmittedDate.ToString("g")</dd>
+
+                    @if (Model.Request.AssignedDate.HasValue)
+                    {
+                        <dt>Assigned</dt>
+                        <dd>@Model.Request.AssignedDate.Value.ToString("g")</dd>
+                    }
+
+                    @if (Model.Request.CompletedDate.HasValue)
+                    {
+                        <dt>Completed</dt>
+                        <dd>@Model.Request.CompletedDate.Value.ToString("g")</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Costs</h5>
+            </div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt>Estimated Cost</dt>
+                    <dd>@(Model.Request.EstimatedCost?.ToString("C") ?? "—")</dd>
+                    <dt>Actual Cost</dt>
+                    <dd>@(Model.Request.ActualCost?.ToString("C") ?? "—")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Status Timeline</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.Request.Status == MaintenanceStatus.Cancelled)
+                {
+                    <div class="text-muted mb-2"><em>Request was cancelled.</em></div>
+                }
+                <ul class="list-unstyled mb-0">
+                    @foreach (var step in new[] { MaintenanceStatus.Submitted, MaintenanceStatus.Assigned, MaintenanceStatus.InProgress, MaintenanceStatus.Completed })
+                    {
+                        var completed = Model.IsTimelineStepCompleted(step);
+                        var active = Model.IsTimelineStepActive(step);
+                        var icon = completed ? "bi-check-circle-fill text-success" : "bi-circle text-muted";
+                        var textClass = active ? "fw-bold" : completed ? "" : "text-muted";
+
+                        <li class="d-flex align-items-center mb-2">
+                            <i class="bi @icon me-2"></i>
+                            <span class="@textClass">@step</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

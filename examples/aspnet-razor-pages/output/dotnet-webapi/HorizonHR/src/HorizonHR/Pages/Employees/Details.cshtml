@@ -1,0 +1,149 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.DetailsModel
+@{
+    ViewData["Title"] = $"{Model.Employee.FirstName} {Model.Employee.LastName}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Employees</a></li>
+        <li class="breadcrumb-item active">@Model.Employee.FirstName @Model.Employee.LastName</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>@Model.Employee.FirstName @Model.Employee.LastName
+        <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Employee.Status.ToString() } })' />
+    </h1>
+    <div>
+        <a asp-page="Edit" asp-route-id="@Model.Employee.Id" class="btn btn-outline-secondary">Edit</a>
+        @if (Model.Employee.Status != EmployeeStatus.Terminated)
+        {
+            <a asp-page="Terminate" asp-route-id="@Model.Employee.Id" class="btn btn-outline-danger">Terminate</a>
+        }
+    </div>
+</div>
+
+<section class="row mb-4">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><strong>Personal Information</strong></div>
+            <div class="card-body">
+                <p><strong>Employee #:</strong> @Model.Employee.EmployeeNumber</p>
+                <p><strong>Email:</strong> @Model.Employee.Email</p>
+                <p><strong>Phone:</strong> @(Model.Employee.Phone ?? "N/A")</p>
+                <p><strong>Date of Birth:</strong> @Model.Employee.DateOfBirth.ToString("MMM dd, yyyy")</p>
+                <p><strong>Address:</strong> @(string.Join(", ", new[] { Model.Employee.Address, Model.Employee.City, Model.Employee.State, Model.Employee.ZipCode }.Where(s => !string.IsNullOrEmpty(s))))</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header"><strong>Employment Details</strong></div>
+            <div class="card-body">
+                <p><strong>Department:</strong> <a asp-page="/Departments/Details" asp-route-id="@Model.Employee.DepartmentId">@Model.Employee.Department.Name</a></p>
+                <p><strong>Job Title:</strong> @Model.Employee.JobTitle</p>
+                <p><strong>Type:</strong> <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", Model.Employee.EmploymentType.ToString() } })' /></p>
+                <p><strong>Hire Date:</strong> @Model.Employee.HireDate.ToString("MMM dd, yyyy")</p>
+                <p><strong>Salary:</strong> @Model.Employee.Salary.ToString("C")</p>
+                <p><strong>Manager:</strong>
+                    @if (Model.Employee.Manager != null)
+                    {
+                        <a asp-page="Details" asp-route-id="@Model.Employee.Manager.Id">@Model.Employee.Manager.FirstName @Model.Employee.Manager.LastName</a>
+                    }
+                    else
+                    {
+                        <span>None</span>
+                    }
+                </p>
+                @if (Model.Employee.TerminationDate.HasValue)
+                {
+                    <p><strong>Termination Date:</strong> @Model.Employee.TerminationDate.Value.ToString("MMM dd, yyyy")</p>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (Model.Employee.DirectReports.Any())
+{
+    <section class="mb-4">
+        <h3>Direct Reports <a asp-page="DirectReports" asp-route-id="@Model.Employee.Id" class="btn btn-sm btn-outline-primary">View All</a></h3>
+        <ul class="list-group">
+            @foreach (var dr in Model.Employee.DirectReports)
+            {
+                <li class="list-group-item"><a asp-page="Details" asp-route-id="@dr.Id">@dr.FirstName @dr.LastName</a> — @dr.JobTitle</li>
+            }
+        </ul>
+    </section>
+}
+
+<section class="mb-4">
+    <h3>Leave Balances (@DateTime.UtcNow.Year)</h3>
+    @if (!Model.Employee.LeaveBalances.Any())
+    {
+        <p>No leave balances found.</p>
+    }
+    else
+    {
+        <table class="table table-sm">
+            <thead>
+                <tr><th>Leave Type</th><th>Total</th><th>Used</th><th>Carried Over</th><th>Remaining</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var lb in Model.Employee.LeaveBalances.Where(b => b.Year == DateTime.UtcNow.Year))
+                {
+                    <tr>
+                        <td>@lb.LeaveType.Name</td>
+                        <td>@lb.TotalDays</td>
+                        <td>@lb.UsedDays</td>
+                        <td>@lb.CarriedOverDays</td>
+                        <td><strong>@lb.RemainingDays</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <a asp-page="/Leave/Employee" asp-route-id="@Model.Employee.Id" class="btn btn-sm btn-outline-info">View Leave Details</a>
+    }
+</section>
+
+<section class="mb-4">
+    <h3>Skills <a asp-page="Skills" asp-route-id="@Model.Employee.Id" class="btn btn-sm btn-outline-primary">Manage</a></h3>
+    @if (!Model.Employee.EmployeeSkills.Any())
+    {
+        <p>No skills recorded.</p>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap gap-2">
+            @foreach (var es in Model.Employee.EmployeeSkills)
+            {
+                <span class="badge bg-light text-dark border">@es.Skill.Name — <partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", es.ProficiencyLevel.ToString() } })' /></span>
+            }
+        </div>
+    }
+</section>
+
+@if (Model.Employee.PerformanceReviews.Any())
+{
+    <section class="mb-4">
+        <h3>Recent Reviews</h3>
+        <table class="table table-sm">
+            <thead>
+                <tr><th>Period</th><th>Reviewer</th><th>Status</th><th>Rating</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Employee.PerformanceReviews)
+                {
+                    <tr>
+                        <td>@r.ReviewPeriodStart.ToString("MMM yyyy") — @r.ReviewPeriodEnd.ToString("MMM yyyy")</td>
+                        <td>@r.Reviewer?.FirstName @r.Reviewer?.LastName</td>
+                        <td><partial name="_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", r.Status.ToString() } })' /></td>
+                        <td>@(r.OverallRating?.ToString() ?? "—")</td>
+                        <td><a asp-page="/Reviews/Details" asp-route-id="@r.Id" class="btn btn-sm btn-outline-info">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+}

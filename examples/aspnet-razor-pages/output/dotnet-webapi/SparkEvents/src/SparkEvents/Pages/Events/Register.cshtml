@@ -1,0 +1,88 @@
+@page "/Events/{eventId:int}/Register"
+@model SparkEvents.Pages.Events.RegisterModel
+@{
+    ViewData["Title"] = $"Register for {Model.Event.Title}";
+    var isEarlyBird = Model.Event.EarlyBirdDeadline.HasValue && DateTime.Now < Model.Event.EarlyBirdDeadline.Value;
+}
+
+<h1>Register for Event</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">@Model.Event.Title</h5>
+    </div>
+    <div class="card-body">
+        <p><strong>Date:</strong> @Model.Event.StartDate.ToString("MMMM d, yyyy h:mm tt") — @Model.Event.EndDate.ToString("MMMM d, yyyy h:mm tt")</p>
+        <p><strong>Capacity:</strong> @Model.Event.CurrentRegistrations / @Model.Event.TotalCapacity</p>
+        @if (isEarlyBird)
+        {
+            <p><span class="badge bg-info">Early Bird Pricing Available!</span> Ends @Model.Event.EarlyBirdDeadline!.Value.ToString("MMMM d, yyyy")</p>
+        }
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.AttendeeId" class="form-label"></label>
+                <select asp-for="Input.AttendeeId" class="form-select">
+                    <option value="">-- Select Attendee --</option>
+                    @foreach (var attendee in Model.Attendees)
+                    {
+                        <option value="@attendee.Id">@attendee.FullName (@attendee.Email)</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.AttendeeId" class="text-danger"></span>
+                <div class="form-text">
+                    <a asp-page="/Attendees/Create" class="text-decoration-none">+ Create a new attendee</a>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.TicketTypeId" class="form-label"></label>
+                @foreach (var ticket in Model.TicketTypes.Where(t => t.IsActive))
+                {
+                    var remaining = ticket.Quantity - ticket.QuantitySold;
+                    var displayPrice = isEarlyBird && ticket.EarlyBirdPrice.HasValue
+                        ? ticket.EarlyBirdPrice.Value
+                        : ticket.Price;
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" asp-for="Input.TicketTypeId"
+                               value="@ticket.Id" id="ticket_@ticket.Id"
+                               disabled="@(remaining <= 0)" />
+                        <label class="form-check-label" for="ticket_@ticket.Id">
+                            <strong>@ticket.Name</strong> — @displayPrice.ToString("C")
+                            @if (isEarlyBird && ticket.EarlyBirdPrice.HasValue)
+                            {
+                                <span class="text-muted text-decoration-line-through ms-1">@ticket.Price.ToString("C")</span>
+                                <span class="badge bg-info ms-1">Early Bird</span>
+                            }
+                            <span class="text-muted ms-2">(@remaining remaining)</span>
+                        </label>
+                        @if (ticket.Description is not null)
+                        {
+                            <div class="form-text">@ticket.Description</div>
+                        }
+                    </div>
+                }
+                <span asp-validation-for="Input.TicketTypeId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.SpecialRequests" class="form-label"></label>
+                <textarea asp-for="Input.SpecialRequests" class="form-control" rows="3" placeholder="Any special requests or accommodations needed?"></textarea>
+                <span asp-validation-for="Input.SpecialRequests" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Complete Registration</button>
+            <a asp-page="/Events/Index" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

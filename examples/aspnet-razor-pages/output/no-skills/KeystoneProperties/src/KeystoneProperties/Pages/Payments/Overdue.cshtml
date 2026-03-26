@@ -1,0 +1,25 @@
+@page
+@model KeystoneProperties.Pages.Payments.OverdueModel
+@{ ViewData["Title"] = "Overdue Payments"; }
+<h1>Overdue Payments</h1>
+@if (Model.OverdueItems.Any())
+{
+    <table class="table table-striped">
+        <thead><tr><th>Tenant</th><th>Property</th><th>Unit</th><th>Due Date</th><th>Rent Amount</th><th>Actions</th></tr></thead>
+        <tbody>
+            @foreach (var (lease, dueDate) in Model.OverdueItems)
+            {
+                <tr>
+                    <td>@lease.Tenant.FullName</td>
+                    <td>@lease.Unit.Property.Name</td>
+                    <td>@lease.Unit.UnitNumber</td>
+                    <td><span class="text-danger fw-bold">@dueDate.ToString("MMM dd, yyyy")</span></td>
+                    <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                    <td><a asp-page="Create" class="btn btn-sm btn-outline-primary">Record Payment</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else { <p class="text-muted">No overdue payments. 🎉</p> }
+<a asp-page="Index" class="btn btn-outline-secondary">Back to Payments</a>

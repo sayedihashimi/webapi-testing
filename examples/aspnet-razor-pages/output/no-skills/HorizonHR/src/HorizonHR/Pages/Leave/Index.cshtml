@@ -1,0 +1,73 @@
+@page
+@model HorizonHR.Pages.Leave.IndexModel
+@{
+    ViewData["Title"] = "Leave Requests";
+}
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Leave Requests</h1>
+        <div>
+            <a asp-page="Balances" class="btn btn-outline-primary me-2">View Balances</a>
+            <a asp-page="Create" class="btn btn-primary">Submit Request</a>
+        </div>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3">
+            <select name="status" class="form-select" asp-items="@(new SelectList(Enum.GetValues<LeaveRequestStatus>()))">
+                <option value="">All Statuses</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="employeeId" class="form-select" asp-items="Model.EmployeeOptions">
+                <option value="">All Employees</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="leaveTypeId" class="form-select" asp-items="Model.LeaveTypeOptions">
+                <option value="">All Types</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+        </div>
+    </form>
+
+    @if (!Model.LeaveRequests.Any())
+    {
+        <p class="text-muted">No leave requests found.</p>
+    }
+    else
+    {
+        <table class="table table-hover">
+            <thead>
+                <tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var lr in Model.LeaveRequests)
+                {
+                    <tr>
+                        <td><a asp-page="/Employees/Details" asp-route-id="@lr.EmployeeId">@lr.Employee.FullName</a></td>
+                        <td>@lr.LeaveType.Name</td>
+                        <td>@lr.StartDate.ToString("MMM dd") – @lr.EndDate.ToString("MMM dd, yyyy")</td>
+                        <td>@lr.TotalDays</td>
+                        <td>
+                            @{ ViewData["StatusText"] = lr.Status.ToString(); }
+                            <partial name="Shared/_StatusBadge" />
+                        </td>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@lr.Id" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+    }
+
+    ViewData["CurrentPage"] = Model.PageNumber;
+    ViewData["TotalPages"] = Model.TotalPages;
+    ViewData["PageUrl"] = $"?status={Model.StatusFilter}&employeeId={Model.EmployeeFilter}&leaveTypeId={Model.LeaveTypeFilter}";
+    <partial name="Shared/_Pagination" />
+</section>

@@ -1,0 +1,56 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Properties.DeactivateModel
+@{
+    ViewData["Title"] = "Deactivate Property";
+}
+
+<h1>Deactivate Property</h1>
+<hr />
+
+<div class="alert alert-warning">
+    <strong>Warning:</strong> You are about to deactivate this property. This action will mark the property as inactive.
+    Properties with active leases cannot be deactivated.
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Property Information</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Name</dt>
+            <dd class="col-sm-8">@Model.Property.Name</dd>
+
+            <dt class="col-sm-4">Address</dt>
+            <dd class="col-sm-8">@Model.Property.Address, @Model.Property.City, @Model.Property.State @Model.Property.ZipCode</dd>
+
+            <dt class="col-sm-4">Type</dt>
+            <dd class="col-sm-8">@Model.Property.PropertyType</dd>
+
+            <dt class="col-sm-4">Total Units</dt>
+            <dd class="col-sm-8">@Model.Property.TotalUnits</dd>
+
+            <dt class="col-sm-4">Occupied Units</dt>
+            <dd class="col-sm-8">@Model.OccupiedUnitCount</dd>
+
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">
+                @if (Model.Property.IsActive)
+                {
+                    <span class="badge bg-success">Active</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Inactive</span>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<form method="post" asp-route-id="@Model.Property.Id">
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-danger">Confirm Deactivation</button>
+        <a asp-page="Details" asp-route-id="@Model.Property.Id" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>

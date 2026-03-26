@@ -1,0 +1,74 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.CheckIn.IndexModel
+@{ ViewData["Title"] = $"Check-In — {Model.Event!.Title}"; }
+
+<h1>Check-In Dashboard — @Model.Event.Title</h1>
+<a asp-page="/Events/Details" asp-route-id="@Model.Event.Id" class="btn btn-outline-secondary mb-3">← Back to Event</a>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Check-In Progress</h5>
+                @{
+                    var pct = Model.TotalConfirmed > 0 ? (int)((double)Model.CheckedInCount / Model.TotalConfirmed * 100) : 0;
+                }
+                <div class="display-4">@Model.CheckedInCount / @Model.TotalConfirmed</div>
+                <div class="progress mt-2">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: @pct%" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100">@pct%</div>
+                </div>
+                @if (!Model.IsCheckInOpen)
+                {
+                    <div class="alert alert-warning mt-2" role="alert">Check-in is not currently open.</div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Search Attendee</h5>
+                <form method="get">
+                    <div class="input-group">
+                        <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search by confirmation #, name..." />
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.SearchResults.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Confirmation #</th><th>Attendee</th><th>Ticket</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var reg in Model.SearchResults)
+                {
+                    <tr>
+                        <td>@reg.ConfirmationNumber</td>
+                        <td>@reg.Attendee.FullName</td>
+                        <td>@reg.TicketType.Name</td>
+                        <td><partial name="_RegistrationStatusBadge" model="reg.Status" /></td>
+                        <td>
+                            @if (reg.Status == SparkEvents.Models.RegistrationStatus.Confirmed && Model.IsCheckInOpen)
+                            {
+                                <a asp-page="Process" asp-route-eventId="@Model.Event.Id" asp-route-registrationId="@reg.Id" class="btn btn-sm btn-success">Check In</a>
+                            }
+                            else if (reg.Status == SparkEvents.Models.RegistrationStatus.CheckedIn)
+                            {
+                                <span class="text-success">✅ @reg.CheckInTime?.ToString("h:mm tt")</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else if (Model.Search != null)
+{
+    <p class="text-muted">No results found.</p>
+}

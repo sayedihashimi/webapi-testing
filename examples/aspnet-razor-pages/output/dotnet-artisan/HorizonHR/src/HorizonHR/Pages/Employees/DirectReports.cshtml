@@ -1,0 +1,36 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.DirectReportsModel
+@{ ViewData["Title"] = $"Direct Reports — {Model.Manager.FullName}"; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Employees</a></li>
+        <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Manager.Id">@Model.Manager.FullName</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Direct Reports</li>
+    </ol>
+</nav>
+
+<h1>Direct Reports — @Model.Manager.FullName</h1>
+
+@if (!Model.Reports.Any())
+{
+    <p class="text-muted">No direct reports.</p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead><tr><th>Employee #</th><th>Name</th><th>Department</th><th>Job Title</th><th>Status</th></tr></thead>
+        <tbody>
+            @foreach (var emp in Model.Reports)
+            {
+                <tr>
+                    <td>@emp.EmployeeNumber</td>
+                    <td><a asp-page="Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                    <td>@emp.Department.Name</td>
+                    <td>@emp.JobTitle</td>
+                    <td><partial name="/Pages/Shared/_StatusBadge" view-data='@(new ViewDataDictionary(ViewData) { { "Status", emp.Status.ToString() } })' /></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

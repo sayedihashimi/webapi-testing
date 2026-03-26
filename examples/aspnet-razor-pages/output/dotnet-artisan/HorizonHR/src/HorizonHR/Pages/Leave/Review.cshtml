@@ -1,0 +1,46 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Leave.ReviewModel
+@{ ViewData["Title"] = "Review Leave Request"; }
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Leave Requests</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Review</li>
+    </ol>
+</nav>
+<h1>Review Leave Request</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Employee</dt><dd class="col-sm-9">@Model.Request.Employee.FullName</dd>
+            <dt class="col-sm-3">Leave Type</dt><dd class="col-sm-9">@Model.Request.LeaveType.Name</dd>
+            <dt class="col-sm-3">Dates</dt><dd class="col-sm-9">@Model.Request.StartDate.ToString("MMM dd") — @Model.Request.EndDate.ToString("MMM dd, yyyy")</dd>
+            <dt class="col-sm-3">Total Days</dt><dd class="col-sm-9">@Model.Request.TotalDays</dd>
+            <dt class="col-sm-3">Reason</dt><dd class="col-sm-9">@Model.Request.Reason</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="post">
+            <input type="hidden" asp-for="Input.Id" />
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="Input.ReviewedById" class="form-label">Reviewer</label>
+                <select asp-for="Input.ReviewedById" asp-items="Model.Reviewers" class="form-select">
+                    <option value="">Select Reviewer...</option>
+                </select>
+                <span asp-validation-for="Input.ReviewedById" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Notes" class="form-label">Notes</label>
+                <textarea asp-for="Input.Notes" class="form-control" rows="3"></textarea>
+            </div>
+            <button type="submit" asp-page-handler="Approve" class="btn btn-success">Approve</button>
+            <button type="submit" asp-page-handler="Reject" class="btn btn-danger">Reject</button>
+            <a asp-page="Details" asp-route-id="@Model.Request.Id" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

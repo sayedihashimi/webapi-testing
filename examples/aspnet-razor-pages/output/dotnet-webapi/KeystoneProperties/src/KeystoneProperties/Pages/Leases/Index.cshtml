@@ -1,0 +1,84 @@
+@page
+@model KeystoneProperties.Pages.Leases.IndexModel
+@{
+    ViewData["Title"] = "Leases";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Leases</h1>
+    <a asp-page="Create" class="btn btn-primary">New Lease</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label for="Status" class="form-label">Status</label>
+        <select asp-for="Status" class="form-select">
+            <option value="">All Statuses</option>
+            @foreach (var s in Enum.GetValues<KeystoneProperties.Models.LeaseStatus>())
+            {
+                <option value="@s">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label for="PropertyId" class="form-label">Property</label>
+        <select asp-for="PropertyId" class="form-select">
+            <option value="">All Properties</option>
+            @foreach (var p in Model.Properties)
+            {
+                <option value="@p.Id">@p.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+        <button type="submit" class="btn btn-outline-secondary me-2">Filter</button>
+        <a asp-page="Index" class="btn btn-outline-dark">Clear</a>
+    </div>
+</form>
+
+@if (Model.Leases.Items.Count == 0)
+{
+    <div class="alert alert-info">No leases found matching the selected filters.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Tenant</th>
+                    <th>Unit</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Monthly Rent</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var lease in Model.Leases.Items)
+                {
+                    <tr>
+                        <td>@lease.Tenant.FullName</td>
+                        <td>@lease.Unit.Property.Name - @lease.Unit.UnitNumber</td>
+                        <td>@lease.StartDate.ToString("MMM d, yyyy")</td>
+                        <td>@lease.EndDate.ToString("MMM d, yyyy")</td>
+                        <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                        <td>
+                            @await Html.PartialAsync("_StatusBadge", new ViewDataDictionary(ViewData) { { "Status", lease.Status.ToString() } })
+                        </td>
+                        <td>
+                            <a asp-page="Details" asp-route-id="@lease.Id" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    var queryString = new List<string>();
+    if (Model.Status.HasValue) { queryString.Add($"status={Model.Status}"); }
+    if (Model.PropertyId.HasValue) { queryString.Add($"propertyId={Model.PropertyId}"); }
+    ViewData["QueryString"] = string.Join("&", queryString);
+    @await Html.PartialAsync("_Pagination", Model.Leases as object)
+}

@@ -1,0 +1,198 @@
+name: Agent Live Routing
+
+on:
+  workflow_dispatch:
+    inputs:
+      categories:
+        description: 'Optional comma-separated categories from tests/agent-routing/cases.json'
+        required: false
+        type: string
+      fail_on_infra:
+        description: 'Fail the workflow when infra_error results are present'
+        required: false
+        type: boolean
+        default: true
+      baseline_ref:
+        description: 'Git ref for baseline comparison (default: main)'
+        required: false
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  structural-smoke:
+    name: Cross-provider structural checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run structural smoke tests
+        run: |
+          set -euo pipefail
+          python scripts/run-agent-routing-smoke.py --provider claude,codex,copilot
+
+  routing-test:
+    name: Route ${{ matrix.agent }}
+    needs: [structural-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [claude, codex, copilot]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run live routing checks
+        env:
+          INPUT_CATEGORIES: ${{ github.event.inputs.categories }}
+          INPUT_FAIL_ON_INFRA: ${{ github.event.inputs.fail_on_infra }}
+        run: |
+          set -uo pipefail
+
+          ARGS=(--agents "${{ matrix.agent }}")
+
+          if [ -n "${INPUT_CATEGORIES:-}" ]; then
+            ARGS+=(--category "$INPUT_CATEGORIES")
+          fi
+
+          # Manual runs: use the workflow input (default true).
+          if [ "${INPUT_FAIL_ON_INFRA:-true}" = "true" ]; then
+            ARGS+=(--fail-on-infra)
+          fi
+
+          # Run test.sh, capturing stderr separately for ARTIFACT_DIR parsing.
+          # Disable -e so we can capture the exit code before exiting.
+          ./test.sh "${ARGS[@]}" 2>stderr.log | tee stdout.log || true
+          TEST_EXIT=${PIPESTATUS[0]}
+
+          # Extract ARTIFACT_DIR from stderr for artifact upload (first match only)
+          ARTIFACT_DIR="$(grep -m1 '^ARTIFACT_DIR=' stderr.log | cut -d= -f2- | tr -d '\r' || true)"
+          if [ -n "$ARTIFACT_DIR" ]; then
+            echo "ARTIFACT_DIR=$ARTIFACT_DIR" >> "$GITHUB_ENV"
+          fi
+
+          # Re-emit stderr to console for visibility
+          cat stderr.log >&2
+
+          exit "$TEST_EXIT"
+
+      - name: Upload provider artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: routing-results-${{ matrix.agent }}
+          path: |
+            ${{ env.ARTIFACT_DIR || 'tests/agent-routing/artifacts/' }}
+          if-no-files-found: warn
+
+  summarize:
+    name: Summarize and regression gate
+    needs: [routing-test]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch baseline ref
+        env:
+          BASELINE_REF: ${{ github.event.inputs.baseline_ref || 'main' }}
+        run: |
+          set -euo pipefail
+          # Strip origin/ prefix if user provided it to avoid double-prefixing
+          CLEAN_REF="${BASELINE_REF#origin/}"
+
+          # If the ref already resolves locally (e.g. a SHA from fetch-depth: 0),
+          # use it directly without fetching
+          if git rev-parse --verify "${CLEAN_REF}^{commit}" >/dev/null 2>&1; then
+            RESOLVED="${CLEAN_REF}"
+          else
+            git fetch origin -- "$CLEAN_REF"
+            # Prefer origin/<branch>, fall back to FETCH_HEAD for tags/non-branch refs
+            if git rev-parse --verify "origin/${CLEAN_REF}" >/dev/null 2>&1; then
+              RESOLVED="origin/${CLEAN_REF}"
+            elif git rev-parse --verify FETCH_HEAD >/dev/null 2>&1; then
+              RESOLVED="FETCH_HEAD"
+            else
+              echo "ERROR: Cannot resolve fetched ref '${CLEAN_REF}'"
+              exit 1
+            fi
+          fi
+          echo "RESOLVED_BASELINE_REF=${RESOLVED}" >> "$GITHUB_ENV"
+
+      - name: Download all provider artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: routing-results-*
+          merge-multiple: true
+          path: downloaded-artifacts
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run regression comparison
+        env:
+          INPUT_FAIL_ON_INFRA: ${{ github.event.inputs.fail_on_infra }}
+        run: |
+          set -euo pipefail
+
+          python scripts/compare-agent-routing-baseline.py \
+            --results-dir downloaded-artifacts \
+            --baseline-ref "$RESOLVED_BASELINE_REF" \
+            --output delta-report.md
+
+          # Write to job summary
+          cat delta-report.md >> "$GITHUB_STEP_SUMMARY"
+
+          # Also print to stdout for log visibility
+          cat delta-report.md
+
+          # Determine fail_on_infra policy for infra_error handling.
+          FAIL_ON_INFRA="true"
+          if [ "${INPUT_FAIL_ON_INFRA:-true}" = "false" ]; then
+            FAIL_ON_INFRA="false"
+          fi
+
+          # Check for infra_error results and apply policy
+          INFRA_COUNT=0
+          if [ -d downloaded-artifacts ]; then
+            INFRA_COUNT="$(python3 -c 'import json; from pathlib import Path; print(sum(1 for p in Path("downloaded-artifacts").rglob("results.json") for r in json.load(open(p)).get("results",[]) if r.get("status")=="infra_error"))')"
+          fi
+
+          if [ "$INFRA_COUNT" -gt 0 ]; then
+            if [ "$FAIL_ON_INFRA" = "true" ]; then
+              echo ""
+              echo "FAILED: $INFRA_COUNT infra_error result(s) detected with fail_on_infra=true"
+              echo "  (workflow_dispatch default enforces fail_on_infra=true)"
+              exit 1
+            else
+              echo ""
+              echo "WARNING: $INFRA_COUNT infra_error result(s) skipped (fail_on_infra=false, manual override)"
+            fi
+          fi

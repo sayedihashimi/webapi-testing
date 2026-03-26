@@ -1,0 +1,21 @@
+@{
+    var status = (string?)ViewData["Status"] ?? "";
+    var badgeClass = status switch
+    {
+        "Active" or "Completed" or "Occupied" or "Excellent" => "bg-success",
+        "Pending" or "Submitted" or "Available" => "bg-info",
+        "Expired" or "Cancelled" or "OffMarket" or "Fair" => "bg-warning text-dark",
+        "Terminated" or "Failed" or "Emergency" or "Poor" or "Maintenance" => "bg-danger",
+        "Renewed" or "Assigned" or "Good" => "bg-primary",
+        "InProgress" => "bg-primary",
+        "High" => "bg-warning text-dark",
+        "Medium" => "bg-secondary",
+        "Low" => "bg-light text-dark",
+        "Held" => "bg-info",
+        "Returned" or "PartiallyReturned" => "bg-success",
+        "Forfeited" => "bg-danger",
+        "Refunded" => "bg-secondary",
+        _ => "bg-secondary"
+    };
+}
+<span class="badge @badgeClass">@status</span>

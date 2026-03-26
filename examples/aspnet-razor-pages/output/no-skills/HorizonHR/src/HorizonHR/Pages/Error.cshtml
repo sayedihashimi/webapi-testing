@@ -1,0 +1,15 @@
+@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<section class="text-center">
+    <h1 class="text-danger">Error</h1>
+    <p class="lead">An unexpected error occurred. Please try again later.</p>
+    @if (!string.IsNullOrEmpty(Model.RequestId))
+    {
+        <p><strong>Request ID:</strong> <code>@Model.RequestId</code></p>
+    }
+    <a asp-page="/Index" class="btn btn-primary mt-3">Return to Dashboard</a>
+</section>

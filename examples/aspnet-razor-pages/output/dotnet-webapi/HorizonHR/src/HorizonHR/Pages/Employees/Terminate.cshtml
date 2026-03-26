@@ -1,0 +1,29 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Employees.TerminateModel
+@{
+    ViewData["Title"] = "Terminate Employee";
+}
+
+<h1 class="text-danger">Terminate Employee</h1>
+
+<div class="alert alert-warning" role="alert">
+    <h5>You are about to terminate <strong>@Model.Employee.FirstName @Model.Employee.LastName</strong> (@Model.Employee.EmployeeNumber)</h5>
+    <p>This action will:</p>
+    <ul>
+        <li>Set employee status to Terminated</li>
+        <li>Cancel all pending leave requests (@Model.PendingLeaveCount)</li>
+        <li>Remove as manager from @Model.ManagedDepartmentCount department(s)</li>
+        <li>Remove as manager from @Model.DirectReportCount direct report(s)</li>
+    </ul>
+</div>
+
+<form method="post">
+    <div class="mb-3">
+        <label asp-for="TerminationDate" class="form-label">Termination Date</label>
+        <input asp-for="TerminationDate" class="form-control" type="date" style="max-width:300px" />
+        <span asp-validation-for="TerminationDate" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-danger">Confirm Termination</button>
+    <a asp-page="Details" asp-route-id="@Model.Employee.Id" class="btn btn-secondary">Cancel</a>
+</form>

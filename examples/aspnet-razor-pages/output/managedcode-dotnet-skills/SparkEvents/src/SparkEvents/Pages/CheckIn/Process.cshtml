@@ -1,0 +1,73 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.CheckIn.ProcessModel
+@{
+    ViewData["Title"] = "Process Check-In";
+}
+
+<section>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Events/Index">Events</a></li>
+            <li class="breadcrumb-item"><a asp-page="Index" asp-route-eventId="@Model.Event.Id">Check-In</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Process</li>
+        </ol>
+    </nav>
+
+    <h1>Process Check-In</h1>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Attendee &amp; Ticket Details</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Attendee</dt>
+                <dd class="col-sm-9">@Model.Registration.Attendee.FullName</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9">@Model.Registration.Attendee.Email</dd>
+
+                <dt class="col-sm-3">Confirmation #</dt>
+                <dd class="col-sm-9">@Model.Registration.ConfirmationNumber</dd>
+
+                <dt class="col-sm-3">Ticket Type</dt>
+                <dd class="col-sm-9">@Model.Registration.TicketType.Name</dd>
+
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    <partial name="_StatusBadge" model="@Model.Registration.Status.ToString()" />
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <form method="post" asp-route-registrationId="@Model.Registration.Id">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.CheckedInBy" class="form-label"></label>
+                    <input asp-for="Input.CheckedInBy" class="form-control" />
+                    <span asp-validation-for="Input.CheckedInBy" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.Notes" class="form-label"></label>
+                    <textarea asp-for="Input.Notes" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Input.Notes" class="text-danger"></span>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">Confirm Check-In</button>
+                    <a asp-page="Index" asp-route-eventId="@Model.Event.Id" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

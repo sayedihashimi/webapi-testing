@@ -1,0 +1,43 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Attendees.DetailsModel
+@{ ViewData["Title"] = Model.Attendee!.FullName; }
+
+<h1>@Model.Attendee.FullName</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <p><strong>Email:</strong> @Model.Attendee.Email</p>
+        @if (Model.Attendee.Phone != null) { <p><strong>Phone:</strong> @Model.Attendee.Phone</p> }
+        @if (Model.Attendee.Organization != null) { <p><strong>Organization:</strong> @Model.Attendee.Organization</p> }
+        @if (Model.Attendee.DietaryNeeds != null) { <p><strong>Dietary Needs:</strong> @Model.Attendee.DietaryNeeds</p> }
+        <a asp-page="Edit" asp-route-id="@Model.Attendee.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+    </div>
+</div>
+
+<h3>Registration History</h3>
+@if (Model.Attendee.Registrations.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>Confirmation #</th><th>Event</th><th>Ticket</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>
+                @foreach (var reg in Model.Attendee.Registrations.OrderByDescending(r => r.RegistrationDate))
+                {
+                    <tr>
+                        <td><a asp-page="/Registrations/Details" asp-route-id="@reg.Id">@reg.ConfirmationNumber</a></td>
+                        <td><a asp-page="/Events/Details" asp-route-id="@reg.EventId">@reg.Event.Title</a></td>
+                        <td>@reg.TicketType.Name</td>
+                        <td><partial name="_RegistrationStatusBadge" model="reg.Status" /></td>
+                        <td>@reg.RegistrationDate.ToString("MMM dd, yyyy")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">No registrations yet.</p>
+}
+
+<a asp-page="Index" class="btn btn-secondary">Back to Attendees</a>

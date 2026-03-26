@@ -1,0 +1,70 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Registrations.CancelModel
+@{
+    ViewData["Title"] = "Cancel Registration";
+}
+
+<section>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+            <li class="breadcrumb-item">Registrations</li>
+            <li class="breadcrumb-item"><a asp-page="Details" asp-route-id="@Model.Registration.Id">@Model.Registration.ConfirmationNumber</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Cancel</li>
+        </ol>
+    </nav>
+
+    <h1>Cancel Registration</h1>
+
+    @if (Model.WithinCutoff)
+    {
+        <div class="alert alert-danger" role="alert">
+            Cannot cancel within 24 hours of the event.
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Registration Details</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Confirmation #</dt>
+                <dd class="col-sm-9">@Model.Registration.ConfirmationNumber</dd>
+
+                <dt class="col-sm-3">Event</dt>
+                <dd class="col-sm-9">@Model.Registration.Event.Title</dd>
+
+                <dt class="col-sm-3">Event Date</dt>
+                <dd class="col-sm-9">@Model.Registration.Event.StartDate.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                <dt class="col-sm-3">Attendee</dt>
+                <dd class="col-sm-9">@Model.Registration.Attendee.FullName (@Model.Registration.Attendee.Email)</dd>
+
+                <dt class="col-sm-3">Ticket Type</dt>
+                <dd class="col-sm-9">@Model.Registration.TicketType.Name</dd>
+
+                <dt class="col-sm-3">Amount Paid</dt>
+                <dd class="col-sm-9">@Model.Registration.AmountPaid.ToString("C")</dd>
+            </dl>
+        </div>
+    </div>
+
+    <form method="post">
+        <div class="mb-3">
+            <label asp-for="Input.CancellationReason" class="form-label"></label>
+            <textarea asp-for="Input.CancellationReason" class="form-control" rows="3"
+                      placeholder="Optional reason for cancellation"></textarea>
+            <span asp-validation-for="Input.CancellationReason" class="text-danger"></span>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-danger" disabled="@Model.WithinCutoff">Confirm Cancellation</button>
+            <a asp-page="Details" asp-route-id="@Model.Registration.Id" class="btn btn-secondary">Go Back</a>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

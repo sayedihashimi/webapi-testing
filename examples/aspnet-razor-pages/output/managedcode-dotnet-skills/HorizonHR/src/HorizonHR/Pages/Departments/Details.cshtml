@@ -1,0 +1,103 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Departments.DetailsModel
+@{
+    ViewData["Title"] = Model.Department?.Name ?? "Department Details";
+}
+
+@if (Model.Department is null)
+{
+    <p class="text-danger">Department not found.</p>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>@Model.Department.Name <code>(@Model.Department.Code)</code></h1>
+        <a href="/Departments/Edit/@Model.Department.Id" class="btn btn-outline-secondary">Edit</a>
+    </div>
+
+    <section class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Department Info</h5>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Description</dt>
+                        <dd class="col-sm-8">@(Model.Department.Description ?? "—")</dd>
+                        <dt class="col-sm-4">Manager</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.Department.Manager is not null)
+                            {
+                                <a href="/Employees/Details/@Model.Department.Manager.Id">@Model.Department.Manager.FullName</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not assigned</span>
+                            }
+                        </dd>
+                        <dt class="col-sm-4">Parent Department</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.Department.ParentDepartment is not null)
+                            {
+                                <a href="/Departments/Details/@Model.Department.ParentDepartment.Id">@Model.Department.ParentDepartment.Name</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">None (top-level)</span>
+                            }
+                        </dd>
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            @{ViewData["Status"] = Model.Department.IsActive ? "Active" : "Terminated";}
+                            <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @if (Model.Department.ChildDepartments.Any())
+    {
+        <section class="mb-4">
+            <h4>Child Departments</h4>
+            <ul class="list-group">
+                @foreach (var child in Model.Department.ChildDepartments)
+                {
+                    <li class="list-group-item">
+                        <a href="/Departments/Details/@child.Id">@child.Name</a> <code>(@child.Code)</code>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    <section>
+        <h4>Employees (@Model.Department.Employees.Count)</h4>
+        @if (!Model.Department.Employees.Any())
+        {
+            <p class="text-muted">No employees in this department.</p>
+        }
+        else
+        {
+            <table class="table table-sm">
+                <thead><tr><th>Employee #</th><th>Name</th><th>Job Title</th><th>Status</th></tr></thead>
+                <tbody>
+                    @foreach (var emp in Model.Department.Employees)
+                    {
+                        <tr>
+                            <td><code>@emp.EmployeeNumber</code></td>
+                            <td><a href="/Employees/Details/@emp.Id">@emp.FullName</a></td>
+                            <td>@emp.JobTitle</td>
+                            <td>
+                                @{ViewData["Status"] = emp.Status.ToString();}
+                                <partial name="Shared/_StatusBadge" view-data="ViewData" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+
+    <a href="/Departments" class="btn btn-link">&larr; Back to Departments</a>
+}

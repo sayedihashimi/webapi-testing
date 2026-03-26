@@ -1,0 +1,1457 @@
+#!/usr/bin/env python3
+"""
+Validate all SKILL.md files and agent files in the dotnet-artisan plugin.
+
+Checks (skills):
+  1.  Required frontmatter fields: name, description
+  2.  YAML frontmatter is well-formed (strict subset parser for flat key:value)
+  3.  [skill:name] cross-references resolve against known IDs set
+  4.  Context budget tracking with stable output keys
+  5.  Name-directory consistency (name field must match skill directory name)
+  6.  Extra frontmatter field detection (allowed: name, description, license,
+      user-invocable, disable-model-invocation, context, model)
+  7.  Type validation for optional fields (boolean/string type checking)
+  8.  Description filler phrase detection (routing quality enforcement)
+  9.  WHEN prefix regression detection (descriptions must not start with WHEN)
+  10. Scope section presence (## Scope header required)
+  11. Out-of-scope section presence (## Out of scope header required)
+  12. Out-of-scope attribution format (items should reference owning skill via [skill:])
+  13. Self-referential cross-link detection (skill referencing itself -- error)
+  14. Cross-reference cycle detection (post-processing, informational report only)
+  15. Invocation contract: Scope >= 1 unordered bullet (fence-aware)
+  16. Invocation contract: OOS >= 1 unordered bullet (fence-aware)
+  17. Invocation contract: OOS contains >= 1 [skill:] reference (presence check,
+      independent of STRICT_REFS resolution)
+  18. Skill name format/length (1-64 chars, lowercase alnum-hyphen)
+  19. Description hard cap for discovery metadata (<= 1024 chars)
+  20. Description pronoun/style lint (first/second-person terms)
+  21. SKILL.md size guidance lint (<= 500 lines recommended)
+  22. Skill-local resource structure lint (no nested files under references/scripts/assets)
+  23. Skill-local human-doc lint (no README/CHANGELOG/INSTALLATION docs in skill dirs)
+  24. Path-style lint in SKILL.md body (use forward slashes for references/scripts/assets/agents)
+  25. Description negative-trigger lint (explicit "Do not use for ..." disambiguation)
+
+Checks (Copilot safety -- raw-frontmatter, pre-YAML-parse):
+  26. UTF-8 BOM detection (Copilot CLI silent parse failure)
+  27. Quoted description detection via raw-line regex (Copilot CLI #1024)
+  28. Missing license field (Copilot CLI #894 requires license)
+  29. metadata: as last frontmatter key (Copilot CLI #951 silent skill drop)
+  30. Missing user-invocable field (repo policy requires explicit true/false)
+
+Checks (agents):
+  31. Agent bare-ref detection using known IDs allowlist (informational)
+  32. AGENTS.md bare-ref detection using known IDs allowlist (informational)
+
+Checks (reference files -- skills/*/references/*.md):
+  33. H1 title presence (fence-aware -- first # outside code fences)
+  34. H1 title must not be slug-style (must not start with "dotnet-")
+  35. No ## Scope or ## Out of scope sections allowed
+  36. Fence-aware [skill:] cross-ref resolution (always strict, no --allow-planned-refs)
+  37. Routing table companion file existence (Companion File column by header name)
+
+Infrastructure:
+  - Known IDs set: {skill directory names} union {agent file stems}
+  - ID collision detection between skills and agents (error)
+  - BUDGET_STATUS computed from CURRENT_DESC_CHARS only (projected is informational)
+  - STRICT_INVOCATION env var: when "1", contract warnings become errors (exit 1)
+  - All section checks (has_section_header, extract_oos_items, extract_scope_items)
+    are fence-aware: lines inside ``` fenced code blocks are ignored
+
+Invoked by validate-skills.sh. All validation logic lives here to avoid
+per-file subprocess spawning and ensure deterministic YAML parsing.
+
+Uses a strict subset parser (not PyYAML) so validation behavior is identical
+across all environments regardless of installed packages.
+"""
+
+import argparse
+import os
+import re
+import sys
+from pathlib import Path
+
+# Ensure scripts directory is on path for shared modules
+sys.path.insert(0, str(Path(__file__).parent))
+
+# --- Quality Constants ---
+
+# Canonical frontmatter fields. Any field beyond these triggers a warning.
+# Reference: https://code.claude.com/docs/en/skills#frontmatter-reference
+ALLOWED_FRONTMATTER_FIELDS = {
+    "name",
+    "description",
+    "license",
+    "user-invocable",
+    "disable-model-invocation",
+    "context",
+    "model",
+}
+
+# Type validation for optional frontmatter fields.
+# Boolean fields must be true/false (not quoted strings like "false").
+# String fields must be actual strings.
+FIELD_TYPES = {
+    "name": str,
+    "description": str,
+    "license": str,
+    "user-invocable": bool,
+    "disable-model-invocation": bool,
+    "context": str,
+    "model": str,
+}
+
+# Keys that must always be treated as strings (skip bool/null scalar coercion).
+# Derived from FIELD_TYPES so the sets stay in sync automatically.
+STRING_TYPED_KEYS = {k for k, v in FIELD_TYPES.items() if v is str}
+
+# Filler phrases that reduce description routing quality.
+# Case-insensitive patterns matched against the description text.
+# "Covers" was the only instance found by the fn-49.1 audit; others are preventive.
+FILLER_PHRASES = [
+    re.compile(r"\bCovers\b", re.IGNORECASE),
+    re.compile(r"\bhelps with\b", re.IGNORECASE),
+    re.compile(r"\bguide to\b", re.IGNORECASE),
+    re.compile(r"\bcomplete guide\b", re.IGNORECASE),
+]
+
+# Skills metadata hard constraints and style lints inspired by
+# mgechev/skills-best-practices.
+SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+MAX_DISCOVERY_DESC_CHARS = 1024
+MAX_SKILL_LINES = 500
+DESCRIPTION_PRONOUN_PATTERN = re.compile(
+    r"\b(i|me|my|we|our|you|your)\b", re.IGNORECASE
+)
+# Allow explicit invocation-contract wording in descriptions without
+# triggering second-person style warnings.
+DESCRIPTION_PRONOUN_EXCEPTIONS = [
+    re.compile(r"\byou must use this before\b", re.IGNORECASE),
+]
+NEGATIVE_TRIGGER_PATTERN = re.compile(
+    r"\b(do not use|don't use|not for)\b", re.IGNORECASE
+)
+FORWARD_SLASH_PATH_PATTERN = re.compile(
+    r"\b(references|scripts|assets|agents)\\[^\s`]+"
+)
+HUMAN_DOC_FILENAMES = {
+    "README.md",
+    "CHANGELOG.md",
+    "INSTALLATION.md",
+    "INSTALLATION_GUIDE.md",
+}
+
+# Pattern to match [skill:name] references (for stripping before bare-ref scan)
+SKILL_REF_PATTERN = re.compile(r"\[skill:[a-zA-Z0-9_-]+\]")
+
+# --- YAML Parsing ---
+
+
+def parse_frontmatter(text: str) -> dict:
+    """Parse frontmatter using a strict subset parser.
+
+    Accepts only flat key: value mappings (the YAML subset used in SKILL.md
+    frontmatter). Rejects flow constructs ([, {) and sequences (- ).
+
+    Uses a deterministic strict parser so validation is environment-independent
+    (no PyYAML dependency, identical behavior locally and in CI).
+    """
+    result = {}
+    lines = text.split("\n")
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        # Skip blank lines and comments
+        if not stripped or stripped.startswith("#"):
+            i += 1
+            continue
+
+        # Must be key: value (or key:)
+        m = re.match(r"^([a-zA-Z_][a-zA-Z0-9_-]*)\s*:\s*(.*)", stripped)
+        if not m:
+            raise ValueError(
+                f"line {i + 2}: invalid YAML syntax: {stripped[:60]}"
+            )
+
+        key = m.group(1)
+        raw_value = m.group(2).strip()
+
+        # Reject flow constructs that indicate non-flat YAML
+        if raw_value.startswith("[") or raw_value.startswith("{"):
+            raise ValueError(
+                f"line {i + 2}: flow collections not allowed in frontmatter: {raw_value[:40]}"
+            )
+
+        # Handle block scalars (| and >)
+        if raw_value in ("|", ">", "|+", "|-", ">+", ">-"):
+            block_lines = []
+            i += 1
+            while i < len(lines):
+                if lines[i].strip() == "" or (
+                    len(lines[i]) > 0 and lines[i][0] in (" ", "\t")
+                ):
+                    block_lines.append(lines[i])
+                    i += 1
+                else:
+                    break
+            if block_lines:
+                indent = len(block_lines[0]) - len(block_lines[0].lstrip())
+                value = "\n".join(
+                    l[indent:] if len(l) > indent else "" for l in block_lines
+                )
+            else:
+                value = ""
+            if raw_value.startswith(">"):
+                value = re.sub(r"(?<!\n)\n(?!\n)", " ", value)
+            result[key] = value.strip()
+            continue
+
+        # Handle double-quoted strings
+        if raw_value.startswith('"'):
+            if raw_value.endswith('"') and len(raw_value) > 1:
+                result[key] = raw_value[1:-1]
+            else:
+                raise ValueError(f"line {i + 2}: unclosed double quote")
+            i += 1
+            continue
+
+        # Handle single-quoted strings
+        if raw_value.startswith("'"):
+            if raw_value.endswith("'") and len(raw_value) > 1:
+                result[key] = raw_value[1:-1]
+            else:
+                raise ValueError(f"line {i + 2}: unclosed single quote")
+            i += 1
+            continue
+
+        # Reject sequence items
+        if raw_value.startswith("- "):
+            raise ValueError(
+                f"line {i + 2}: sequences not allowed in frontmatter"
+            )
+
+        # String-typed keys skip scalar coercion. This prevents unquoted
+        # description/name/license/context/model values like "yes", "no",
+        # "true", "false", "null" from being coerced to bool/None, which
+        # would cause type-validation errors downstream.
+        if key in STRING_TYPED_KEYS:
+            result[key] = raw_value if raw_value else None
+            i += 1
+            continue
+
+        # Handle booleans and other scalars
+        if raw_value.lower() in ("true", "yes"):
+            result[key] = True
+        elif raw_value.lower() in ("false", "no"):
+            result[key] = False
+        elif raw_value.lower() in ("null", "~", ""):
+            result[key] = None
+        else:
+            result[key] = raw_value
+
+        i += 1
+
+    return result
+
+
+# --- File Processing ---
+
+
+def extract_refs(body_text: str) -> list:
+    """Extract unique [skill:name] cross-references from body text."""
+    return list(dict.fromkeys(re.findall(r"\[skill:([a-zA-Z0-9_-]+)\]", body_text)))
+
+
+def has_section_header(body_text: str, header: str) -> bool:
+    """Check if body text contains a specific ## level header (fence-aware).
+
+    Lines inside fenced code blocks (``` delimiters) are ignored to prevent
+    false positives from example markdown in code fences.
+    """
+    pattern = re.compile(r"^## " + re.escape(header) + r"\s*$")
+    in_fence = False
+    for line in body_text.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence and pattern.match(stripped):
+            return True
+    return False
+
+
+def extract_oos_items(body_text: str) -> list:
+    """Extract items from the Out of scope section (fence-aware).
+
+    Returns list of (line_text, has_skill_ref) tuples for unordered bullet
+    items (``- `` prefix only) in the Out of scope section. Numbered lists
+    are excluded per invocation contract rules.
+
+    Lines inside fenced code blocks are ignored.
+    """
+    items = []
+    in_oos = False
+    in_fence = False
+    for line in body_text.split("\n"):
+        stripped = line.strip()
+        # Track fenced code blocks
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        # Detect start of Out of scope section
+        if re.match(r"^## Out of scope\s*$", stripped):
+            in_oos = True
+            continue
+        # Detect next section header (end of Out of scope)
+        if in_oos and re.match(r"^## ", stripped):
+            break
+        # Collect unordered bullet items only (- prefix)
+        if in_oos and stripped.startswith("- "):
+            has_ref = bool(re.search(r"\[skill:[a-zA-Z0-9_-]+\]", stripped))
+            items.append((stripped, has_ref))
+    return items
+
+
+def extract_scope_items(body_text: str) -> list:
+    """Extract unordered bullet items from the Scope section (fence-aware).
+
+    Returns list of line strings for items starting with ``- `` within the
+    ``## Scope`` section boundary (up to the next ``## `` header).
+
+    Lines inside fenced code blocks and numbered list items are excluded.
+    """
+    items = []
+    in_scope = False
+    in_fence = False
+    for line in body_text.split("\n"):
+        stripped = line.strip()
+        # Track fenced code blocks
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        # Detect start of Scope section
+        if re.match(r"^## Scope\s*$", stripped):
+            in_scope = True
+            continue
+        # Detect next section header (end of Scope)
+        if in_scope and re.match(r"^## ", stripped):
+            break
+        # Collect unordered bullet items only (- prefix)
+        if in_scope and stripped.startswith("- "):
+            items.append(stripped)
+    return items
+
+
+def strip_skill_refs(text: str) -> str:
+    """Remove [skill:...] spans from text for bare-ref scanning."""
+    return SKILL_REF_PATTERN.sub("", text)
+
+
+def find_bare_refs(text: str, known_ids: set) -> list:
+    """Find bare references to known IDs in text after stripping structural elements.
+
+    Strips YAML frontmatter, [skill:] spans, markdown link URLs, and heading
+    lines whose text is exactly a known ID (structural titles, not cross-refs).
+    Returns list of matched bare IDs.
+    """
+    # Strip YAML frontmatter if present (structural, not body text)
+    cleaned = re.sub(r"\A---\n.*?\n---\n", "", text, flags=re.DOTALL)
+    # Strip [skill:...] spans
+    cleaned = strip_skill_refs(cleaned)
+    # Strip markdown link URLs: [text](url) -> [text]
+    cleaned = re.sub(r"\]\([^)]*\)", "]", cleaned)
+    # Ignore structural headings that are exactly a known ID (agent titles,
+    # AGENTS.md section headers).  Avoids false positives on `# dotnet-foo`.
+    filtered_lines = []
+    for line in cleaned.splitlines():
+        m = re.match(r"^\s*#{1,6}\s+([a-zA-Z0-9_-]+)\s*$", line)
+        if m and m.group(1) in known_ids:
+            continue
+        filtered_lines.append(line)
+    cleaned = "\n".join(filtered_lines)
+
+    found = []
+    for known_id in sorted(known_ids):
+        # Match word-boundary-delimited occurrences
+        pattern = re.compile(r"(?<![a-zA-Z0-9_-])" + re.escape(known_id) + r"(?![a-zA-Z0-9_-])")
+        if pattern.search(cleaned):
+            found.append(known_id)
+    return found
+
+
+# --- Reference File Validation ---
+
+
+def extract_h1_title_fence_aware(text: str) -> str | None:
+    """Find the first H1 title (# ...) outside code fences.
+
+    Tracks whether the current line is inside a code fence (between ```
+    markers) and skips H1 detection for fenced lines. Returns the title
+    text (without the '# ' prefix) or None if no H1 found outside fences.
+
+    This is a NEW function for reference files -- does not modify the
+    existing extract_refs() or has_section_header() behavior.
+    """
+    in_fence = False
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = re.match(r"^# (.+)$", stripped)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
+def extract_refs_fence_aware(text: str) -> list:
+    """Extract unique [skill:name] cross-references outside code fences.
+
+    Tracks whether the current line is inside a code fence (between ```
+    markers) and skips [skill:] extraction for fenced lines. Returns a
+    deduplicated list of referenced skill/agent IDs.
+
+    This is a NEW function for reference files -- does not modify the
+    existing extract_refs() used for SKILL.md and agent validation.
+    """
+    refs = []
+    seen = set()
+    in_fence = False
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for m in re.finditer(r"\[skill:([a-zA-Z0-9_-]+)\]", line):
+            ref_id = m.group(1)
+            if ref_id not in seen:
+                seen.add(ref_id)
+                refs.append(ref_id)
+    return refs
+
+
+def extract_routing_table_companion_files(skill_md_path: Path) -> list:
+    """Parse the Routing Table from a SKILL.md and extract Companion File paths.
+
+    Locates the '## Routing Table' section, finds the table header row by
+    looking for a 'Companion File' column, and extracts file paths from
+    that column in each data row.
+
+    Returns list of (file_path_str, line_number) tuples. Returns empty
+    list if no Routing Table section or no Companion File column found.
+    """
+    try:
+        content = skill_md_path.read_text(encoding="utf-8")
+    except Exception:
+        return []
+
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
+    lines = content.split("\n")
+
+    in_routing = False
+    in_fence = False
+    companion_col_idx = None
+    results = []
+
+    for line_num, line in enumerate(lines, 1):
+        stripped = line.strip()
+
+        # Track fenced code blocks
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+
+        # Detect start of Routing Table section
+        if re.match(r"^## Routing Table\s*$", stripped):
+            in_routing = True
+            companion_col_idx = None
+            continue
+
+        # Detect next section header (end of Routing Table)
+        if in_routing and re.match(r"^## ", stripped):
+            break
+
+        if not in_routing:
+            continue
+
+        # Look for table rows (pipe-delimited)
+        if "|" not in stripped:
+            continue
+
+        cells = [c.strip() for c in stripped.split("|")]
+        # Strip empty leading/trailing cells from pipe syntax
+        if cells and cells[0] == "":
+            cells = cells[1:]
+        if cells and cells[-1] == "":
+            cells = cells[:-1]
+
+        # Detect header row by looking for "Companion File" column
+        if companion_col_idx is None:
+            for idx, cell in enumerate(cells):
+                if cell.lower() == "companion file":
+                    companion_col_idx = idx
+                    break
+            continue  # Skip header row and separator row
+
+        # Skip separator rows (----)
+        if all(c.replace("-", "").replace(":", "").strip() == "" for c in cells):
+            continue
+
+        # Extract companion file path from the identified column
+        if companion_col_idx is not None and companion_col_idx < len(cells):
+            file_path = cells[companion_col_idx].strip()
+            # Strip backticks if present
+            file_path = file_path.strip("`")
+            if file_path and file_path != "Companion File":
+                results.append((file_path, line_num))
+
+    return results
+
+
+def process_file(path: str) -> dict:
+    """Process a single SKILL.md file. Returns a result dict."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except Exception as e:
+        return {"path": path, "valid": False, "error": str(e)}
+
+    # --- Raw-frontmatter Copilot safety checks (before YAML parsing) ---
+    # These operate on raw bytes/text to catch issues the YAML parser would miss.
+    copilot_errors = []
+
+    # BOM check: UTF-8 BOM causes silent Copilot CLI parse failures.
+    # Strip BOM for parsing so downstream checks still run and surface
+    # all errors (not just "missing opening ---").
+    if content.startswith("\ufeff"):
+        copilot_errors.append("file starts with UTF-8 BOM (Copilot CLI bug)")
+        content = content.lstrip("\ufeff")
+
+    # Normalize CRLF to LF
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
+    lines = content.split("\n")
+
+    # Check for opening delimiter
+    if not lines or lines[0].strip() != "---":
+        return {"path": path, "valid": False, "error": "missing opening ---"}
+
+    # Find closing delimiter and extract frontmatter
+    fm_lines = []
+    body_start = None
+    for i, line in enumerate(lines[1:], 1):
+        if line.strip() == "---":
+            body_start = i + 1
+            break
+        fm_lines.append(line)
+
+    if body_start is None:
+        return {"path": path, "valid": False, "error": "missing closing ---"}
+
+    fm_text = "\n".join(fm_lines)
+
+    # Quoted description check: Copilot CLI #1024 fails on quoted descriptions.
+    # Uses raw-line inspection since YAML parser strips quotes.
+    # Only check column-0 lines (non-indented) to avoid false positives on
+    # indented content inside block scalars (e.g. context: |).
+    for fm_line in fm_lines:
+        if fm_line and fm_line[0] in (" ", "\t"):
+            continue  # Skip indented lines (block scalar content)
+        if re.match(r'description\s*:\s*["\']', fm_line):
+            copilot_errors.append(
+                "quoted description value (Copilot CLI #1024 breaks on quoted descriptions)"
+            )
+            break
+
+    # metadata-ordering check: Copilot CLI #951 reports that metadata: as the
+    # last frontmatter key causes silent skill drop. Conservative enforcement:
+    # ERROR if metadata: is the last non-blank top-level key in frontmatter.
+    #
+    # Evidence trail (fn-56.2, verified with Copilot CLI v0.0.412):
+    # - Test: created skill with metadata: as last key, ran copilot -p to load it.
+    # - Result: skill loaded successfully, description extracted correctly.
+    # - copilot-cli#951 behavior NOT reproduced in v0.0.412.
+    # - No dotnet-artisan skill uses a "metadata:" key (zero false-positive risk).
+    # - Decision: conservative guard retained as preventive measure against older
+    #   or future Copilot versions. See docs/evidence/copilot-cli-v0.0.412-skill-loading.md.
+    # Only scan column-0 lines to avoid false positives on block scalar content.
+    last_key = None
+    for fm_line in fm_lines:
+        if fm_line and fm_line[0] in (" ", "\t"):
+            continue  # Skip indented lines (block scalar content)
+        stripped_fm = fm_line.strip()
+        if not stripped_fm or stripped_fm.startswith("#"):
+            continue
+        key_match = re.match(r"^([a-zA-Z_][a-zA-Z0-9_-]*)\s*:", stripped_fm)
+        if key_match:
+            last_key = key_match.group(1)
+    if last_key == "metadata":
+        copilot_errors.append(
+            "metadata: is the last frontmatter key (Copilot CLI #951 causes silent skill drop)"
+        )
+
+    # Parse YAML frontmatter
+    try:
+        parsed = parse_frontmatter(fm_text)
+    except ValueError as e:
+        return {"path": path, "valid": False, "error": str(e)}
+
+    # License check: Copilot CLI #894 effectively requires a non-empty license field.
+    # Repo policy requires MIT specifically (fn-56 acceptance: "All 131 SKILL.md files
+    # have license: MIT"). Check both presence and exact value.
+    license_raw = parsed.get("license")
+    if not isinstance(license_raw, str) or not license_raw.strip():
+        copilot_errors.append(
+            "license field must be a non-empty string in frontmatter (Copilot CLI #894)"
+        )
+    elif license_raw.strip() != "MIT":
+        copilot_errors.append(
+            f"license must be 'MIT' (got '{license_raw.strip()}'); required by repo policy and Copilot CLI"
+        )
+
+    # user-invocable presence check: repo policy requires explicit true/false on
+    # every skill for cross-provider predictability (prevents regression after fn-56.4).
+    if "user-invocable" not in parsed:
+        copilot_errors.append(
+            "missing user-invocable field (repo policy requires explicit true or false)"
+        )
+
+    # Extract and type-validate required fields
+    name_raw = parsed.get("name")
+    desc_raw = parsed.get("description")
+    field_errors = list(copilot_errors)  # Include Copilot errors as field-level errors
+
+    if name_raw is None or (isinstance(name_raw, str) and not name_raw.strip()):
+        field_errors.append("missing required frontmatter field: name")
+    elif not isinstance(name_raw, str):
+        field_errors.append(
+            f"frontmatter field 'name' must be a string (got {type(name_raw).__name__})"
+        )
+
+    if desc_raw is None or (isinstance(desc_raw, str) and not desc_raw.strip()):
+        field_errors.append("missing required frontmatter field: description")
+    elif not isinstance(desc_raw, str):
+        field_errors.append(
+            f"frontmatter field 'description' must be a string (got {type(desc_raw).__name__})"
+        )
+
+    name = name_raw.strip() if isinstance(name_raw, str) else ""
+    description = desc_raw.strip() if isinstance(desc_raw, str) else ""
+
+    # Extract body text and cross-references
+    body_text = "\n".join(lines[body_start:])
+    refs = extract_refs(body_text)
+
+    # Check for scope sections
+    has_scope = has_section_header(body_text, "Scope")
+    has_oos = has_section_header(body_text, "Out of scope")
+    scope_items = extract_scope_items(body_text) if has_scope else []
+    oos_items = extract_oos_items(body_text) if has_oos else []
+
+    # Type-validate optional fields (warnings, not errors)
+    type_warnings = []
+    for field_name, expected_type in FIELD_TYPES.items():
+        if field_name in parsed and field_name not in ("name", "description"):
+            value = parsed[field_name]
+            if value is not None and not isinstance(value, expected_type):
+                type_warnings.append(
+                    f"frontmatter field '{field_name}' should be {expected_type.__name__} "
+                    f"(got {type(value).__name__}: {value!r})"
+                )
+
+    return {
+        "path": path,
+        "valid": True,
+        "name": name,
+        "description": description,
+        "desc_len": len(description),
+        "refs": refs,
+        "field_errors": field_errors,
+        "type_warnings": type_warnings,
+        "all_fields": set(parsed.keys()),
+        "has_scope": has_scope,
+        "has_oos": has_oos,
+        "scope_items": scope_items,
+        "oos_items": oos_items,
+        "line_count": len(lines),
+        "body_text": body_text,
+    }
+
+
+def parse_agent_frontmatter(content: str) -> tuple[dict[str, str] | None, str | None]:
+    """Parse agent markdown frontmatter with a simple top-level key parser.
+
+    Agent frontmatter in this repository uses a predictable layout:
+    - opening/closing --- delimiters
+    - top-level scalar keys (name, description, model)
+    - top-level sequence keys (capabilities, tools)
+
+    This parser only extracts top-level key lines and is intentionally strict
+    enough to catch missing delimiters/keys without requiring PyYAML.
+    """
+    normalized = content.replace("\r\n", "\n").replace("\r", "\n")
+    lines = normalized.split("\n")
+
+    if not lines or lines[0].strip() != "---":
+        return None, "missing opening --- frontmatter delimiter"
+
+    fm_lines: list[str] = []
+    closing_idx = None
+    for idx, line in enumerate(lines[1:], 1):
+        if line.strip() == "---":
+            closing_idx = idx
+            break
+        fm_lines.append(line)
+
+    if closing_idx is None:
+        return None, "missing closing --- frontmatter delimiter"
+
+    parsed: dict[str, str] = {}
+    for raw_line in fm_lines:
+        if not raw_line.strip() or raw_line.strip().startswith("#"):
+            continue
+        if raw_line[0] in (" ", "\t"):
+            # Indented lines are list/scalar continuation items.
+            continue
+        match = re.match(r"^([a-zA-Z_][a-zA-Z0-9_-]*)\s*:\s*(.*)$", raw_line)
+        if not match:
+            continue
+        parsed[match.group(1)] = match.group(2).strip()
+
+    return parsed, None
+
+
+# --- Cycle Detection ---
+
+
+def detect_cycles(ref_graph: dict) -> list:
+    """Detect cycles in the cross-reference graph using DFS.
+
+    Args:
+        ref_graph: dict mapping skill_name -> list of referenced skill names
+
+    Returns:
+        List of cycles, where each cycle is a list of skill names forming a cycle
+        path (last element repeats the first to show the loop).
+    """
+    seen_cycles = set()
+    cycles = []
+    rec_stack = []
+    rec_set = set()
+    visited = set()
+
+    def dfs(node):
+        visited.add(node)
+        rec_stack.append(node)
+        rec_set.add(node)
+
+        for neighbor in ref_graph.get(node, []):
+            if neighbor == node:
+                # Self-reference handled separately as error
+                continue
+            if neighbor in rec_set:
+                # Extract cycle from stack
+                idx = rec_stack.index(neighbor)
+                cycle_nodes = rec_stack[idx:]
+                # Normalize: rotate so smallest node is first
+                min_val = min(cycle_nodes)
+                min_idx = cycle_nodes.index(min_val)
+                rotated = cycle_nodes[min_idx:] + cycle_nodes[:min_idx]
+                cycle_key = tuple(rotated)
+                if cycle_key not in seen_cycles:
+                    seen_cycles.add(cycle_key)
+                    cycles.append(list(rotated) + [rotated[0]])
+            elif neighbor not in visited:
+                dfs(neighbor)
+
+        rec_stack.pop()
+        rec_set.remove(node)
+
+    for node in sorted(ref_graph.keys()):
+        if node not in visited:
+            dfs(node)
+
+    return cycles
+
+
+# --- Main ---
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Validate SKILL.md files")
+    parser.add_argument("--repo-root", required=True, help="Repository root")
+    parser.add_argument(
+        "--projected-skills", type=int, default=100, help="Projected skill count"
+    )
+    parser.add_argument(
+        "--max-desc-chars", type=int, default=120, help="Max description chars"
+    )
+    parser.add_argument(
+        "--warn-threshold", type=int, default=12000, help="Budget warn threshold"
+    )
+    parser.add_argument(
+        "--fail-threshold", type=int, default=15000, help="Budget fail threshold"
+    )
+    parser.add_argument(
+        "--allow-planned-refs",
+        action="store_true",
+        help="Downgrade unresolved refs to warnings",
+    )
+    args = parser.parse_args()
+
+    repo_root = Path(args.repo_root).resolve()
+    skills_dir = repo_root / "skills"
+    agents_dir = repo_root / "agents"
+
+    if not skills_dir.is_dir():
+        print(f"ERROR: No skills/ directory found at {skills_dir}")
+        sys.exit(1)
+
+    # Collect all SKILL.md files
+    skill_files = sorted(skills_dir.rglob("SKILL.md"))
+
+    if not skill_files:
+        print(f"ERROR: No SKILL.md files found under {skills_dir}")
+        sys.exit(1)
+
+    # Flat layout guard: ERROR if any SKILL.md is found more than 1 level
+    # deep under skills/ (catches accidental re-nesting after fn-56 flatten).
+    nested_files = [
+        f for f in skill_files
+        if len(f.relative_to(skills_dir).parts) > 2  # e.g. category/skill/SKILL.md = 3 parts
+    ]
+    if nested_files:
+        print("ERROR: SKILL.md files found more than 1 level deep under skills/ (flat layout required):")
+        for nf in nested_files:
+            print(f"  {nf.relative_to(repo_root)}")
+        sys.exit(1)
+
+    # --- Build known IDs set ---
+    # Skill directory names
+    valid_skill_dirs = {f.parent.name for f in skill_files}
+
+    # Agent file stems (filename without .md)
+    agent_files = sorted(agents_dir.glob("*.md")) if agents_dir.is_dir() else []
+    agent_stems = {f.stem for f in agent_files}
+
+    # Known IDs = skills union agents
+    known_ids = valid_skill_dirs | agent_stems
+
+    errors = 0
+    warnings = 0
+    total_desc_chars = 0
+    skill_count = 0
+
+    # STRICT_INVOCATION: when "1", invocation contract warnings become errors
+    strict_invocation = os.environ.get("STRICT_INVOCATION") == "1"
+
+    # Quality check counters (reported as stable output keys)
+    name_dir_mismatches = 0
+    extra_field_count = 0
+    type_warning_count = 0
+    filler_phrase_count = 0
+    when_prefix_count = 0
+    name_format_error_count = 0
+    desc_hardcap_error_count = 0
+    desc_pronoun_warn_count = 0
+    desc_negative_trigger_warn_count = 0
+    skill_line_budget_warn_count = 0
+    nested_resource_warn_count = 0
+    human_doc_warn_count = 0
+    path_slash_warn_count = 0
+    missing_scope_count = 0
+    missing_oos_count = 0
+    self_ref_count = 0
+    agent_bare_ref_count = 0
+    agentsmd_bare_ref_count = 0
+    # Counts invocation contract violations -- emitted as WARN or ERROR
+    # depending on STRICT_INVOCATION toggle; key name kept for CI compat.
+    invocation_contract_warn_count = 0
+
+    # Cross-reference graph for cycle detection
+    ref_graph = {}
+
+    print("=== SKILL.md Validation (parser: strict-subset) ===")
+    print()
+
+    # --- ID collision detection ---
+    id_collisions = valid_skill_dirs & agent_stems
+    if id_collisions:
+        for collision in sorted(id_collisions):
+            print(
+                f"ERROR: ID collision between skill and agent: {collision}. "
+                "Rename one to avoid ambiguity."
+            )
+            errors += 1
+        print()
+
+    if args.allow_planned_refs:
+        print(
+            "NOTE: --allow-planned-refs -- unresolved cross-references downgraded to warnings"
+        )
+        print()
+
+    # Process each skill file
+    for skill_file in skill_files:
+        rel_path = skill_file.relative_to(repo_root)
+        result = process_file(str(skill_file))
+
+        if not result["valid"]:
+            print(f"ERROR: {rel_path} -- invalid YAML frontmatter: {result['error']}")
+            errors += 1
+            continue
+
+        name = result["name"]
+        description = result["description"]
+        desc_len = result["desc_len"]
+        refs = result["refs"]
+        all_fields = result["all_fields"]
+        line_count = result["line_count"]
+        body_text = result["body_text"]
+
+        # Report field-level errors (type or missing)
+        for fe in result.get("field_errors", []):
+            print(f"ERROR: {rel_path} -- {fe}")
+            errors += 1
+
+        # --- Quality checks ---
+
+        # Check 5: Name-directory consistency
+        dir_name = skill_file.parent.name
+        if name and name != dir_name:
+            print(
+                f"WARN:  {rel_path} -- name '{name}' does not match directory '{dir_name}'"
+            )
+            warnings += 1
+            name_dir_mismatches += 1
+
+        # Check 18: Name format/length (discoverability hard constraints)
+        if name:
+            if not (1 <= len(name) <= 64):
+                print(
+                    f"ERROR: {rel_path} -- name '{name}' is {len(name)} chars "
+                    "(must be 1-64)"
+                )
+                errors += 1
+                name_format_error_count += 1
+            if not SKILL_NAME_PATTERN.match(name):
+                print(
+                    f"ERROR: {rel_path} -- name '{name}' has invalid format "
+                    "(use lowercase letters, numbers, single hyphens)"
+                )
+                errors += 1
+                name_format_error_count += 1
+
+        # Check 6: Extra frontmatter fields beyond allowed set
+        extra_fields = all_fields - ALLOWED_FRONTMATTER_FIELDS
+        if extra_fields:
+            extras = ", ".join(sorted(extra_fields))
+            print(
+                f"WARN:  {rel_path} -- extra frontmatter fields: {extras}"
+            )
+            warnings += 1
+            extra_field_count += len(extra_fields)
+
+        # Check 7: Type validation for optional fields
+        for tw in result.get("type_warnings", []):
+            print(f"WARN:  {rel_path} -- {tw}")
+            warnings += 1
+            type_warning_count += 1
+
+        # Check 8: Filler phrase detection in description
+        if description:
+            for pattern in FILLER_PHRASES:
+                match = pattern.search(description)
+                if match:
+                    print(
+                        f"WARN:  {rel_path} -- description contains filler phrase '{match.group()}'"
+                    )
+                    warnings += 1
+                    filler_phrase_count += 1
+
+        # Check 9: WHEN prefix regression detection
+        if description and description.startswith("WHEN "):
+            print(
+                f"WARN:  {rel_path} -- description starts with 'WHEN ' prefix (removed in fn-49.2)"
+            )
+            warnings += 1
+            when_prefix_count += 1
+
+        # Check 19: Description hard cap (routing metadata remains bounded)
+        if desc_len > MAX_DISCOVERY_DESC_CHARS:
+            print(
+                f"ERROR: {rel_path} -- description is {desc_len} chars "
+                f"(hard cap: <= {MAX_DISCOVERY_DESC_CHARS})"
+            )
+            errors += 1
+            desc_hardcap_error_count += 1
+
+        # Check 20: Description style lint (first/second person terms)
+        # Keep as warning: heuristic by design, can false positive on edge text.
+        style_text = re.sub(r"\bI/O\b", " ", description, flags=re.IGNORECASE)
+        for exception in DESCRIPTION_PRONOUN_EXCEPTIONS:
+            style_text = exception.sub(" ", style_text)
+        pronouns = sorted(
+            set(DESCRIPTION_PRONOUN_PATTERN.findall(style_text))
+        ) if description else []
+        if pronouns:
+            print(
+                f"WARN:  {rel_path} -- description contains first/second-person terms: "
+                f"{', '.join(pronouns)}"
+            )
+            warnings += 1
+            desc_pronoun_warn_count += 1
+
+        # Check 25: Description should include explicit negative trigger
+        # to reduce routing ambiguity.
+        if description and not NEGATIVE_TRIGGER_PATTERN.search(description):
+            print(
+                f"WARN:  {rel_path} -- description missing negative trigger "
+                "(include 'Do not use for ...' disambiguation)"
+            )
+            warnings += 1
+            desc_negative_trigger_warn_count += 1
+
+        # Check 21: SKILL.md line budget lint (progressive-disclosure guidance)
+        if line_count > MAX_SKILL_LINES:
+            print(
+                f"WARN:  {rel_path} -- file has {line_count} lines "
+                f"(recommended <= {MAX_SKILL_LINES}; move deep content to references/)"
+            )
+            warnings += 1
+            skill_line_budget_warn_count += 1
+
+        # Check 22: Nested resource files in references/scripts/assets (lint)
+        # These folders should be one level deep to keep navigation deterministic.
+        skill_dir = skill_file.parent
+        for subdir_name in ("references", "scripts", "assets"):
+            subdir = skill_dir / subdir_name
+            if not subdir.is_dir():
+                continue
+            nested_files = [
+                p for p in subdir.rglob("*")
+                if p.is_file() and len(p.relative_to(subdir).parts) > 1
+            ]
+            for nested in nested_files:
+                nested_rel = nested.relative_to(skill_dir)
+                print(
+                    f"WARN:  {rel_path} -- nested file under {subdir_name}/: {nested_rel} "
+                    "(recommended one level deep)"
+                )
+                warnings += 1
+                nested_resource_warn_count += 1
+
+        # Check 23: Human-centric docs inside skill directories (lint)
+        for human_doc in sorted(HUMAN_DOC_FILENAMES):
+            human_doc_path = skill_dir / human_doc
+            if human_doc_path.is_file():
+                print(
+                    f"WARN:  {rel_path} -- human-centric doc in skill directory: "
+                    f"{human_doc_path.relative_to(skill_dir)}"
+                )
+                warnings += 1
+                human_doc_warn_count += 1
+
+        # Check 24: Path style lint -- use forward slashes for skill-local paths.
+        for m in FORWARD_SLASH_PATH_PATTERN.finditer(body_text):
+            print(
+                f"WARN:  {rel_path} -- use forward slashes in skill paths: '{m.group(0)}'"
+            )
+            warnings += 1
+            path_slash_warn_count += 1
+
+        # Check 10: Scope section presence
+        if not result["has_scope"]:
+            print(f"WARN:  {rel_path} -- missing '## Scope' section")
+            warnings += 1
+            missing_scope_count += 1
+
+        # Check 11: Out-of-scope section presence
+        if not result["has_oos"]:
+            print(f"WARN:  {rel_path} -- missing '## Out of scope' section")
+            warnings += 1
+            missing_oos_count += 1
+
+        # Check 12: Out-of-scope attribution format
+        if result["has_oos"]:
+            for item_text, has_ref in result["oos_items"]:
+                if not has_ref:
+                    print(
+                        f"WARN:  {rel_path} -- out-of-scope item lacks [skill:] attribution: "
+                        f"{item_text[:60]}"
+                    )
+                    warnings += 1
+
+        # --- Invocation contract checks ---
+        # Rule 1: Scope section must contain >= 1 unordered bullet
+        scope_bullet_count = len(result["scope_items"])
+        if scope_bullet_count < 1:
+            msg = f"INVOCATION_CONTRACT: Scope section has {scope_bullet_count} unordered bullets (need >=1)"
+            if strict_invocation:
+                print(f"ERROR: {rel_path} -- {msg}")
+                errors += 1
+            else:
+                print(f"WARN:  {rel_path} -- {msg}")
+                warnings += 1
+            invocation_contract_warn_count += 1
+
+        # Rule 2: Out of scope section must contain >= 1 unordered bullet
+        oos_bullet_count = len(result["oos_items"])
+        if oos_bullet_count < 1:
+            msg = f"INVOCATION_CONTRACT: Out of scope section has {oos_bullet_count} unordered bullets (need >=1)"
+            if strict_invocation:
+                print(f"ERROR: {rel_path} -- {msg}")
+                errors += 1
+            else:
+                print(f"WARN:  {rel_path} -- {msg}")
+                warnings += 1
+            invocation_contract_warn_count += 1
+
+        # Rule 3: At least one OOS bullet must contain [skill:] reference
+        # Dedicated presence check, independent of STRICT_REFS resolution.
+        # No guard on oos_bullet_count: when 0 bullets, any() returns False
+        # which correctly triggers the warning (vacuous failure).
+        has_any_skill_ref = any(has_ref for _, has_ref in result["oos_items"])
+        if not has_any_skill_ref:
+            msg = "INVOCATION_CONTRACT: No OOS bullet contains [skill:] cross-reference"
+            if strict_invocation:
+                print(f"ERROR: {rel_path} -- {msg}")
+                errors += 1
+            else:
+                print(f"WARN:  {rel_path} -- {msg}")
+                warnings += 1
+            invocation_contract_warn_count += 1
+
+        # Canonical skill ID is the directory name (not frontmatter name,
+        # which may differ if there's a name/dir mismatch)
+        skill_id = dir_name
+
+        # Check 13: Self-referential cross-link detection (ERROR)
+        if skill_id and skill_id in refs:
+            print(
+                f"ERROR: {rel_path} -- self-referential cross-link [skill:{skill_id}]"
+            )
+            errors += 1
+            self_ref_count += 1
+
+        # Build cross-reference graph for cycle detection (keyed by canonical ID)
+        if skill_id:
+            ref_graph[skill_id] = [r for r in refs if r != skill_id]
+
+        # Track budget only for valid descriptions
+        if description:
+            total_desc_chars += desc_len
+            skill_count += 1
+
+            if desc_len > args.max_desc_chars:
+                print(
+                    f"WARN:  {rel_path} -- description is {desc_len} chars (target: <={args.max_desc_chars})"
+                )
+                warnings += 1
+
+        # Validate cross-references against known IDs set
+        for ref_name in refs:
+            if ref_name == skill_id:
+                # Already reported as self-ref error above
+                continue
+            if ref_name not in known_ids:
+                if args.allow_planned_refs:
+                    print(
+                        f"WARN:  {rel_path} -- unresolved cross-reference [skill:{ref_name}] (planned skill, no directory yet)"
+                    )
+                    warnings += 1
+                else:
+                    print(
+                        f"ERROR: {rel_path} -- broken cross-reference [skill:{ref_name}] (no matching skill or agent found)"
+                    )
+                    errors += 1
+
+    # --- Agent file scanning ---
+    print()
+    print("=== Agent File Validation ===")
+    print()
+
+    for agent_file in agent_files:
+        rel_path = agent_file.relative_to(repo_root)
+        agent_stem = agent_file.stem
+
+        # Read full file content for cross-ref and bare-ref scanning
+        try:
+            agent_content = agent_file.read_text(encoding="utf-8")
+        except Exception as e:
+            print(f"ERROR: {rel_path} -- cannot read: {e}")
+            errors += 1
+            continue
+
+        agent_content = agent_content.replace("\r\n", "\n").replace("\r", "\n")
+
+        # Validate agent frontmatter shape and required fields.
+        agent_frontmatter, fm_error = parse_agent_frontmatter(agent_content)
+        if fm_error:
+            print(f"ERROR: {rel_path} -- {fm_error}")
+            errors += 1
+        elif agent_frontmatter is not None:
+            required_agent_fields = {"name", "description", "model", "capabilities", "tools"}
+            missing_fields = sorted(required_agent_fields - set(agent_frontmatter.keys()))
+            if missing_fields:
+                print(
+                    f"ERROR: {rel_path} -- missing required frontmatter field(s): "
+                    f"{', '.join(missing_fields)}"
+                )
+                errors += 1
+
+            agent_name = agent_frontmatter.get("name", "").strip().strip("'\"")
+            if agent_name and agent_name != agent_stem:
+                print(
+                    f"ERROR: {rel_path} -- frontmatter name '{agent_name}' does not match "
+                    f"filename stem '{agent_stem}'"
+                )
+                errors += 1
+
+            agent_desc = agent_frontmatter.get("description", "").strip().strip("'\"")
+            if not agent_desc:
+                print(f"ERROR: {rel_path} -- frontmatter description is empty")
+                errors += 1
+            elif re.match(r"^\s*when\b", agent_desc, re.IGNORECASE):
+                print(
+                    f"ERROR: {rel_path} -- description starts with WHEN prefix "
+                    f"(use declarative style)"
+                )
+                errors += 1
+
+        # Extract [skill:] refs from agent file and validate
+        agent_refs = extract_refs(agent_content)
+        for ref_name in agent_refs:
+            if ref_name not in known_ids:
+                if args.allow_planned_refs:
+                    print(
+                        f"WARN:  {rel_path} -- unresolved cross-reference [skill:{ref_name}]"
+                    )
+                    warnings += 1
+                else:
+                    print(
+                        f"ERROR: {rel_path} -- broken cross-reference [skill:{ref_name}] (no matching skill or agent found)"
+                    )
+                    errors += 1
+
+        # Build agent cross-ref graph entries
+        if agent_stem:
+            ref_graph[agent_stem] = [r for r in agent_refs if r != agent_stem]
+
+        # Bare-ref detection in agent files (informational, not error)
+        # find_bare_refs() handles frontmatter/heading stripping centrally.
+        bare_refs = find_bare_refs(agent_content, known_ids)
+        if bare_refs:
+            for bare_id in bare_refs:
+                print(
+                    f"INFO:  {rel_path} -- bare reference to '{bare_id}' (not wrapped in [skill:])"
+                )
+            agent_bare_ref_count += len(bare_refs)
+
+    # --- AGENTS.md bare-ref scanning ---
+    agentsmd_path = repo_root / "AGENTS.md"
+    if agentsmd_path.is_file():
+        try:
+            agentsmd_content = agentsmd_path.read_text(encoding="utf-8")
+            agentsmd_content = agentsmd_content.replace("\r\n", "\n").replace("\r", "\n")
+            agentsmd_bare_refs = find_bare_refs(agentsmd_content, known_ids)
+            if agentsmd_bare_refs:
+                for bare_id in agentsmd_bare_refs:
+                    print(
+                        f"INFO:  AGENTS.md -- bare reference to '{bare_id}' (not wrapped in [skill:])"
+                    )
+                agentsmd_bare_ref_count += len(agentsmd_bare_refs)
+        except Exception as e:
+            print(f"WARN:  AGENTS.md -- cannot read: {e}")
+            warnings += 1
+
+    # --- Reference file validation ---
+    print()
+    print("=== Reference File Validation ===")
+    print()
+
+    ref_file_count = 0
+    ref_file_error_count = 0
+
+    # Collect all reference files: skills/*/references/*.md
+    ref_files = sorted(skills_dir.glob("*/references/*.md"))
+
+    for ref_file in ref_files:
+        rel_path = ref_file.relative_to(repo_root)
+        ref_file_count += 1
+
+        try:
+            ref_content = ref_file.read_text(encoding="utf-8")
+        except Exception as e:
+            print(f"ERROR: {rel_path} -- cannot read: {e}")
+            errors += 1
+            ref_file_error_count += 1
+            continue
+
+        ref_content = ref_content.replace("\r\n", "\n").replace("\r", "\n")
+
+        # Check 25: H1 title presence (fence-aware)
+        title = extract_h1_title_fence_aware(ref_content)
+        if title is None:
+            print(f"ERROR: {rel_path} -- missing H1 title (# ...)")
+            errors += 1
+            ref_file_error_count += 1
+        else:
+            # Check 26: Title must not be slug-style (dotnet-*)
+            if title.lower().startswith("dotnet-"):
+                print(
+                    f"ERROR: {rel_path} -- H1 title is slug-style: '# {title}' "
+                    "(must be human-readable Title Case)"
+                )
+                errors += 1
+                ref_file_error_count += 1
+
+        # Check 27: No Scope/OOS sections
+        if has_section_header(ref_content, "Scope"):
+            print(f"ERROR: {rel_path} -- reference file must not have '## Scope' section")
+            errors += 1
+            ref_file_error_count += 1
+        if has_section_header(ref_content, "Out of scope"):
+            print(f"ERROR: {rel_path} -- reference file must not have '## Out of scope' section")
+            errors += 1
+            ref_file_error_count += 1
+
+        # Check 28: Fence-aware [skill:] cross-ref resolution (always strict)
+        ref_refs = extract_refs_fence_aware(ref_content)
+        for ref_name in ref_refs:
+            if ref_name not in known_ids:
+                print(
+                    f"ERROR: {rel_path} -- broken cross-reference [skill:{ref_name}] "
+                    "(no matching skill or agent found)"
+                )
+                errors += 1
+                ref_file_error_count += 1
+
+    # Check 29: Routing table companion file existence
+    for skill_file in skill_files:
+        rel_skill_path = skill_file.relative_to(repo_root)
+        skill_dir = skill_file.parent
+
+        # Read SKILL.md to check for Routing Table section
+        try:
+            skill_content = skill_file.read_text(encoding="utf-8")
+        except Exception:
+            continue
+
+        if "## Routing Table" not in skill_content:
+            continue  # Skip skills without routing table (e.g., advisor)
+
+        companion_entries = extract_routing_table_companion_files(skill_file)
+        for file_path_str, line_num in companion_entries:
+            companion_path = skill_dir / file_path_str
+            if not companion_path.exists():
+                print(
+                    f"ERROR: {rel_skill_path} (line ~{line_num}) -- "
+                    f"routing table references missing file: {file_path_str}"
+                )
+                errors += 1
+                ref_file_error_count += 1
+
+    print(f"Reference files scanned: {ref_file_count}")
+    print(f"REF_FILE_ERROR_COUNT={ref_file_error_count}")
+
+    # --- Cross-reference cycle detection (informational) ---
+    print()
+    print("=== Cross-Reference Cycle Report ===")
+
+    cycles = detect_cycles(ref_graph)
+    if cycles:
+        print(f"Found {len(cycles)} cross-reference cycle(s) (informational, not errors):")
+        for cycle in cycles:
+            cycle_str = " -> ".join(cycle)
+            print(f"  CYCLE: {cycle_str}")
+    else:
+        print("No cross-reference cycles detected.")
+
+    # --- Budget Report ---
+    print()
+    print("=== Budget Report ===")
+
+    projected_desc_chars = args.projected_skills * args.max_desc_chars
+
+    # Determine budget status from CURRENT_DESC_CHARS only
+    # (projected is informational, not part of status determination)
+    budget_status = "OK"
+    if total_desc_chars >= args.fail_threshold:
+        budget_status = "FAIL"
+    elif total_desc_chars >= args.warn_threshold:
+        budget_status = "WARN"
+
+    # Stable CI-parseable output keys
+    print(f"CURRENT_DESC_CHARS={total_desc_chars}")
+    print(f"PROJECTED_DESC_CHARS={projected_desc_chars}")
+    print(f"BUDGET_STATUS={budget_status}")
+    print(f"NAME_DIR_MISMATCHES={name_dir_mismatches}")
+    print(f"EXTRA_FIELD_COUNT={extra_field_count}")
+    print(f"TYPE_WARNING_COUNT={type_warning_count}")
+    print(f"FILLER_PHRASE_COUNT={filler_phrase_count}")
+    print(f"WHEN_PREFIX_COUNT={when_prefix_count}")
+    print(f"NAME_FORMAT_ERROR_COUNT={name_format_error_count}")
+    print(f"DESC_HARDCAP_ERROR_COUNT={desc_hardcap_error_count}")
+    print(f"DESC_PRONOUN_WARN_COUNT={desc_pronoun_warn_count}")
+    print(f"DESC_NEGATIVE_TRIGGER_WARN_COUNT={desc_negative_trigger_warn_count}")
+    print(f"SKILL_LINE_BUDGET_WARN_COUNT={skill_line_budget_warn_count}")
+    print(f"NESTED_RESOURCE_WARN_COUNT={nested_resource_warn_count}")
+    print(f"HUMAN_DOC_WARN_COUNT={human_doc_warn_count}")
+    print(f"PATH_SLASH_WARN_COUNT={path_slash_warn_count}")
+    print(f"MISSING_SCOPE_COUNT={missing_scope_count}")
+    print(f"MISSING_OOS_COUNT={missing_oos_count}")
+    print(f"SELF_REF_COUNT={self_ref_count}")
+    print(f"AGENT_BARE_REF_COUNT={agent_bare_ref_count}")
+    print(f"AGENTSMD_BARE_REF_COUNT={agentsmd_bare_ref_count}")
+    print(f"INVOCATION_CONTRACT_WARN_COUNT={invocation_contract_warn_count}")
+
+    print()
+    print(f"Skills validated: {skill_count}")
+    print(f"Agents scanned: {len(agent_files)}")
+    print(f"Known IDs: {len(known_ids)} ({len(valid_skill_dirs)} skills + {len(agent_stems)} agents)")
+    print(f"Current budget: {total_desc_chars} / {args.fail_threshold} chars")
+    print(
+        f"Projected budget ({args.projected_skills} skills x {args.max_desc_chars} chars): {projected_desc_chars} chars"
+    )
+
+    if budget_status == "WARN":
+        print(
+            f"WARNING: Budget approaching limit (WARN threshold: {args.warn_threshold} chars)"
+        )
+        warnings += 1
+
+    if budget_status == "FAIL":
+        print(
+            f"FAIL: Budget exceeds hard limit (FAIL threshold: {args.fail_threshold} chars)"
+        )
+        errors += 1
+
+    # --- Summary ---
+    print()
+    print("=== Summary ===")
+    print(f"Errors: {errors}")
+    print(f"Warnings: {warnings}")
+
+    if errors > 0:
+        print()
+        print(f"FAILED: {errors} error(s) found")
+        sys.exit(1)
+
+    print()
+    print("PASSED")
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

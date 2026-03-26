@@ -1,0 +1,110 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Registrations.DetailsModel
+
+@{
+    ViewData["Title"] = $"Registration {Model.Registration.ConfirmationNumber}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Registration Details</h1>
+    <div>
+        @if (Model.CanCancel)
+        {
+            <a asp-page="Cancel" asp-route-id="@Model.Registration.Id" class="btn btn-outline-danger">Cancel Registration</a>
+        }
+        <a asp-page="/Events/Roster" asp-route-eventId="@Model.Registration.EventId" class="btn btn-outline-primary">Back to Roster</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Registration Info</strong></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Confirmation #</dt>
+                    <dd class="col-sm-7"><strong>@Model.Registration.ConfirmationNumber</strong></dd>
+
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        <partial name="_RegistrationStatusBadge" model="Model.Registration.Status" />
+                    </dd>
+
+                    <dt class="col-sm-5">Event</dt>
+                    <dd class="col-sm-7">@Model.Registration.Event.Title</dd>
+
+                    <dt class="col-sm-5">Attendee</dt>
+                    <dd class="col-sm-7">
+                        <a asp-page="/Attendees/Details" asp-route-id="@Model.Registration.AttendeeId">
+                            @Model.Registration.Attendee.FullName
+                        </a>
+                    </dd>
+
+                    <dt class="col-sm-5">Ticket Type</dt>
+                    <dd class="col-sm-7">@Model.Registration.TicketType.Name</dd>
+
+                    <dt class="col-sm-5">Amount Paid</dt>
+                    <dd class="col-sm-7">@Model.Registration.AmountPaid.ToString("C")</dd>
+
+                    <dt class="col-sm-5">Registration Date</dt>
+                    <dd class="col-sm-7">@Model.Registration.RegistrationDate.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                    @if (Model.Registration.WaitlistPosition.HasValue)
+                    {
+                        <dt class="col-sm-5">Waitlist Position</dt>
+                        <dd class="col-sm-7">#@Model.Registration.WaitlistPosition</dd>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Registration.SpecialRequests))
+                    {
+                        <dt class="col-sm-5">Special Requests</dt>
+                        <dd class="col-sm-7">@Model.Registration.SpecialRequests</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        @if (Model.Registration.Status == SparkEvents.Models.RegistrationStatus.Cancelled)
+        {
+            <div class="card mb-4 border-danger">
+                <div class="card-header text-bg-danger"><strong>Cancellation</strong></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Cancelled On</dt>
+                        <dd class="col-sm-7">@Model.Registration.CancellationDate?.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Registration.CancellationReason))
+                        {
+                            <dt class="col-sm-5">Reason</dt>
+                            <dd class="col-sm-7">@Model.Registration.CancellationReason</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        }
+
+        @if (Model.Registration.CheckIn is not null)
+        {
+            <div class="card mb-4 border-success">
+                <div class="card-header text-bg-success"><strong>Check-In</strong></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Checked In At</dt>
+                        <dd class="col-sm-7">@Model.Registration.CheckIn.CheckInTime.ToString("MMM dd, yyyy h:mm tt")</dd>
+
+                        <dt class="col-sm-5">Checked In By</dt>
+                        <dd class="col-sm-7">@Model.Registration.CheckIn.CheckedInBy</dd>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Registration.CheckIn.Notes))
+                        {
+                            <dt class="col-sm-5">Notes</dt>
+                            <dd class="col-sm-7">@Model.Registration.CheckIn.Notes</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        }
+    </div>
+</div>

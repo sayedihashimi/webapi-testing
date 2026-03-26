@@ -1,0 +1,30 @@
+/* HorizonHR Custom Styles */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+footer {
+    background-color: #f8f9fa;
+    padding: 1rem 0;
+    margin-top: auto;
+}
+
+.table th {
+    white-space: nowrap;
+}
+
+.card-stats {
+    transition: transform 0.2s;
+}
+
+.card-stats:hover {
+    transform: translateY(-2px);
+}

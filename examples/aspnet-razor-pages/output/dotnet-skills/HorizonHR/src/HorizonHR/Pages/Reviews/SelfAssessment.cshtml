@@ -1,0 +1,58 @@
+@page "{id:int}"
+@model HorizonHR.Pages.Reviews.SelfAssessmentModel
+@{
+    ViewData["Title"] = "Submit Self-Assessment";
+}
+
+<h1>Submit Self-Assessment</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Review Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl>
+                    <dt>Employee</dt>
+                    <dd>@Model.Review.Employee.FullName</dd>
+                    <dt>Reviewer</dt>
+                    <dd>@Model.Review.Reviewer.FullName</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl>
+                    <dt>Review Period</dt>
+                    <dd>@Model.Review.ReviewPeriodStart.ToString("MMM d, yyyy") &ndash; @Model.Review.ReviewPeriodEnd.ToString("MMM d, yyyy")</dd>
+                    <dt>Status</dt>
+                    <dd><partial name="_StatusBadge" model="@Model.Review.Status.ToString()" /></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-10">
+        <form method="post" asp-route-id="@Model.Review.Id">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.SelfAssessment" class="form-label"></label>
+                <textarea asp-for="Input.SelfAssessment" class="form-control" rows="10"
+                          placeholder="Describe your accomplishments, challenges, and areas of growth during this review period..."></textarea>
+                <span asp-validation-for="Input.SelfAssessment" class="text-danger"></span>
+                <div class="form-text">Maximum 5,000 characters.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Submit Self-Assessment</button>
+                <a asp-page="Details" asp-route-id="@Model.Review.Id" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

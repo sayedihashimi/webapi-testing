@@ -1,0 +1,110 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.CheckIn.IndexModel
+@{
+    ViewData["Title"] = $"Check-In - {Model.Event.Title}";
+}
+
+<section>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Events/Index">Events</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Events/Details" asp-route-id="@Model.Event.Id">@Model.Event.Title</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Check-In</li>
+        </ol>
+    </nav>
+
+    <h1>Check-In — @Model.Event.Title</h1>
+    <p class="text-muted">@Model.Event.StartDate.ToString("MMM dd, yyyy h:mm tt")</p>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Check-In Progress</h5>
+        </div>
+        <div class="card-body">
+            @{
+                var percent = Model.TotalConfirmed > 0
+                    ? (int)Math.Round((double)Model.CheckedInCount / Model.TotalConfirmed * 100)
+                    : 0;
+            }
+            <p>@Model.CheckedInCount of @Model.TotalConfirmed checked in</p>
+            <div class="progress" role="progressbar" aria-valuenow="@percent"
+                 aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar bg-success" style="width: @(percent)%">@(percent)%</div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.CheckInWindowOpen)
+    {
+        <div class="alert alert-warning" role="alert">
+            @Model.WindowMessage
+        </div>
+    }
+    else
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Lookup Registration</h5>
+            </div>
+            <div class="card-body">
+                <form method="get">
+                    <input type="hidden" name="eventId" value="@Model.Event.Id" />
+                    <div class="input-group">
+                        <input type="text" name="searchTerm" value="@Model.SearchTerm" class="form-control"
+                               placeholder="Enter confirmation number or attendee name..." />
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @if (Model.FoundRegistration is not null)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Registration Found</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Confirmation #</dt>
+                        <dd class="col-sm-9">@Model.FoundRegistration.ConfirmationNumber</dd>
+
+                        <dt class="col-sm-3">Attendee</dt>
+                        <dd class="col-sm-9">@Model.FoundRegistration.Attendee.FullName</dd>
+
+                        <dt class="col-sm-3">Email</dt>
+                        <dd class="col-sm-9">@Model.FoundRegistration.Attendee.Email</dd>
+
+                        <dt class="col-sm-3">Ticket Type</dt>
+                        <dd class="col-sm-9">@Model.FoundRegistration.TicketType.Name</dd>
+
+                        <dt class="col-sm-3">Status</dt>
+                        <dd class="col-sm-9">
+                            <partial name="_StatusBadge" model="@Model.FoundRegistration.Status.ToString()" />
+                        </dd>
+                    </dl>
+
+                    @if (Model.FoundRegistration.Status == RegistrationStatus.Confirmed)
+                    {
+                        <a asp-page="Process" asp-route-eventId="@Model.Event.Id"
+                           asp-route-registrationId="@Model.FoundRegistration.Id"
+                           class="btn btn-success mt-3">Process Check-In</a>
+                    }
+                    else if (Model.FoundRegistration.Status == RegistrationStatus.CheckedIn)
+                    {
+                        <div class="alert alert-info mt-3 mb-0" role="alert">
+                            Already Checked In
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(Model.SearchTerm) && Model.LookupMessage is not null)
+        {
+            <div class="alert alert-warning" role="alert">
+                @Model.LookupMessage
+            </div>
+        }
+    }
+</section>

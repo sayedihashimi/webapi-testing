@@ -1,0 +1,77 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Venues.DetailsModel
+@{
+    ViewData["Title"] = Model.Venue.Name;
+}
+
+<h1 class="mb-4">@Model.Venue.Name</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Venue Details</h5>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Address</dt>
+            <dd class="col-sm-9">@Model.Venue.Address</dd>
+
+            <dt class="col-sm-3">City</dt>
+            <dd class="col-sm-9">@Model.Venue.City</dd>
+
+            <dt class="col-sm-3">State</dt>
+            <dd class="col-sm-9">@Model.Venue.State</dd>
+
+            <dt class="col-sm-3">Zip Code</dt>
+            <dd class="col-sm-9">@Model.Venue.ZipCode</dd>
+
+            <dt class="col-sm-3">Max Capacity</dt>
+            <dd class="col-sm-9">@Model.Venue.MaxCapacity.ToString("N0")</dd>
+
+            <dt class="col-sm-3">Contact Email</dt>
+            <dd class="col-sm-9">@(Model.Venue.ContactEmail ?? "—")</dd>
+
+            <dt class="col-sm-3">Contact Phone</dt>
+            <dd class="col-sm-9">@(Model.Venue.ContactPhone ?? "—")</dd>
+
+            <dt class="col-sm-3">Notes</dt>
+            <dd class="col-sm-9">@(Model.Venue.Notes ?? "—")</dd>
+
+            <dt class="col-sm-3">Created</dt>
+            <dd class="col-sm-9">@Model.Venue.CreatedAt.ToString("MMM dd, yyyy")</dd>
+        </dl>
+    </div>
+</div>
+
+<h3 class="mb-3">Upcoming Events</h3>
+
+@if (!Model.UpcomingEvents.Any())
+{
+    <p class="text-muted">No upcoming events at this venue.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Start Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var evt in Model.UpcomingEvents)
+                {
+                    <tr>
+                        <td><a asp-page="/Events/Details" asp-route-id="@evt.Id">@evt.Title</a></td>
+                        <td>@evt.StartDate.ToString("MMM dd, yyyy h:mm tt")</td>
+                        <td>@evt.Status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<div class="mt-3">
+    <a asp-page="Edit" asp-route-id="@Model.Venue.Id" class="btn btn-outline-secondary">Edit</a>
+    <a asp-page="Index" class="btn btn-outline-primary">Back to list</a>
+</div>

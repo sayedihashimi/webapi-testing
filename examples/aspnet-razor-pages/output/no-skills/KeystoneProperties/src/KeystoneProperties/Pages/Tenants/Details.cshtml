@@ -1,0 +1,104 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Tenants.DetailsModel
+@{
+    ViewData["Title"] = Model.Tenant.FullName;
+}
+
+<h1>@Model.Tenant.FullName</h1>
+
+<section class="mb-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Email:</strong> @Model.Tenant.Email</p>
+                    <p><strong>Phone:</strong> @Model.Tenant.Phone</p>
+                    <p><strong>Date of Birth:</strong> @Model.Tenant.DateOfBirth.ToString("MMM dd, yyyy")</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Emergency Contact:</strong> @Model.Tenant.EmergencyContactName</p>
+                    <p><strong>Emergency Phone:</strong> @Model.Tenant.EmergencyContactPhone</p>
+                    <p><strong>Status:</strong> @(Model.Tenant.IsActive ? "Active" : "Inactive")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="d-flex gap-2 mb-4">
+    <a asp-page="Edit" asp-route-id="@Model.Tenant.Id" class="btn btn-primary">Edit</a>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to List</a>
+</div>
+
+<section class="mb-4">
+    <h3>Leases</h3>
+    @if (Model.Tenant.Leases.Any())
+    {
+        <table class="table table-striped">
+            <thead><tr><th>Unit</th><th>Property</th><th>Start</th><th>End</th><th>Rent</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var l in Model.Tenant.Leases.OrderByDescending(l => l.StartDate))
+                {
+                    <tr>
+                        <td>@l.Unit.UnitNumber</td>
+                        <td>@l.Unit.Property.Name</td>
+                        <td>@l.StartDate.ToString("MMM dd, yyyy")</td>
+                        <td>@l.EndDate.ToString("MMM dd, yyyy")</td>
+                        <td>@l.MonthlyRentAmount.ToString("C")</td>
+                        <td><partial name="_StatusBadge" model="@(l.Status.ToString(), "lease")" /></td>
+                        <td><a asp-page="/Leases/Details" asp-route-id="@l.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else { <p class="text-muted">No leases.</p> }
+</section>
+
+<section class="mb-4">
+    <h3>Payment History</h3>
+    @{
+        var payments = Model.Tenant.Leases.SelectMany(l => l.Payments).OrderByDescending(p => p.PaymentDate).Take(20).ToList();
+    }
+    @if (payments.Any())
+    {
+        <table class="table table-striped">
+            <thead><tr><th>Date</th><th>Amount</th><th>Type</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var p in payments)
+                {
+                    <tr>
+                        <td>@p.PaymentDate.ToString("MMM dd, yyyy")</td>
+                        <td>@p.Amount.ToString("C")</td>
+                        <td>@p.PaymentType</td>
+                        <td><partial name="_StatusBadge" model="@(p.Status.ToString(), "payment")" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else { <p class="text-muted">No payments.</p> }
+</section>
+
+<section>
+    <h3>Maintenance Requests</h3>
+    @if (Model.Tenant.MaintenanceRequests.Any())
+    {
+        <table class="table table-striped">
+            <thead><tr><th>Title</th><th>Unit</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var m in Model.Tenant.MaintenanceRequests.OrderByDescending(m => m.SubmittedDate))
+                {
+                    <tr>
+                        <td>@m.Title</td>
+                        <td>@m.Unit.UnitNumber</td>
+                        <td><partial name="_StatusBadge" model="@(m.Priority.ToString(), "priority")" /></td>
+                        <td><partial name="_StatusBadge" model="@(m.Status.ToString(), "maintenance")" /></td>
+                        <td><a asp-page="/Maintenance/Details" asp-route-id="@m.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else { <p class="text-muted">No maintenance requests.</p> }
+</section>

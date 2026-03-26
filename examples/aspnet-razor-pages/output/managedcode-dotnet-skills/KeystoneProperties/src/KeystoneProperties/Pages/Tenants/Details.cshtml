@@ -1,0 +1,231 @@
+@page "{id:int}"
+@using KeystoneProperties.Models
+@model DetailsModel
+@{
+    ViewData["Title"] = Model.Tenant.FullName;
+}
+
+<h1>@Model.Tenant.FullName</h1>
+
+<p>
+    <a asp-page="/Tenants/Index" class="btn btn-outline-secondary btn-sm">&larr; Back to Tenants</a>
+</p>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Tenant Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-5">Name</dt>
+                    <dd class="col-sm-7">@Model.Tenant.FullName</dd>
+
+                    <dt class="col-sm-5">Email</dt>
+                    <dd class="col-sm-7">@Model.Tenant.Email</dd>
+
+                    <dt class="col-sm-5">Phone</dt>
+                    <dd class="col-sm-7">@Model.Tenant.Phone</dd>
+
+                    <dt class="col-sm-5">Date of Birth</dt>
+                    <dd class="col-sm-7">@Model.Tenant.DateOfBirth.ToString("MMM dd, yyyy")</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-5">Emergency Contact</dt>
+                    <dd class="col-sm-7">@Model.Tenant.EmergencyContactName</dd>
+
+                    <dt class="col-sm-5">Emergency Phone</dt>
+                    <dd class="col-sm-7">@Model.Tenant.EmergencyContactPhone</dd>
+
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        @if (Model.Tenant.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <a asp-page="/Tenants/Edit" asp-route-id="@Model.Tenant.Id" class="btn btn-warning">Edit</a>
+        @if (Model.Tenant.IsActive)
+        {
+            <a asp-page="/Tenants/Deactivate" asp-route-id="@Model.Tenant.Id" class="btn btn-danger">Deactivate</a>
+        }
+    </div>
+</div>
+
+@{
+    var activeLeases = Model.Tenant.Leases?.Where(l => l.Status == LeaseStatus.Active).ToList() ?? [];
+}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Current Leases</h5>
+    </div>
+    <div class="card-body">
+        @if (activeLeases.Count > 0)
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Unit</th>
+                        <th>Dates</th>
+                        <th>Rent</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lease in activeLeases)
+                    {
+                        <tr>
+                            <td>@lease.Unit?.Property?.Name - Unit @lease.Unit?.UnitNumber</td>
+                            <td>@lease.StartDate.ToString("MMM dd, yyyy") &ndash; @lease.EndDate.ToString("MMM dd, yyyy")</td>
+                            <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = lease.Status.ToString() })</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No active leases.</p>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Lease History</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Tenant.Leases?.Any() == true)
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Unit</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Rent</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lease in Model.Tenant.Leases.OrderByDescending(l => l.StartDate))
+                    {
+                        <tr>
+                            <td>@lease.Unit?.Property?.Name - Unit @lease.Unit?.UnitNumber</td>
+                            <td>@lease.StartDate.ToString("MMM dd, yyyy")</td>
+                            <td>@lease.EndDate.ToString("MMM dd, yyyy")</td>
+                            <td>@lease.MonthlyRentAmount.ToString("C")</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = lease.Status.ToString() })</td>
+                            <td>
+                                <a asp-page="/Leases/Details" asp-route-id="@lease.Id" class="btn btn-sm btn-info">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No lease history.</p>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Payment History</h5>
+    </div>
+    <div class="card-body">
+        @{
+            var allPayments = Model.Tenant.Leases?
+                .SelectMany(l => l.Payments ?? Enumerable.Empty<Payment>())
+                .OrderByDescending(p => p.PaymentDate)
+                .ToList() ?? [];
+        }
+        @if (allPayments.Count > 0)
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Lease/Unit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in allPayments)
+                    {
+                        <tr>
+                            <td>@payment.PaymentDate.ToString("MMM dd, yyyy")</td>
+                            <td>@payment.PaymentType</td>
+                            <td>@payment.Amount.ToString("C")</td>
+                            <td>@payment.PaymentMethod</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = payment.Status.ToString() })</td>
+                            <td>@payment.Lease?.Unit?.Property?.Name - Unit @payment.Lease?.Unit?.UnitNumber</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No payment history.</p>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Maintenance Requests</h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Tenant.MaintenanceRequests?.Any() == true)
+        {
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Unit</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in Model.Tenant.MaintenanceRequests)
+                    {
+                        <tr>
+                            <td>@request.Title</td>
+                            <td>@request.Unit?.UnitNumber</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = request.Priority.ToString() })</td>
+                            <td>@await Component.InvokeAsync("StatusBadge", new { status = request.Status.ToString() })</td>
+                            <td>@request.SubmittedDate.ToString("MMM dd, yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No maintenance requests.</p>
+        }
+    </div>
+</div>

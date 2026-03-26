@@ -1,0 +1,108 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1>Dashboard</h1>
+<p class="text-muted">Property Management Overview</p>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Properties</h5>
+                <h2>@Model.Dashboard.TotalProperties</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Units / Occupied</h5>
+                <h2>@Model.Dashboard.OccupiedUnits / @Model.Dashboard.TotalUnits</h2>
+                <p class="mb-0">@Model.Dashboard.OccupancyRate.ToString("F1")% occupancy</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Rent Collected This Month</h5>
+                <h2>@Model.Dashboard.RentCollectedThisMonth.ToString("C")</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card @(Model.Dashboard.OverduePaymentsCount > 0 ? "bg-danger text-white" : "bg-secondary text-white")">
+            <div class="card-body">
+                <h5 class="card-title">Overdue Payments</h5>
+                <h2>@Model.Dashboard.OverduePaymentsCount</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h5 class="card-title">Open Maintenance Requests</h5>
+                <h2>@Model.Dashboard.OpenMaintenanceRequests</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Quick Links</h5>
+                <a asp-page="/Properties/Create" class="btn btn-primary me-2">Create Property</a>
+                <a asp-page="/Tenants/Create" class="btn btn-success me-2">Add Tenant</a>
+                <a asp-page="/Payments/Create" class="btn btn-info">Record Payment</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3>Upcoming Lease Expirations (Next 30 Days)</h3>
+
+@if (Model.Dashboard.ExpiringLeases.Count == 0)
+{
+    <div class="alert alert-info">No upcoming lease expirations.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Tenant</th>
+                <th>Unit</th>
+                <th>Property</th>
+                <th>End Date</th>
+                <th>Days Remaining</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var lease in Model.Dashboard.ExpiringLeases)
+            {
+                var daysRemaining = (lease.EndDate.ToDateTime(TimeOnly.MinValue) - DateTime.UtcNow.Date).Days;
+                <tr>
+                    <td><a asp-page="/Tenants/Details" asp-route-id="@lease.TenantId">@lease.Tenant.FullName</a></td>
+                    <td><a asp-page="/Units/Details" asp-route-id="@lease.UnitId">@lease.Unit.UnitNumber</a></td>
+                    <td>@lease.Unit.Property.Name</td>
+                    <td>@lease.EndDate.ToString("MM/dd/yyyy")</td>
+                    <td>
+                        @if (daysRemaining <= 7)
+                        {
+                            <span class="badge bg-danger">@daysRemaining days</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">@daysRemaining days</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

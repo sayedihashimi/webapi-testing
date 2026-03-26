@@ -1,0 +1,55 @@
+@page "{eventId:int}"
+@model SparkEvents.Pages.Events.RegisterModel
+@{ ViewData["Title"] = $"Register for {Model.Event!.Title}"; }
+
+<h1>Register for @Model.Event.Title</h1>
+<p class="text-muted">@Model.Event.StartDate.ToString("MMMM dd, yyyy h:mm tt") at @Model.Event.Venue.Name</p>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.AttendeeId" class="form-label">Attendee</label>
+                <select asp-for="Input.AttendeeId" class="form-select" asp-items="Model.AttendeeList">
+                    <option value="">— Select Attendee —</option>
+                </select>
+                <span asp-validation-for="Input.AttendeeId" class="text-danger"></span>
+                <small class="text-muted"><a asp-page="/Attendees/Create">Create new attendee</a></small>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.TicketTypeId" class="form-label">Ticket Type</label>
+                @foreach (var tt in Model.TicketTypes.Where(t => t.IsActive))
+                {
+                    var remaining = tt.Quantity - tt.QuantitySold;
+                    var isSoldOut = remaining <= 0;
+                    var isEarlyBird = Model.Event.EarlyBirdDeadline.HasValue && tt.EarlyBirdPrice.HasValue && DateTime.UtcNow < Model.Event.EarlyBirdDeadline.Value;
+                    var displayPrice = isEarlyBird ? tt.EarlyBirdPrice!.Value : tt.Price;
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" asp-for="Input.TicketTypeId" value="@tt.Id" id="tt_@tt.Id" disabled="@isSoldOut" />
+                        <label class="form-check-label" for="tt_@tt.Id">
+                            <strong>@tt.Name</strong> — @displayPrice.ToString("C")
+                            @if (isEarlyBird) { <span class="badge bg-info">Early Bird</span> }
+                            @if (isSoldOut) { <span class="badge bg-danger">Sold Out</span> }
+                            else { <span class="text-muted">(@remaining remaining)</span> }
+                            @if (tt.Description != null) { <small class="d-block text-muted">@tt.Description</small> }
+                        </label>
+                    </div>
+                }
+                <span asp-validation-for="Input.TicketTypeId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.SpecialRequests" class="form-label">Special Requests</label>
+                <textarea asp-for="Input.SpecialRequests" class="form-control" rows="2"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success">Complete Registration</button>
+            <a asp-page="Details" asp-route-id="@Model.Event.Id" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

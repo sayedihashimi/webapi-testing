@@ -1,0 +1,90 @@
+@page
+@model KeystoneProperties.Pages.Properties.IndexModel
+@{
+    ViewData["Title"] = "Properties";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Properties</h1>
+    <a asp-page="Create" class="btn btn-primary">Add Property</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search by name or city..." />
+    </div>
+    <div class="col-md-3">
+        <select name="type" class="form-select">
+            <option value="">All Types</option>
+            @foreach (var t in Enum.GetValues<PropertyType>())
+            {
+                <option value="@t" selected="@(Model.TypeFilter == t)">@t</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="isActive" class="form-select">
+            <option value="">All Status</option>
+            <option value="true" selected="@(Model.IsActiveFilter == true)">Active</option>
+            <option value="false" selected="@(Model.IsActiveFilter == false)">Inactive</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+    </div>
+</form>
+
+@if (Model.Properties.Any())
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Type</th>
+                <th>Units</th>
+                <th>Occupancy</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model.Properties)
+            {
+                var occupiedCount = p.Units.Count(u => u.Status == UnitStatus.Occupied);
+                var totalUnits = p.Units.Count;
+                var occupancyPct = totalUnits > 0 ? (double)occupiedCount / totalUnits * 100 : 0;
+                <tr>
+                    <td><a asp-page="Details" asp-route-id="@p.Id">@p.Name</a></td>
+                    <td>@p.Address, @p.City, @p.State @p.ZipCode</td>
+                    <td>@p.PropertyType</td>
+                    <td>@totalUnits</td>
+                    <td>@occupancyPct.ToString("F0")% (@occupiedCount/@totalUnits)</td>
+                    <td>
+                        @if (p.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-page="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        @if (p.IsActive)
+                        {
+                            <a asp-page="Deactivate" asp-route-id="@p.Id" class="btn btn-sm btn-outline-danger">Deactivate</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <partial name="_PaginationPartial" model="@(Model.CurrentPage, Model.TotalPages, $"?search={Model.Search}&type={Model.TypeFilter}&isActive={Model.IsActiveFilter}")" />
+}
+else
+{
+    <p class="text-muted">No properties found.</p>
+}

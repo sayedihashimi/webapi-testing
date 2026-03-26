@@ -1,0 +1,17 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Venues.DeleteModel
+@{ ViewData["Title"] = "Delete Venue"; }
+
+<h1>Delete Venue</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Are you sure you want to delete this venue?</h5>
+        <p><strong>Name:</strong> @Model.Venue!.Name</p>
+        <p><strong>Address:</strong> @Model.Venue.Address, @Model.Venue.City, @Model.Venue.State</p>
+        <p><strong>Capacity:</strong> @Model.Venue.MaxCapacity</p>
+        <form method="post">
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

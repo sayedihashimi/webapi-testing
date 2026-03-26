@@ -1,0 +1,144 @@
+@page "{id:int}"
+@model KeystoneProperties.Pages.Properties.DetailsModel
+@{
+    ViewData["Title"] = Model.Property.Name;
+}
+
+<h1>@Model.Property.Name</h1>
+
+<p><a asp-page="/Properties/Index">&larr; Back to Properties</a></p>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Property Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Address</dt>
+                    <dd class="col-sm-8">@Model.Property.Address</dd>
+
+                    <dt class="col-sm-4">City</dt>
+                    <dd class="col-sm-8">@Model.Property.City</dd>
+
+                    <dt class="col-sm-4">State</dt>
+                    <dd class="col-sm-8">@Model.Property.State</dd>
+
+                    <dt class="col-sm-4">Zip Code</dt>
+                    <dd class="col-sm-8">@Model.Property.ZipCode</dd>
+
+                    <dt class="col-sm-4">Type</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(m => m.Property.PropertyType)</dd>
+
+                    <dt class="col-sm-4">Year Built</dt>
+                    <dd class="col-sm-8">@(Model.Property.YearBuilt?.ToString() ?? "N/A")</dd>
+
+                    <dt class="col-sm-4">Total Units</dt>
+                    <dd class="col-sm-8">@Model.Property.TotalUnits</dd>
+
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@(Model.Property.Description ?? "N/A")</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Property.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        @{
+            var totalUnits = Model.Property.Units.Count;
+            var occupiedUnits = Model.Property.Units.Count(u => u.Status == UnitStatus.Occupied);
+            var occupancyPercent = totalUnits > 0 ? (decimal)occupiedUnits / totalUnits * 100 : 0;
+        }
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Occupancy Summary</h5>
+            </div>
+            <div class="card-body">
+                <p class="fs-5">@occupiedUnits / @totalUnits units occupied</p>
+                <div class="progress" style="height: 25px;">
+                    <div class="progress-bar bg-success" role="progressbar"
+                         style="width: @occupancyPercent%"
+                         aria-valuenow="@occupancyPercent" aria-valuemin="0" aria-valuemax="100">
+                        @occupancyPercent.ToString("F0")%
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <a asp-page="/Properties/Edit" asp-route-id="@Model.Property.Id" class="btn btn-primary">Edit</a>
+            @if (Model.Property.IsActive)
+            {
+                <a asp-page="/Properties/Deactivate" asp-route-id="@Model.Property.Id" class="btn btn-danger ms-2">Deactivate</a>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Units</h3>
+    <a asp-page="/Units/Create" asp-route-propertyId="@Model.Property.Id" class="btn btn-success">Add Unit</a>
+</div>
+
+@if (Model.Property.Units.Count == 0)
+{
+    <div class="alert alert-info">No units found for this property.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Unit #</th>
+                <th>Floor</th>
+                <th>Bedrooms</th>
+                <th>Bathrooms</th>
+                <th>Sq Ft</th>
+                <th>Rent</th>
+                <th>Status</th>
+                <th>Current Tenant</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var unit in Model.Property.Units.OrderBy(u => u.UnitNumber))
+            {
+                var activeLease = unit.Leases.FirstOrDefault(l => l.Status == LeaseStatus.Active);
+                <tr>
+                    <td>@unit.UnitNumber</td>
+                    <td>@(unit.Floor?.ToString() ?? "—")</td>
+                    <td>@unit.Bedrooms</td>
+                    <td>@unit.Bathrooms</td>
+                    <td>@unit.SquareFeet.ToString("N0")</td>
+                    <td>@unit.MonthlyRent.ToString("C")</td>
+                    <td>@await Component.InvokeAsync("StatusBadge", new { status = unit.Status.ToString() })</td>
+                    <td>
+                        @if (activeLease?.Tenant is not null)
+                        {
+                            <a asp-page="/Tenants/Details" asp-route-id="@activeLease.TenantId">@activeLease.Tenant.FullName</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Vacant</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-page="/Units/Details" asp-route-id="@unit.Id" class="btn btn-sm btn-outline-primary">View Unit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

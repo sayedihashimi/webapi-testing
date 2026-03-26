@@ -1,0 +1,122 @@
+@page
+@model KeystoneProperties.Pages.Payments.CreateModel
+@using KeystoneProperties.Models
+@{
+    ViewData["Title"] = "Record Payment";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Record Payment</h1>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to Payments</a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post" class="card card-body">
+            <div class="mb-3">
+                <label asp-for="Input.LeaseId" class="form-label">Lease</label>
+                <select asp-for="Input.LeaseId" asp-items="@Model.LeaseOptions" class="form-select">
+                    <option value="">— Select a lease —</option>
+                </select>
+                <span asp-validation-for="Input.LeaseId" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Amount" class="form-label">Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input asp-for="Input.Amount" class="form-control" step="0.01" />
+                    </div>
+                    <span asp-validation-for="Input.Amount" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.PaymentMethod" class="form-label">Payment Method</label>
+                    <select asp-for="Input.PaymentMethod" asp-items="@(new SelectList(Enum.GetValues<PaymentMethod>()))" class="form-select"></select>
+                    <span asp-validation-for="Input.PaymentMethod" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.PaymentDate" class="form-label">Payment Date</label>
+                    <input asp-for="Input.PaymentDate" type="date" class="form-control" />
+                    <span asp-validation-for="Input.PaymentDate" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.DueDate" class="form-label">Due Date</label>
+                    <input asp-for="Input.DueDate" type="date" class="form-control" />
+                    <span asp-validation-for="Input.DueDate" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.PaymentType" class="form-label">Payment Type</label>
+                    <select asp-for="Input.PaymentType" asp-items="@(new SelectList(Enum.GetValues<PaymentType>()))" class="form-select"></select>
+                    <span asp-validation-for="Input.PaymentType" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Status" class="form-label">Status</label>
+                    <select asp-for="Input.Status" asp-items="@(new SelectList(Enum.GetValues<PaymentStatus>()))" class="form-select"></select>
+                    <span asp-validation-for="Input.Status" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.ReferenceNumber" class="form-label">Reference Number</label>
+                <input asp-for="Input.ReferenceNumber" class="form-control" />
+                <span asp-validation-for="Input.ReferenceNumber" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Notes" class="form-label">Notes</label>
+                <textarea asp-for="Input.Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Input.Notes" class="text-danger"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Record Payment</button>
+                <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Lease Rent Amounts</h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Select a lease to see the monthly rent amount. The amount field will be pre-filled.</p>
+                <ul class="list-group list-group-flush" id="leaseRentInfo">
+                    @foreach (var lease in Model.ActiveLeases)
+                    {
+                        <li class="list-group-item d-flex justify-content-between" data-lease-id="@lease.Id">
+                            <span>@lease.Tenant.FullName</span>
+                            <strong>@lease.MonthlyRentAmount.ToString("C")</strong>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('Input_LeaseId').addEventListener('change', function () {
+            const leaseId = this.value;
+            const rentAmounts = {
+                @foreach (var lease in Model.ActiveLeases)
+                {
+                    @:@lease.Id: @lease.MonthlyRentAmount,
+                }
+            };
+            if (leaseId && rentAmounts[leaseId]) {
+                document.getElementById('Input_Amount').value = rentAmounts[leaseId].toFixed(2);
+            }
+        });
+    </script>
+}

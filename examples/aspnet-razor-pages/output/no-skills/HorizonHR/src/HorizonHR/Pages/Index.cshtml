@@ -1,0 +1,129 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<section>
+    <h1>Dashboard</h1>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Total Employees</h5>
+                    <p class="display-6">@Model.TotalEmployees</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Departments</h5>
+                    <p class="display-6">@Model.DepartmentCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Pending Leave</h5>
+                    <p class="display-6">@Model.PendingLeaveRequests</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Upcoming Reviews</h5>
+                    <p class="display-6">@Model.UpcomingReviews</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Recent Hires (Last 30 Days)</h5></div>
+                <div class="card-body">
+                    @if (Model.RecentHires.Any())
+                    {
+                        <table class="table table-sm">
+                            <thead><tr><th>Name</th><th>Department</th><th>Hire Date</th></tr></thead>
+                            <tbody>
+                                @foreach (var emp in Model.RecentHires)
+                                {
+                                    <tr>
+                                        <td><a asp-page="/Employees/Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                                        <td>@emp.Department.Name</td>
+                                        <td>@emp.HireDate.ToString("MMM dd, yyyy")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No recent hires.</p>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Employees On Leave</h5></div>
+                <div class="card-body">
+                    @if (Model.OnLeaveEmployees.Any())
+                    {
+                        <table class="table table-sm">
+                            <thead><tr><th>Name</th><th>Department</th></tr></thead>
+                            <tbody>
+                                @foreach (var emp in Model.OnLeaveEmployees)
+                                {
+                                    <tr>
+                                        <td><a asp-page="/Employees/Details" asp-route-id="@emp.Id">@emp.FullName</a></td>
+                                        <td>@emp.Department.Name</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No employees currently on leave.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-2">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Headcount by Department</h5></div>
+                <div class="card-body">
+                    @if (Model.DepartmentHeadcounts.Any())
+                    {
+                        <table class="table table-sm">
+                            <thead><tr><th>Department</th><th>Employees</th></tr></thead>
+                            <tbody>
+                                @foreach (var kv in Model.DepartmentHeadcounts)
+                                {
+                                    <tr>
+                                        <td>@kv.Key</td>
+                                        <td>@kv.Value</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No departments found.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

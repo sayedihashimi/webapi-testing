@@ -1,0 +1,67 @@
+@page
+@model HorizonHR.Pages.Leave.BalancesModel
+@{
+    ViewData["Title"] = "Leave Balances";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Leave Balances — @Model.Year</h1>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <select name="departmentId" class="form-select" asp-items="Model.DepartmentOptions">
+            <option value="">All Departments</option>
+        </select>
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+    </div>
+</form>
+
+@if (!Model.Balances.Any())
+{
+    <p class="text-muted">No leave balances found.</p>
+}
+else
+{
+    var grouped = Model.Balances.GroupBy(b => new { b.EmployeeId, b.Employee.FullName, Dept = b.Employee.Department.Name });
+
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Department</th>
+                @foreach (var typeName in Model.Balances.Select(b => b.LeaveType.Name).Distinct().OrderBy(n => n))
+                {
+                    <th class="text-center">@typeName</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var group in grouped.OrderBy(g => g.Key.FullName))
+            {
+                <tr>
+                    <td><a href="/Leave/Employee/@group.Key.EmployeeId">@group.Key.FullName</a></td>
+                    <td>@group.Key.Dept</td>
+                    @foreach (var typeName in Model.Balances.Select(b => b.LeaveType.Name).Distinct().OrderBy(n => n))
+                    {
+                        var bal = group.FirstOrDefault(b => b.LeaveType.Name == typeName);
+                        if (bal is not null)
+                        {
+                            <td class="text-center @(bal.RemainingDays < 2 ? "text-danger fw-bold" : "")">
+                                @bal.RemainingDays.ToString("F1") / @bal.TotalDays.ToString("F1")
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="text-center text-muted">—</td>
+                        }
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<a href="/Leave" class="btn btn-link">&larr; Back to Leave Requests</a>

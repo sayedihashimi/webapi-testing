@@ -1,0 +1,150 @@
+@page
+@model HorizonHR.Pages.Employees.CreateModel
+@{
+    ViewData["Title"] = "Create Employee";
+}
+
+<section class="py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="Index">Employees</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Create</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-4">Create Employee</h1>
+
+    <form method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Personal Information</h5></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Input.FirstName" class="form-label"></label>
+                        <input asp-for="Input.FirstName" class="form-control" />
+                        <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.LastName" class="form-label"></label>
+                        <input asp-for="Input.LastName" class="form-control" />
+                        <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.Email" class="form-label"></label>
+                        <input asp-for="Input.Email" class="form-control" type="email" />
+                        <span asp-validation-for="Input.Email" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.Phone" class="form-label"></label>
+                        <input asp-for="Input.Phone" class="form-control" type="tel" />
+                        <span asp-validation-for="Input.Phone" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.DateOfBirth" class="form-label"></label>
+                        <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
+                        <span asp-validation-for="Input.DateOfBirth" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.ProfileImageUrl" class="form-label"></label>
+                        <input asp-for="Input.ProfileImageUrl" class="form-control" placeholder="https://..." />
+                        <span asp-validation-for="Input.ProfileImageUrl" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Employment Details</h5></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Input.DepartmentId" class="form-label"></label>
+                        <select asp-for="Input.DepartmentId" class="form-select">
+                            <option value="">— Select Department —</option>
+                            @foreach (var dept in Model.Departments)
+                            {
+                                <option value="@dept.Id">@dept.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.DepartmentId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.JobTitle" class="form-label"></label>
+                        <input asp-for="Input.JobTitle" class="form-control" />
+                        <span asp-validation-for="Input.JobTitle" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.EmploymentType" class="form-label"></label>
+                        <select asp-for="Input.EmploymentType" class="form-select"
+                                asp-items="@(new SelectList(Enum.GetValues<EmploymentType>()))">
+                        </select>
+                        <span asp-validation-for="Input.EmploymentType" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.Salary" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="Input.Salary" class="form-control" type="number" step="0.01" min="0.01" />
+                        </div>
+                        <span asp-validation-for="Input.Salary" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.HireDate" class="form-label"></label>
+                        <input asp-for="Input.HireDate" class="form-control" type="date" />
+                        <span asp-validation-for="Input.HireDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.ManagerId" class="form-label"></label>
+                        <select asp-for="Input.ManagerId" class="form-select">
+                            <option value="">— No Manager —</option>
+                            @foreach (var emp in Model.Employees)
+                            {
+                                <option value="@emp.Id">@emp.FullName (@emp.EmployeeNumber)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.ManagerId" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Address</h5></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label asp-for="Input.Address" class="form-label"></label>
+                        <input asp-for="Input.Address" class="form-control" />
+                        <span asp-validation-for="Input.Address" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-5">
+                        <label asp-for="Input.City" class="form-label"></label>
+                        <input asp-for="Input.City" class="form-control" />
+                        <span asp-validation-for="Input.City" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Input.State" class="form-label"></label>
+                        <input asp-for="Input.State" class="form-control" maxlength="2" placeholder="e.g. CA" />
+                        <span asp-validation-for="Input.State" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.ZipCode" class="form-label"></label>
+                        <input asp-for="Input.ZipCode" class="form-control" maxlength="10" />
+                        <span asp-validation-for="Input.ZipCode" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Create Employee</button>
+            <a asp-page="Index" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,79 @@
+@page
+@model SparkEvents.Pages.Attendees.IndexModel
+
+@{
+    ViewData["Title"] = "Attendees";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Attendees</h1>
+    <a asp-page="Create" class="btn btn-primary">New Attendee</a>
+</div>
+
+<form method="get" class="mb-3">
+    <div class="input-group" style="max-width: 400px;">
+        <input type="text" name="Search" value="@Model.Search" class="form-control"
+               placeholder="Search by name or email..." />
+        <button type="submit" class="btn btn-outline-secondary">Search</button>
+        @if (!string.IsNullOrWhiteSpace(Model.Search))
+        {
+            <a asp-page="Index" class="btn btn-outline-danger">Clear</a>
+        }
+    </div>
+</form>
+
+@if (Model.Attendees.Count == 0)
+{
+    <div class="alert alert-info">No attendees found.</div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Organization</th>
+                <th># Registrations</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var attendee in Model.Attendees)
+            {
+                <tr>
+                    <td>
+                        <a asp-page="Details" asp-route-id="@attendee.Id">@attendee.FullName</a>
+                    </td>
+                    <td>@attendee.Email</td>
+                    <td>@(attendee.Organization ?? "—")</td>
+                    <td>@attendee.RegistrationCount</td>
+                    <td class="text-end">
+                        <a asp-page="Details" asp-route-id="@attendee.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                        <a asp-page="Edit" asp-route-id="@attendee.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link" href="?pageNumber=@(Model.PageNumber - 1)&Search=@Model.Search">Previous</a>
+                </li>
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                        <a class="page-link" href="?pageNumber=@i&Search=@Model.Search">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                    <a class="page-link" href="?pageNumber=@(Model.PageNumber + 1)&Search=@Model.Search">Next</a>
+                </li>
+            </ul>
+        </nav>
+    }
+}

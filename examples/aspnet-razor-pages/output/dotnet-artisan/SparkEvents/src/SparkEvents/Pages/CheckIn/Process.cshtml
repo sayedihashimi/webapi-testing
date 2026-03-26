@@ -1,0 +1,75 @@
+@page "/Events/{eventId:int}/CheckIn/Process"
+@model SparkEvents.Pages.CheckIn.ProcessModel
+
+@{
+    ViewData["Title"] = $"Check In — {Model.Registration.Attendee.FullName}";
+}
+
+<h1>Process Check-In</h1>
+<h5 class="text-muted mb-4">@Model.Event.Title</h5>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Attendee & Ticket Info</strong></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Attendee</dt>
+                    <dd class="col-sm-8">@Model.Registration.Attendee.FullName</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">@Model.Registration.Attendee.Email</dd>
+
+                    <dt class="col-sm-4">Confirmation #</dt>
+                    <dd class="col-sm-8"><strong>@Model.Registration.ConfirmationNumber</strong></dd>
+
+                    <dt class="col-sm-4">Ticket Type</dt>
+                    <dd class="col-sm-8">@Model.Registration.TicketType.Name</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <partial name="_RegistrationStatusBadge" model="Model.Registration.Status" />
+                    </dd>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Registration.SpecialRequests))
+                    {
+                        <dt class="col-sm-4">Special Requests</dt>
+                        <dd class="col-sm-8">@Model.Registration.SpecialRequests</dd>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Registration.Attendee.DietaryNeeds))
+                    {
+                        <dt class="col-sm-4">Dietary Needs</dt>
+                        <dd class="col-sm-8">@Model.Registration.Attendee.DietaryNeeds</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <input type="hidden" asp-for="Input.EventId" />
+            <input type="hidden" asp-for="Input.RegistrationId" />
+
+            <div class="mb-3">
+                <label asp-for="Input.CheckedInBy" class="form-label"></label>
+                <input asp-for="Input.CheckedInBy" class="form-control" placeholder="Enter your name" />
+                <span asp-validation-for="Input.CheckedInBy" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Notes" class="form-label"></label>
+                <textarea asp-for="Input.Notes" class="form-control" rows="3"
+                          placeholder="Any notes about this check-in (optional)"></textarea>
+                <span asp-validation-for="Input.Notes" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-success">Confirm Check-In</button>
+            <a asp-page="/CheckIn/Index" asp-route-eventId="@Model.Event.Id" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

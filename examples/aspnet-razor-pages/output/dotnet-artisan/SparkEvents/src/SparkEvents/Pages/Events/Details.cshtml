@@ -1,0 +1,203 @@
+@page "{id:int}"
+@model SparkEvents.Pages.Events.DetailsModel
+@{
+    ViewData["Title"] = Model.Event.Title;
+    var evt = Model.Event;
+    var capacityPct = evt.TotalCapacity > 0 ? (int)(evt.CurrentRegistrations * 100.0 / evt.TotalCapacity) : 0;
+    var isEventDay = evt.StartDate.Date <= DateTime.UtcNow.Date && evt.EndDate.Date >= DateTime.UtcNow.Date;
+    var endDatePassed = evt.EndDate < DateTime.UtcNow;
+}
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    var alertClass = Model.StatusMessage.StartsWith("Error") ? "alert-danger" : "alert-success";
+    <div class="alert @alertClass alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>
+            @evt.Title
+            @if (evt.IsFeatured)
+            {
+                <span class="badge bg-warning text-dark">Featured</span>
+            }
+        </h1>
+        <partial name="_StatusBadge" model="evt.Status" />
+    </div>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to Events</a>
+</div>
+
+@if (evt.Status == SparkEvents.Models.EventStatus.Cancelled && !string.IsNullOrEmpty(evt.CancellationReason))
+{
+    <div class="alert alert-danger">
+        <strong>Cancellation Reason:</strong> @evt.CancellationReason
+    </div>
+}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Event Details</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">@evt.EventCategory.Name</dd>
+
+                    <dt class="col-sm-4">Venue</dt>
+                    <dd class="col-sm-8">@evt.Venue.Name</dd>
+
+                    <dt class="col-sm-4">Start Date</dt>
+                    <dd class="col-sm-8">@evt.StartDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                    <dt class="col-sm-4">End Date</dt>
+                    <dd class="col-sm-8">@evt.EndDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                    <dt class="col-sm-4">Registration Opens</dt>
+                    <dd class="col-sm-8">@evt.RegistrationOpenDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                    <dt class="col-sm-4">Registration Closes</dt>
+                    <dd class="col-sm-8">@evt.RegistrationCloseDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                    @if (evt.EarlyBirdDeadline.HasValue)
+                    {
+                        <dt class="col-sm-4">Early Bird Deadline</dt>
+                        <dd class="col-sm-8">@evt.EarlyBirdDeadline.Value.ToString("MMMM dd, yyyy h:mm tt")</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Description</h5></div>
+            <div class="card-body">
+                <p class="mb-0">@evt.Description</p>
+            </div>
+        </div>
+
+        @if (evt.TicketTypes.Count > 0)
+        {
+            <div class="card mb-3">
+                <div class="card-header"><h5 class="mb-0">Ticket Types</h5></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Price</th>
+                                    <th>Early Bird Price</th>
+                                    <th>Quantity</th>
+                                    <th>Sold</th>
+                                    <th>Available</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var tt in evt.TicketTypes)
+                                {
+                                    <tr class="@(tt.IsActive ? "" : "text-muted")">
+                                        <td>
+                                            @tt.Name
+                                            @if (!tt.IsActive)
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                        </td>
+                                        <td>@tt.Price.ToString("C")</td>
+                                        <td>@(tt.EarlyBirdPrice?.ToString("C") ?? "—")</td>
+                                        <td>@tt.Quantity</td>
+                                        <td>@tt.QuantitySold</td>
+                                        <td>@(tt.Quantity - tt.QuantitySold)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Capacity</h5></div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>@evt.CurrentRegistrations</strong> / @evt.TotalCapacity registered
+                </p>
+                <div class="progress mb-2" style="height: 25px;">
+                    @{
+                        var barClass = capacityPct >= 90 ? "bg-danger" : capacityPct >= 70 ? "bg-warning" : "bg-success";
+                    }
+                    <div class="progress-bar @barClass" role="progressbar"
+                         style="width: @capacityPct%;"
+                         aria-valuenow="@capacityPct" aria-valuemin="0" aria-valuemax="100">
+                        @capacityPct%
+                    </div>
+                </div>
+                @if (evt.WaitlistCount > 0)
+                {
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-clock"></i> @evt.WaitlistCount on waitlist
+                    </p>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Actions</h5></div>
+            <div class="list-group list-group-flush">
+                @if (evt.Status is SparkEvents.Models.EventStatus.Published or SparkEvents.Models.EventStatus.SoldOut)
+                {
+                    <a asp-page="/Registrations/Create" asp-route-eventId="@evt.Id" class="list-group-item list-group-item-action">
+                        Register Attendee
+                    </a>
+                    <a asp-page="/Registrations/Roster" asp-route-eventId="@evt.Id" class="list-group-item list-group-item-action">
+                        View Roster
+                    </a>
+                    <a asp-page="/Registrations/Waitlist" asp-route-eventId="@evt.Id" class="list-group-item list-group-item-action">
+                        View Waitlist
+                    </a>
+                }
+
+                @if ((evt.Status is SparkEvents.Models.EventStatus.Published) && isEventDay)
+                {
+                    <a asp-page="/CheckIn/Index" asp-route-eventId="@evt.Id" class="list-group-item list-group-item-action list-group-item-success">
+                        Check-In
+                    </a>
+                }
+
+                @if (evt.Status == SparkEvents.Models.EventStatus.Draft)
+                {
+                    <form method="post" asp-page-handler="Publish" asp-route-id="@evt.Id" class="list-group-item">
+                        <button type="submit" class="btn btn-success btn-sm w-100">Publish Event</button>
+                    </form>
+                    <a asp-page="Edit" asp-route-id="@evt.Id" class="list-group-item list-group-item-action">
+                        Edit Event
+                    </a>
+                }
+
+                @if (evt.Status is SparkEvents.Models.EventStatus.Published or SparkEvents.Models.EventStatus.SoldOut && endDatePassed)
+                {
+                    <a asp-page="Complete" asp-route-id="@evt.Id" class="list-group-item list-group-item-action">
+                        Mark as Completed
+                    </a>
+                }
+
+                <a asp-page="TicketTypes/Index" asp-route-eventId="@evt.Id" class="list-group-item list-group-item-action">
+                    Manage Ticket Types
+                </a>
+
+                @if (evt.Status is not (SparkEvents.Models.EventStatus.Completed or SparkEvents.Models.EventStatus.Cancelled))
+                {
+                    <a asp-page="Cancel" asp-route-id="@evt.Id" class="list-group-item list-group-item-action list-group-item-danger">
+                        Cancel Event
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>

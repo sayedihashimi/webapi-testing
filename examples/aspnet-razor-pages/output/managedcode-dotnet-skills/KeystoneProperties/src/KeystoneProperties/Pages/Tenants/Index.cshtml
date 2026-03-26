@@ -1,0 +1,95 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Tenants";
+}
+
+<h1>Tenants</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<form method="get" class="mb-4">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label for="SearchTerm" class="form-label">Search</label>
+            <input asp-for="SearchTerm" class="form-control" placeholder="Search by name or email..." />
+        </div>
+        <div class="col-md-3">
+            <label for="IsActive" class="form-label">Status</label>
+            <select asp-for="IsActive" class="form-select">
+                <option value="">All</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a asp-page="/Tenants/Index" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </div>
+</form>
+
+<div class="mb-3">
+    <a asp-page="/Tenants/Create" class="btn btn-success">Add New Tenant</a>
+</div>
+
+@if (Model.Tenants.Count == 0)
+{
+    <div class="alert alert-info">No tenants found.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Date of Birth</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Tenants)
+            {
+                <tr>
+                    <td>@item.FullName</td>
+                    <td>@item.Email</td>
+                    <td>@item.Phone</td>
+                    <td>@item.DateOfBirth.ToString("MMM dd, yyyy")</td>
+                    <td>
+                        @if (item.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-page="/Tenants/Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">Details</a>
+                        <a asp-page="/Tenants/Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <partial name="_PaginationPartial" />
+}

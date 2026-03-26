@@ -1,0 +1,84 @@
+@page
+@model HorizonHR.Pages.Skills.SearchModel
+@{
+    ViewData["Title"] = "Search by Skill";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Search Employees by Skill</h1>
+    <a asp-page="Index" class="btn btn-outline-secondary">Back to Skills</a>
+</div>
+
+<form method="get" class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="SkillId" class="form-label">Skill</label>
+                <select asp-for="SkillId" class="form-select">
+                    <option value="">-- Select Skill --</option>
+                    @foreach (var skill in Model.Skills)
+                    {
+                        <option value="@skill.Id">@skill.Name (@skill.Category)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="MinLevel" class="form-label">Minimum Proficiency</label>
+                <select asp-for="MinLevel" class="form-select">
+                    <option value="">Any Level</option>
+                    @foreach (var level in Enum.GetValues<ProficiencyLevel>())
+                    {
+                        <option value="@level">@level</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">Search</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@if (Model.SearchPerformed)
+{
+    if (Model.Results.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>Department</th>
+                        <th>Proficiency</th>
+                        <th>Years of Experience</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var employee in Model.Results)
+                    {
+                        var employeeSkill = employee.EmployeeSkills.FirstOrDefault(es => es.SkillId == Model.SkillId);
+                        <tr>
+                            <td>@employee.FullName</td>
+                            <td>@employee.Department.Name</td>
+                            <td>
+                                @if (employeeSkill != null)
+                                {
+                                    <partial name="_StatusBadge" model="@employeeSkill.ProficiencyLevel.ToString()" />
+                                }
+                            </td>
+                            <td>@(employeeSkill?.YearsOfExperience?.ToString() ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">No employees found matching the selected criteria.</div>
+    }
+}
+else
+{
+    <div class="alert alert-secondary">Select a skill and click Search to find employees.</div>
+}
