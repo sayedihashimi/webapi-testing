@@ -170,6 +170,75 @@ dimensions:
       new List<T>() or new List<T> { ... }.
     why_it_matters: "Modern collection expressions are more concise and signal C# version awareness"
 
+  - name: "Structured Logging"
+    description: "ILogger<T> with structured message templates instead of string interpolation"
+    what_to_look_for: |
+      Check for ILogger<T> injection in services and middleware. Look for structured
+      message templates with named placeholders like {Id}, {Name} vs string interpolation
+      $"...". Check log level usage (LogInformation, LogWarning, LogError). Note if
+      high-performance [LoggerMessage] source generators are used.
+    why_it_matters: "Structured logging enables searchable, indexable log entries in production monitoring systems like Application Insights or Seq"
+
+  - name: "Nullable Reference Types"
+    description: "Project-level nullable reference type enforcement and proper annotations"
+    what_to_look_for: |
+      Check .csproj for <Nullable>enable</Nullable>. Look for proper use of ?
+      annotations on optional properties and navigation properties. Check for
+      null-forgiving operator (!) misuse. Verify required vs optional relationships
+      are annotated correctly on entity models.
+    why_it_matters: "NRT catches null reference bugs at compile time and documents API contracts for nullability"
+
+  - name: "Global Using Directives"
+    description: "Use of C# 10+ global using directives for common namespace imports"
+    what_to_look_for: |
+      Check for a GlobalUsings.cs file or global using statements. Look for repetitive
+      using statements across files that could be centralized. Note if implicit usings
+      are enabled in .csproj via <ImplicitUsings>enable</ImplicitUsings>.
+    why_it_matters: "Global usings reduce boilerplate and keep individual files focused on domain logic"
+
+  - name: "Package Discipline"
+    description: "Minimal, purposeful NuGet package selection without unnecessary dependencies"
+    what_to_look_for: |
+      Check .csproj for unnecessary packages such as Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation,
+      Swashbuckle when built-in OpenAPI is available in .NET 9+, or packages that duplicate
+      framework capabilities. Count total package references vs what is functionally required.
+    why_it_matters: "Unnecessary packages increase attack surface, binary size, and maintenance burden"
+
+  - name: "EF Core Relationship Configuration"
+    description: "Explicit EF Core relationship and constraint configuration"
+    what_to_look_for: |
+      Check for Fluent API relationship configuration vs convention-only. Look for explicit
+      cascade delete behavior, required vs optional relationships, and composite keys.
+      Note if IEntityTypeConfiguration<T> is used for clean separation of entity configs
+      from OnModelCreating.
+    why_it_matters: "Explicit relationship configuration prevents surprise cascade behaviors and makes the data model self-documenting"
+
+  - name: "TypedResults Usage"
+    description: "Use of TypedResults over Results for Minimal API return types"
+    what_to_look_for: |
+      Check if endpoints return TypedResults.Ok(), TypedResults.NotFound(), TypedResults.Created()
+      vs Results.Ok(), Results.NotFound(). Look for Results<T1, T2> union return types on
+      endpoint method signatures. Note if [ProducesResponseType] attributes are needed or
+      if return types are inferred automatically from TypedResults.
+    why_it_matters: "TypedResults provide compile-time type safety and automatic OpenAPI schema generation without manual Produces<T> annotations"
+
+  - name: "Route Group Organization"
+    description: "Use of MapGroup for organizing Minimal API endpoints"
+    what_to_look_for: |
+      Check for MapGroup() calls that group related endpoints by resource. Look for shared
+      filters, tags, and route prefixes applied at the group level vs repeated per-endpoint.
+      Note if endpoint extension methods keep Program.cs clean.
+    why_it_matters: "Route groups reduce duplication, centralize cross-cutting concerns, and produce cleaner endpoint registration code"
+
+  - name: "HTTP Test File Quality"
+    description: "Quality and completeness of .http test files for exercising the API"
+    what_to_look_for: |
+      Check for .http files covering all CRUD endpoints. Verify request ordering respects
+      entity dependencies (parents created before children). Check FK values in POST payloads
+      are consistent with creation order. Verify URL paths match actual mapped routes and
+      labels accurately describe actions.
+    why_it_matters: "High-quality .http files serve as executable API documentation and catch routing and binding issues during development"
+
 output:
   directory: output
   reports_directory: reports
