@@ -251,6 +251,49 @@ dimensions:
       beyond the built-in Microsoft tag helpers.
     why_it_matters: "Custom tag helpers are the Razor-idiomatic way to create reusable, encapsulated UI components"
 
+  - name: "Structured Logging"
+    description: "ILogger<T> with structured message templates instead of string interpolation"
+    what_to_look_for: |
+      Check for ILogger<T> injection in services, page models, and middleware. Look for
+      structured message templates with named placeholders like {Id}, {Name} vs string
+      interpolation $"...". Check log level usage (LogInformation, LogWarning, LogError).
+      Note if high-performance [LoggerMessage] source generators are used.
+    why_it_matters: "Structured logging enables searchable, indexable log entries in production monitoring systems like Application Insights or Seq"
+
+  - name: "Nullable Reference Types"
+    description: "Project-level nullable reference type enforcement and proper annotations"
+    what_to_look_for: |
+      Check .csproj for <Nullable>enable</Nullable>. Look for proper use of ?
+      annotations on optional properties and navigation properties. Check for
+      null-forgiving operator (!) misuse. Verify required vs optional relationships
+      are annotated correctly on entity models.
+    why_it_matters: "NRT catches null reference bugs at compile time and documents API contracts for nullability"
+
+  - name: "Global Using Directives"
+    description: "Use of C# 10+ global using directives for common namespace imports"
+    what_to_look_for: |
+      Check for a GlobalUsings.cs file or global using statements. Look for repetitive
+      using statements across files that could be centralized. Note if implicit usings
+      are enabled in .csproj via <ImplicitUsings>enable</ImplicitUsings>.
+    why_it_matters: "Global usings reduce boilerplate and keep individual files focused on domain logic"
+
+  - name: "Package Discipline"
+    description: "Minimal, purposeful NuGet package selection without unnecessary dependencies"
+    what_to_look_for: |
+      Check .csproj for unnecessary packages such as Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation,
+      Swashbuckle when built-in OpenAPI is available in .NET 9+, or packages that duplicate
+      framework capabilities. Count total package references vs what is functionally required.
+    why_it_matters: "Unnecessary packages increase attack surface, binary size, and maintenance burden"
+
+  - name: "EF Core Relationship Configuration"
+    description: "Explicit EF Core relationship and constraint configuration"
+    what_to_look_for: |
+      Check for Fluent API relationship configuration vs convention-only. Look for explicit
+      cascade delete behavior, required vs optional relationships, and composite keys.
+      Note if IEntityTypeConfiguration<T> is used for clean separation of entity configs
+      from OnModelCreating.
+    why_it_matters: "Explicit relationship configuration prevents surprise cascade behaviors and makes the data model self-documenting"
+
 output:
   directory: output
   reports_directory: reports
