@@ -3,6 +3,7 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+temp.md
 # Copilot Skill Eval — generated output
 output/
 reports/
