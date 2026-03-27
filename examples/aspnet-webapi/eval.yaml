@@ -75,7 +75,7 @@ dimensions:
       filters, tags, and route prefixes applied at the group level vs repeated per-endpoint.
       Note if endpoint extension methods keep Program.cs clean.
     why_it_matters: "Minimal APIs with well-organized route groups have lower overhead, are the modern .NET default, and produce more concise, maintainable code"
-    tier: high
+    tier: critical
 
   - name: "Sealed Types"
     description: "Whether classes and records are declared sealed"
@@ -315,6 +315,64 @@ dimensions:
       Look for file/stream operations that properly dispose resources.
     why_it_matters: "Correct resource management prevents memory leaks and connection exhaustion, following the .NET dispose pattern guidelines"
     tier: medium
+
+  - name: "EF Migration Usage"
+    description: "Whether EF Core migrations are used instead of EnsureCreated"
+    what_to_look_for: |
+      Check Program.cs for calls to context.Database.EnsureCreated() or
+      EnsureCreatedAsync(). This bypasses EF Core migrations and should not
+      be used. Instead, the app should use EF Core migrations (dotnet ef
+      migrations add, context.Database.Migrate() or MigrateAsync()). Using
+      EnsureCreated makes it impossible to evolve the schema safely.
+    why_it_matters: "EnsureCreated bypasses migrations, making schema evolution impossible and causing data loss on model changes — migrations are the only production-safe approach"
+    tier: critical
+
+  - name: "HSTS & HTTPS Redirection"
+    description: "Whether the app enforces HSTS and HTTPS redirection in non-development environments"
+    what_to_look_for: |
+      Check Program.cs for proper HTTPS enforcement. In non-development
+      environments, the app should call app.UseHsts() and
+      app.UseHttpsRedirection(). Look for the standard pattern:
+      if (!app.Environment.IsDevelopment()) { app.UseHsts(); }
+      followed by app.UseHttpsRedirection(). Verify these are not
+      called unconditionally (HSTS should be conditional on environment).
+    why_it_matters: "HSTS and HTTPS redirection protect against man-in-the-middle attacks and ensure secure transport in production"
+    tier: high
+
+  - name: "NuGet Version Pinning"
+    description: "Whether NuGet PackageReferences specify exact versions instead of wildcards"
+    what_to_look_for: |
+      Check .csproj files for PackageReference elements. Every package must
+      have a specific version number (e.g., Version="9.0.0"). No package
+      should use Version="*" or floating version ranges. Using * as the
+      version is the worst case as it can pull in any version including
+      breaking changes or vulnerable releases.
+    why_it_matters: "Wildcard versions cause non-reproducible builds, can silently introduce breaking changes, and may pull in packages with known vulnerabilities"
+    tier: critical
+
+  - name: "FluentValidation Usage"
+    description: "Whether the app uses FluentValidation for input validation"
+    what_to_look_for: |
+      Check for FluentValidation NuGet package references
+      (FluentValidation.DependencyInjectionExtensions or FluentValidation.AspNetCore).
+      Look for validator classes inheriting from AbstractValidator<T>. Check
+      that validators are registered via AddValidatorsFromAssembly() or
+      individually. Verify validation rules use the fluent API (RuleFor).
+    why_it_matters: "FluentValidation provides a more expressive, testable, and maintainable approach to input validation than data annotations"
+    tier: medium
+
+  - name: "Built-in OpenAPI over Swashbuckle"
+    description: "Whether the app uses the built-in OpenAPI support instead of Swashbuckle"
+    what_to_look_for: |
+      Check .csproj files for any Swashbuckle-related PackageReferences
+      (Swashbuckle.AspNetCore, Swashbuckle.AspNetCore.SwaggerGen, etc.).
+      These should NOT be present. Instead, the app should use the built-in
+      OpenAPI support: builder.Services.AddOpenApi() and
+      builder.Services.AddEndpointsApiExplorer(). Check Program.cs for
+      Swashbuckle configuration like app.UseSwagger() or app.UseSwaggerUI()
+      which should also not be present.
+    why_it_matters: "Swashbuckle is deprecated in .NET 9+ — the built-in OpenAPI support is the official replacement with better performance and no third-party dependency"
+    tier: critical
 
   - name: "Build & Run Success"
     description: "Whether the generated project compiles without errors and the app starts successfully"
