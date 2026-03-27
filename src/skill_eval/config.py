@@ -48,11 +48,37 @@ class RunVerification(BaseModel):
     health_check: HealthCheck | None = None
 
 
+class FormatVerification(BaseModel):
+    """Code formatting verification via dotnet format."""
+
+    command: str = "dotnet format --check"
+    working_directory: str = "."
+
+
+class SecurityVerification(BaseModel):
+    """Security vulnerability scanning."""
+
+    vulnerability_scan: bool = True
+    static_analysis: bool = False
+    analyzers: list[str] = []
+
+
+class MetricsVerification(BaseModel):
+    """Code metrics computation."""
+
+    compute: bool = True
+    metrics: list[str] = ["warnings", "errors"]
+
+
 class Verification(BaseModel):
     """Build and run verification settings."""
 
     build: BuildVerification
     run: RunVerification | None = None
+    format: FormatVerification | None = None
+    security: SecurityVerification | None = None
+    metrics: MetricsVerification | None = None
+    analyzers: list[str] = []  # Roslyn analyzer NuGet packages to inject
 
 
 class Dimension(BaseModel):
@@ -62,6 +88,17 @@ class Dimension(BaseModel):
     description: str
     what_to_look_for: str
     why_it_matters: str
+    tier: str = "medium"  # critical, high, medium, low
+    weight: float | None = None  # If None, derived from tier
+    evaluation_method: str = "llm"  # llm, automated, hybrid
+
+    @property
+    def effective_weight(self) -> float:
+        """Return explicit weight or derive from tier."""
+        if self.weight is not None:
+            return self.weight
+        tier_weights = {"critical": 3.0, "high": 2.0, "medium": 1.0, "low": 0.5}
+        return tier_weights.get(self.tier, 1.0)
 
 
 class OutputSettings(BaseModel):
@@ -83,6 +120,7 @@ class EvalConfig(BaseModel):
     verification: Verification
     dimensions: list[Dimension]
     output: OutputSettings = OutputSettings()
+    runs: int = 1
 
     @field_validator("scenarios")
     @classmethod

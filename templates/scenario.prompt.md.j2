@@ -68,6 +68,8 @@ tools: ["changes", "codebase", "fetch", "findTestFiles", "githubRepo", "problems
 
      Aim for 8–12 rules per app. -->
 
+Each business rule should be specific enough to verify in code — include concrete values, thresholds, and expected error responses (e.g., "return 409 Conflict when booking exceeds capacity").
+
 ## API Endpoints
 
 <!-- Complete endpoint listing grouped by resource. Use tables:
@@ -80,6 +82,8 @@ tools: ["changes", "codebase", "fetch", "findTestFiles", "githubRepo", "problems
      Include: filters/search/pagination notes, side effects,
      failure conditions, and convenience/aggregate endpoints.
      Use POST for action endpoints (e.g., /cancel, /check-in). -->
+
+List **every** endpoint the generated API must implement. This list will be used to verify endpoint completeness — any endpoint listed here but missing from the generated code is a correctness failure.
 
 ## Seed Data
 
