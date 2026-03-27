@@ -240,6 +240,49 @@ def _suggest_dimensions(tech_stack: str) -> list[dict]:
             "what_to_look_for": "Check for dependency injection, interface abstractions, separation of business logic from I/O.",
             "why_it_matters": "Testable code is a strong signal of good architecture.",
         },
+        # Security dimensions
+        {
+            "name": "Security Vulnerability Scan",
+            "description": "Whether generated code is free from common security vulnerabilities",
+            "what_to_look_for": "Scan for SQL injection, XSS, CSRF, insecure deserialization, hardcoded secrets, and OWASP Top 10 issues.",
+            "why_it_matters": "Security vulnerabilities in generated code can lead to serious production incidents.",
+            "tier": "critical",
+            "evaluation_method": "automated",
+        },
+        {
+            "name": "Input Validation Coverage",
+            "description": "How thoroughly user input is validated across all entry points",
+            "what_to_look_for": "Check that all API endpoints, form handlers, and data entry points validate and sanitize input.",
+            "why_it_matters": "Incomplete input validation is a primary source of security and data integrity issues.",
+            "tier": "critical",
+            "evaluation_method": "hybrid",
+        },
+        # Functional Correctness dimensions
+        {
+            "name": "Endpoint Completeness",
+            "description": "Whether all required endpoints (or pages for Razor Pages) are implemented",
+            "what_to_look_for": "Verify all CRUD operations and business endpoints are present and correctly routed.",
+            "why_it_matters": "Missing endpoints mean the application cannot fulfill its functional requirements.",
+            "tier": "critical",
+            "evaluation_method": "hybrid",
+        },
+        {
+            "name": "Business Rule Implementation",
+            "description": "Whether business logic and domain rules are correctly implemented",
+            "what_to_look_for": "Check that validation rules, calculations, state transitions, and domain constraints match requirements.",
+            "why_it_matters": "Incorrect business rules lead to wrong application behavior regardless of code quality.",
+            "tier": "critical",
+            "evaluation_method": "llm",
+        },
+        # Error Response Conformance
+        {
+            "name": "Error Response Conformance",
+            "description": "Whether error responses follow a consistent, standard format",
+            "what_to_look_for": "Check for consistent error response structure, proper HTTP status codes, and RFC 7807 problem details or equivalent.",
+            "why_it_matters": "Consistent error responses improve API usability and client-side error handling.",
+            "tier": "high",
+            "evaluation_method": "hybrid",
+        },
     ]
 
     stack = tech_stack.lower()
@@ -252,18 +295,21 @@ def _suggest_dimensions(tech_stack: str) -> list[dict]:
                 "description": "Controllers (MVC) vs Minimal APIs",
                 "what_to_look_for": "Check Program.cs and endpoint files for MapGet/MapPost (minimal) vs [ApiController] classes.",
                 "why_it_matters": "Minimal APIs have lower overhead and are the modern .NET default.",
+                "tier": "high",
             },
             {
                 "name": "CancellationToken Propagation",
                 "description": "Whether tokens are forwarded through all layers",
                 "what_to_look_for": "Check endpoint handlers for CancellationToken parameters. Trace through service methods to EF Core calls.",
                 "why_it_matters": "Critical for production — prevents wasted server resources on cancelled requests.",
+                "tier": "critical",
             },
             {
                 "name": "Sealed Types",
                 "description": "Whether classes and records are declared sealed",
                 "what_to_look_for": "Check class/record declarations for the sealed modifier.",
                 "why_it_matters": "Sealed types enable JIT optimizations and signal design intent.",
+                "tier": "medium",
             },
         ])
     elif "react" in stack or "next" in stack:
