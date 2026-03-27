@@ -316,6 +316,17 @@ dimensions:
     why_it_matters: "Correct resource management prevents memory leaks and connection exhaustion, following the .NET dispose pattern guidelines"
     tier: medium
 
+  - name: "Build & Run Success"
+    description: "Whether the generated project compiles without errors and the app starts successfully"
+    what_to_look_for: |
+      Check if dotnet build completes with zero errors and the success pattern
+      "Build succeeded" appears in the output. Check if dotnet run starts the
+      app and it remains running for the configured timeout period. Note the
+      total number of build warnings as a secondary quality signal.
+    why_it_matters: "A project that does not build or run is completely unusable — this is the most fundamental quality gate"
+    tier: critical
+    evaluation_method: automated
+
   - name: "Security Vulnerability Scan"
     description: "Known NuGet vulnerabilities and insecure package versions"
     what_to_look_for: |
