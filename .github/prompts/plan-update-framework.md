@@ -436,9 +436,9 @@ This reduces Razor Pages from 35 → 31, then adding ~6 new dimensions brings it
 | Tier | Dimensions |
 |------|-----------|
 | **critical** | Security Vulnerability Scan, Input Validation Coverage, Endpoint Completeness, Business Rule Implementation |
-| **high** | Exception Handling Strategy, Middleware Style, CancellationToken Propagation, Async/Await Best Practices, EF Core Relationship Configuration, Error Response Conformance, DTO Design, Service Abstraction |
+| **high** | Exception Handling Strategy, Middleware Style, CancellationToken Propagation, Async/Await Best Practices, EF Core Relationship Configuration, Error Response Conformance, DTO Design, Service Abstraction, Modern C# Adoption (was Collection Init + Primary Constructors + Global Usings) |
 | **medium** | API Architecture (was API Style), AsNoTracking Usage, Return Type Precision, Data Seeder Design, File Organization, Pagination, Structured Logging, Nullable Reference Types, Enum Design, Guard Clauses, Dispose & Resource Management, TypedResults Usage, OpenAPI Metadata, HTTP Test File Quality, Sealed Types, Package Discipline |
-| **low** | Modern C# Adoption (was Collection Init + Primary Constructors + Global Usings), Code Standards Compliance (was Naming + Access Modifiers) |
+| **low** | Code Standards Compliance (was Naming + Access Modifiers) |
 
 ---
 
