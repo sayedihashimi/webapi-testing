@@ -315,7 +315,7 @@ def run_generate(
         click.echo(f"\n{'=' * 60}")
         click.echo(f"Generating: {label}")
         click.echo(f"Runs:       {num_runs}")
-        click.echo(f"Scenarios:  {total_scenarios} (one Copilot invocation each)")
+        click.echo(f"Scenarios:  {total_scenarios} available (1 randomly selected per run)")
         click.echo(f"{'=' * 60}")
 
         # Register skills once for this config
@@ -339,33 +339,33 @@ def run_generate(
                     click.echo(f"\n  ⏭️  Run {run_id}/{num_runs} — skipping (output exists)")
                     continue
 
-                click.echo(f"\n  --- Run {run_id}/{num_runs} ---")
+                # Select one scenario for this run (round-robin for coverage)
+                scenario = config.scenarios[(run_id - 1) % total_scenarios]
+
+                click.echo(f"\n  --- Run {run_id}/{num_runs} → {scenario.name} ---")
 
                 # Clean previous output for this run
                 if run_output.exists():
                     _rmtree(run_output)
                 run_output.mkdir(parents=True, exist_ok=True)
 
-                # Generate each scenario
-                for i, scenario in enumerate(config.scenarios, 1):
-                    scenario_output = run_output / scenario.name
-                    scenario_output.mkdir(parents=True, exist_ok=True)
+                scenario_output = run_output / scenario.name
+                scenario_output.mkdir(parents=True, exist_ok=True)
 
-                    click.echo(f"  [{i}/{total_scenarios}] {scenario.name}")
-                    click.echo(f"    {scenario.description}")
+                click.echo(f"    {scenario.description}")
 
-                    prompt = render_generate_prompt(
-                        config, cfg.name, project_root,
-                        scenario=scenario, run_id=run_id,
+                prompt = render_generate_prompt(
+                    config, cfg.name, project_root,
+                    scenario=scenario, run_id=run_id,
+                )
+                try:
+                    _run_copilot(
+                        prompt, cfg, cwd=staging_dir, project_root=project_root,
                     )
-                    try:
-                        _run_copilot(
-                            prompt, cfg, cwd=staging_dir, project_root=project_root,
-                        )
-                        click.echo(f"    ✅ {scenario.name} done")
-                    except RuntimeError as e:
-                        click.echo(f"    ❌ {scenario.name} failed: {e}")
-                        continue
+                    click.echo(f"    ✅ {scenario.name} done")
+                except RuntimeError as e:
+                    click.echo(f"    ❌ {scenario.name} failed: {e}")
+                    continue
 
         finally:
             if added_skills:

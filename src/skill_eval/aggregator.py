@@ -91,6 +91,56 @@ def parse_run_scores(
     return scores if scores else None
 
 
+def parse_run_content(analysis_file: Path) -> dict[str, str]:
+    """Extract per-dimension rich content sections from an analysis-run-N.md.
+
+    Returns {dimension_name: markdown_content} where content includes
+    code snippets, verdicts, and qualitative analysis.
+    """
+    if not analysis_file.exists():
+        return {}
+
+    text = analysis_file.read_text(encoding="utf-8")
+    lines = text.split("\n")
+    sections: dict[str, str] = {}
+
+    current_dim = ""
+    current_lines: list[str] = []
+    in_dimension = False
+
+    for line in lines:
+        # Match dimension headers like "## 3. Minimal API Architecture [CRITICAL]"
+        header_match = re.match(
+            r"^##\s+\d+\.\s+(.+?)\s*\[", line,
+        )
+        if header_match:
+            # Save previous section
+            if current_dim and current_lines:
+                sections[current_dim] = "\n".join(current_lines).strip()
+            current_dim = header_match.group(1).strip()
+            current_lines = []
+            in_dimension = True
+            continue
+
+        # End of dimension section (next ## header or major section)
+        if in_dimension and re.match(r"^##\s+", line) and not re.match(r"^##\s+\d+\.", line):
+            if current_dim and current_lines:
+                sections[current_dim] = "\n".join(current_lines).strip()
+            current_dim = ""
+            current_lines = []
+            in_dimension = False
+            continue
+
+        if in_dimension:
+            current_lines.append(line)
+
+    # Save last section
+    if current_dim and current_lines:
+        sections[current_dim] = "\n".join(current_lines).strip()
+
+    return sections
+
+
 def aggregate_results(config: EvalConfig, project_root: Path) -> None:
     """Parse all per-run analysis files and write the aggregated report."""
     reports_dir = project_root / config.output.reports_directory
@@ -171,13 +221,16 @@ def aggregate_results(config: EvalConfig, project_root: Path) -> None:
     scores_json_path = reports_dir / config.output.scores_data_file
     _write_scores_json(scores_json_path, all_run_scores, parsed_run_ids, weighted_per_run)
 
+    # Collect rich content from per-run analyses (pick the median-scoring run)
+    rich_content = _select_best_run_content(reports_dir, config, parsed_run_ids, weighted_per_run, config_names)
+
     # Write aggregated analysis.md
     analysis_path = reports_dir / config.output.analysis_file
     _write_aggregated_report(
         analysis_path, config, config_names, all_dims,
         dim_stats, dim_tiers, dim_weights,
         weighted_per_run, parsed_run_ids, all_run_scores,
-        verif_data,
+        verif_data, rich_content,
     )
 
 
@@ -199,6 +252,36 @@ def _write_scores_json(
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+def _select_best_run_content(
+    reports_dir: Path,
+    config: EvalConfig,
+    run_ids: list[int],
+    weighted_per_run: dict[str, list[float]],
+    config_names: list[str],
+) -> dict[str, str]:
+    """Select rich content from the most representative per-run analysis.
+
+    Picks the run closest to the median total score to avoid outliers.
+    Returns {dimension_name: rich_markdown_content}.
+    """
+    if not run_ids:
+        return {}
+
+    # Find the median-scoring run (by average across configs)
+    run_avg_scores: list[tuple[int, int, float]] = []
+    for i, run_id in enumerate(run_ids):
+        cfg_scores = [weighted_per_run[cfg][i] for cfg in config_names if weighted_per_run[cfg][i] > 0]
+        avg = statistics.mean(cfg_scores) if cfg_scores else 0.0
+        run_avg_scores.append((i, run_id, avg))
+
+    run_avg_scores.sort(key=lambda x: x[2])
+    # Pick the middle run (median)
+    median_idx, median_run_id, _ = run_avg_scores[len(run_avg_scores) // 2]
+
+    run_file = reports_dir / config.output.per_run_analysis_pattern.format(run=median_run_id)
+    return parse_run_content(run_file)
+
+
 def _write_aggregated_report(
     path: Path,
     config: EvalConfig,
@@ -211,6 +294,7 @@ def _write_aggregated_report(
     run_ids: list[int],
     all_run_scores: list[dict],
     verif_data: dict | None,
+    rich_content: dict[str, str] | None = None,
 ) -> None:
     """Write the final aggregated analysis markdown report."""
     n_runs = len(run_ids)
@@ -353,7 +437,7 @@ def _write_aggregated_report(
     lines.extend(["", "---", ""])
 
     # Per-Dimension Breakdown
-    lines.append("## Per-Dimension Breakdown")
+    lines.append("## Per-Dimension Analysis")
     lines.append("")
 
     for dim_idx, dim in enumerate(all_dims, 1):
@@ -362,6 +446,9 @@ def _write_aggregated_report(
         lines.append(f"### {dim_idx}. {dim} [{tier} × {weight:.0f}]")
         lines.append("")
 
+        # Score table
+        lines.append("#### Scores Across Runs")
+        lines.append("")
         header = "| Run | " + " | ".join(config_names) + " |"
         sep = "|---|" + "|".join(["---"] * len(config_names)) + "|"
         lines.append(header)
@@ -386,6 +473,21 @@ def _write_aggregated_report(
                 mean_cells.append("—")
         lines.append(f"| **Mean** | " + " | ".join(mean_cells) + " |")
         lines.append("")
+
+        # Rich content from the representative per-run analysis
+        if rich_content:
+            # Try exact match first, then fuzzy
+            content = rich_content.get(dim)
+            if not content:
+                for key, val in rich_content.items():
+                    if dim.lower() in key.lower() or key.lower() in dim.lower():
+                        content = val
+                        break
+            if content:
+                lines.append("#### Analysis")
+                lines.append("")
+                lines.append(content)
+                lines.append("")
 
     # Data references
     lines.extend([

@@ -136,6 +136,8 @@ def run(
     This is the main command that runs the entire evaluation. Use flags
     to skip individual steps.
     """
+    import time as _time
+
     from skill_eval.analyze import run_analyze
     from skill_eval.generate import run_generate
     from skill_eval.verify import run_verify
@@ -145,6 +147,8 @@ def run(
         config.runs = runs
     click.echo(f"  Runs per configuration: {config.runs}")
     project_root = ctx.obj["project_root"]
+    timings: dict[str, float] = {}
+    pipeline_start = _time.monotonic()
 
     if analyze_only:
         skip_generate = True
@@ -152,26 +156,47 @@ def run(
 
     if not skip_generate:
         click.echo("\n📦 Step 1/3: Generating code...")
+        t0 = _time.monotonic()
         run_generate(
             config,
             project_root,
             configurations=list(configurations) if configurations else None,
             resume=resume,
         )
+        timings["generate"] = _time.monotonic() - t0
     else:
         click.echo("\n⏭️  Step 1/3: Generate — skipped")
 
     if not skip_verify:
         click.echo("\n🔨 Step 2/3: Verifying builds...")
+        t0 = _time.monotonic()
         run_verify(config, project_root)
+        timings["verify"] = _time.monotonic() - t0
     else:
         click.echo("\n⏭️  Step 2/3: Verify — skipped")
 
     click.echo("\n📊 Step 3/3: Running analysis...")
+    t0 = _time.monotonic()
     run_analyze(config, project_root)
+    timings["analyze"] = _time.monotonic() - t0
+
+    total_time = _time.monotonic() - pipeline_start
 
     click.echo("\n🎉 Evaluation complete!")
     click.echo(f"   Report: {config.output.reports_directory}/{config.output.analysis_file}")
+    click.echo(f"\n⏱️  Pipeline timing:")
+    for step, elapsed in timings.items():
+        mins, secs = divmod(int(elapsed), 60)
+        hrs, mins = divmod(mins, 60)
+        if hrs:
+            click.echo(f"   {step:12s}: {hrs}h {mins}m {secs}s")
+        elif mins:
+            click.echo(f"   {step:12s}: {mins}m {secs}s")
+        else:
+            click.echo(f"   {step:12s}: {secs}s")
+    mins, secs = divmod(int(total_time), 60)
+    hrs, mins = divmod(mins, 60)
+    click.echo(f"   {'total':12s}: {hrs}h {mins}m {secs}s" if hrs else f"   {'total':12s}: {mins}m {secs}s")
 
 
 @main.command()
