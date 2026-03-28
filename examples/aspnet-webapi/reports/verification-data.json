@@ -1,0 +1,807 @@
+{
+  "timestamp": "2026-03-28T14:23:28.820694+00:00",
+  "results": [
+    {
+      "config": "no-skills",
+      "run_id": 1,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 6,
+        "performance": 84,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 24,
+        "total": 114
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 1,
+      "scenario": "LibraryApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 72,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 68,
+        "total": 140
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 1,
+      "scenario": "VetClinicApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 2,
+        "performance": 56,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 40,
+        "total": 98
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 2,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 6,
+        "performance": 82,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 24,
+        "total": 112
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 2,
+      "scenario": "LibraryApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 124,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 64,
+        "total": 188
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 2,
+      "scenario": "VetClinicApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 2,
+        "performance": 54,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 40,
+        "total": 96
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 3,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 92,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 24,
+        "total": 116
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 3,
+      "scenario": "LibraryApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 70,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 60,
+        "total": 130
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 3,
+      "scenario": "VetClinicApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 2,
+        "performance": 76,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 40,
+        "total": 118
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 4,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 6,
+        "performance": 82,
+        "reliability": 0,
+        "security": 0,
+        "usage": 6,
+        "style": 0,
+        "other": 24,
+        "total": 118
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 4,
+      "scenario": "LibraryApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 76,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 56,
+        "total": 132
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 4,
+      "scenario": "VetClinicApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 2,
+        "performance": 58,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 40,
+        "total": 100
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 5,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 110,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 24,
+        "total": 134
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 5,
+      "scenario": "LibraryApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 122,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 60,
+        "total": 182
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "no-skills",
+      "run_id": 5,
+      "scenario": "VetClinicApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 2,
+        "performance": 62,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 0,
+        "total": 64
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 1,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 98,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 26,
+        "total": 124
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 1,
+      "scenario": "LibraryApi",
+      "build_success": false,
+      "run_success": false,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 0,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 0,
+        "total": 0
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {}
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 1,
+      "scenario": "VetClinicApi",
+      "build_success": false,
+      "run_success": false,
+      "build_warnings": {},
+      "format_issues": 0,
+      "security_vulnerabilities": {}
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 2,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 102,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 26,
+        "total": 128
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 2,
+      "scenario": "LibraryApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 118,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 66,
+        "total": 184
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 2,
+      "scenario": "VetClinicApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 2,
+        "performance": 90,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 42,
+        "total": 134
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 3,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 6,
+        "performance": 102,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 18,
+        "total": 126
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 3,
+      "scenario": "LibraryApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 120,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 66,
+        "total": 186
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 3,
+      "scenario": "VetClinicApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 2,
+        "performance": 98,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 74,
+        "total": 174
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 4,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 104,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 26,
+        "total": 130
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 4,
+      "scenario": "LibraryApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 114,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 58,
+        "total": 172
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 4,
+      "scenario": "VetClinicApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 2,
+        "performance": 62,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 2,
+        "total": 66
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 5,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 112,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 26,
+        "total": 138
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 5,
+      "scenario": "LibraryApi",
+      "build_success": false,
+      "run_success": false,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 122,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 70,
+        "total": 192
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {}
+    },
+    {
+      "config": "dotnet-webapi",
+      "run_id": 5,
+      "scenario": "VetClinicApi",
+      "build_success": false,
+      "run_success": false,
+      "build_warnings": {},
+      "format_issues": 0,
+      "security_vulnerabilities": {}
+    },
+    {
+      "config": "dotnet-artisan",
+      "run_id": 1,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 92,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 26,
+        "total": 118
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-artisan",
+      "run_id": 1,
+      "scenario": "LibraryApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 100,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 2,
+        "total": 102
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-artisan",
+      "run_id": 1,
+      "scenario": "VetClinicApi",
+      "build_success": false,
+      "run_success": false,
+      "build_warnings": {
+        "naming": 2,
+        "performance": 64,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 2,
+        "total": 68
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {}
+    },
+    {
+      "config": "dotnet-artisan",
+      "run_id": 2,
+      "scenario": "FitnessStudioApi",
+      "build_success": true,
+      "run_success": true,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 104,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 26,
+        "total": 130
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {
+        "Critical": 0,
+        "High": 0,
+        "Moderate": 0,
+        "Low": 1
+      }
+    },
+    {
+      "config": "dotnet-artisan",
+      "run_id": 2,
+      "scenario": "LibraryApi",
+      "build_success": false,
+      "run_success": false,
+      "build_warnings": {
+        "naming": 0,
+        "performance": 88,
+        "reliability": 0,
+        "security": 0,
+        "usage": 0,
+        "style": 0,
+        "other": 62,
+        "total": 150
+      },
+      "format_issues": 0,
+      "security_vulnerabilities": {}
+    },
+    {
+      "config": "dotnet-artisan",
+      "run_id": 2,
+      "scenario": "VetClinicApi",
+      "build_success": false,
+      "run_success": false,
+      "build_warnings": {},
+      "format_issues": 0,
+      "security_vulnerabilities": {}
+    }
+  ]
+}
