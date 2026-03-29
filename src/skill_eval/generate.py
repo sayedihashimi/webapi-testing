@@ -23,6 +23,11 @@ import click
 
 from skill_eval.config import Configuration, EvalConfig
 from skill_eval.prompt_renderer import render_generate_prompt
+from skill_eval.session_tracer import (
+    compare_resources,
+    preserve_events_file,
+    trace_session,
+)
 from skill_eval.skill_manager import add_skill_directories, remove_skill_directories
 
 # Default: kill Copilot if no CPU activity for this many seconds
@@ -148,6 +153,7 @@ def _run_copilot(
     *,
     cwd: Path | None = None,
     project_root: Path | None = None,
+    copilot_home: Path | None = None,
     idle_timeout: int = _IDLE_TIMEOUT,
     max_retries: int = 1,
 ) -> dict | None:
@@ -155,6 +161,12 @@ def _run_copilot(
 
     Monitors the Copilot process CPU and network activity. If idle for
     *idle_timeout* seconds, it is killed and retried up to *max_retries*.
+
+    Parameters
+    ----------
+    copilot_home:
+        If provided, sets ``COPILOT_HOME`` in the subprocess environment so
+        session telemetry is written to an isolated directory.
 
     Returns a dict with usage stats (tokens, duration) or None on failure.
     """
@@ -174,12 +186,16 @@ def _run_copilot(
     if cwd:
         click.echo(f"  Working directory: {cwd}")
 
+    env = None
+    if copilot_home is not None:
+        env = {**os.environ, "COPILOT_HOME": str(copilot_home)}
+
     for attempt in range(1 + max_retries):
         if attempt > 0:
             click.echo(f"  ⚠️  Retry {attempt}/{max_retries} after idle timeout")
 
         start_time = time.monotonic()
-        proc = subprocess.Popen(cmd, cwd=cwd)
+        proc = subprocess.Popen(cmd, cwd=cwd, env=env)
         timed_out = _watchdog_wait(proc, idle_timeout)
         elapsed = time.monotonic() - start_time
 
@@ -460,19 +476,83 @@ def run_generate(
                     config, cfg.name, project_root,
                     scenario=scenario, run_id=run_id,
                 )
+                # Isolated COPILOT_HOME so we can reliably find events.jsonl
+                temp_copilot_home = Path(tempfile.mkdtemp(
+                    prefix=f"copilot-home-{cfg.name}-run{run_id}-",
+                ))
                 try:
                     usage = _run_copilot(
                         prompt, cfg, cwd=staging_dir, project_root=project_root,
+                        copilot_home=temp_copilot_home,
                     )
-                    if usage:
-                        usage["config"] = cfg.name
-                        usage["run_id"] = run_id
-                        usage["scenario"] = scenario.name
-                        all_usage.append(usage)
+                    if usage is None:
+                        usage = {}
+                    usage["config"] = cfg.name
+                    usage["run_id"] = run_id
+                    usage["scenario"] = scenario.name
+
+                    # --- Session tracing ---
+                    trace = trace_session(copilot_home=temp_copilot_home)
+                    if trace is None:
+                        # Fallback: try the default home
+                        trace = trace_session()
+                    if trace is not None:
+                        usage["session_id"] = trace.session_id
+                        usage["model"] = trace.model
+                        usage["copilot_version"] = trace.copilot_version
+                        usage["loaded_resources"] = [
+                            {
+                                "resource_type": r.resource_type,
+                                "name": r.name,
+                                "plugin_name": r.plugin_name,
+                                "content_length": r.content_length,
+                                "timestamp": r.timestamp,
+                            }
+                            for r in trace.resources
+                        ]
+                        expected_skills = [Path(s).name for s in cfg.skills]
+                        expected_plugins = [Path(p).name for p in cfg.plugins]
+                        comparison = compare_resources(
+                            trace, expected_skills, expected_plugins,
+                        )
+                        usage["resource_comparison"] = comparison
+
+                        # Console summary
+                        click.echo(
+                            f"    📋 Session: {trace.session_id or '?'}"
+                        )
+                        if trace.resources:
+                            names = ", ".join(trace.skill_names)
+                            click.echo(
+                                f"    📋 Skills loaded: {names} "
+                                f"({len(trace.resources)})"
+                            )
+                        else:
+                            click.echo("    📋 No skills loaded")
+
+                        if not comparison["match"]:
+                            for s in comparison["unexpected_skills"]:
+                                click.echo(f"    ⚠️  Unexpected skill: {s}")
+                            for s in comparison["missing_skills"]:
+                                click.echo(f"    ⚠️  Missing expected skill: {s}")
+                            for p in comparison["unexpected_plugins"]:
+                                click.echo(f"    ⚠️  Unexpected plugin: {p}")
+                            for p in comparison["missing_plugins"]:
+                                click.echo(f"    ⚠️  Missing expected plugin: {p}")
+
+                        # Preserve events.jsonl in run output
+                        preserve_events_file(
+                            temp_copilot_home,
+                            run_output / "events.jsonl",
+                        )
+
+                    all_usage.append(usage)
                     click.echo(f"    ✅ {scenario.name} done")
                 except RuntimeError as e:
                     click.echo(f"    ❌ {scenario.name} failed: {e}")
                     continue
+                finally:
+                    shutil.rmtree(temp_copilot_home, ignore_errors=True)
 
         finally:
             if added_skills:

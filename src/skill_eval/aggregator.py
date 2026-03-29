@@ -175,6 +175,15 @@ def aggregate_results(config: EvalConfig, project_root: Path) -> None:
     if verif_path.exists():
         verif_data = json.loads(verif_path.read_text(encoding="utf-8"))
 
+    # Load generation usage data for session trace info
+    usage_path = reports_dir / "generation-usage.json"
+    generation_usage: list[dict] | None = None
+    if usage_path.exists():
+        try:
+            generation_usage = json.loads(usage_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+
     # Collect all dimension names across runs
     all_dims: list[str] = []
     seen = set()
@@ -230,7 +239,7 @@ def aggregate_results(config: EvalConfig, project_root: Path) -> None:
         analysis_path, config, config_names, all_dims,
         dim_stats, dim_tiers, dim_weights,
         weighted_per_run, parsed_run_ids, all_run_scores,
-        verif_data, rich_content,
+        verif_data, rich_content, generation_usage,
     )
 
 
@@ -295,6 +304,7 @@ def _write_aggregated_report(
     all_run_scores: list[dict],
     verif_data: dict | None,
     rich_content: dict[str, str] | None = None,
+    generation_usage: list[dict] | None = None,
 ) -> None:
     """Write the final aggregated analysis markdown report."""
     n_runs = len(run_ids)
@@ -402,6 +412,56 @@ def _write_aggregated_report(
             )
 
         lines.extend(["", "---", ""])
+
+    # Asset Usage Summary (from session tracing)
+    if generation_usage:
+        has_traces = any(u.get("session_id") for u in generation_usage)
+        if has_traces:
+            lines.append("## Asset Usage Summary")
+            lines.append("")
+
+            # Per-configuration summary: which skills loaded across all runs
+            lines.append("| Configuration | Run | Session ID | Model | Skills Loaded | Plugins | Match? |")
+            lines.append("|---|---|---|---|---|---|---|")
+
+            any_mismatch = False
+            for u in generation_usage:
+                sid = u.get("session_id", "—")
+                if sid and len(sid) > 12:
+                    sid_short = sid[:8] + "…" + sid[-4:]
+                else:
+                    sid_short = sid or "—"
+                model = u.get("model", "—")
+                resources = u.get("loaded_resources", [])
+                skill_names = [r["name"] for r in resources if r.get("resource_type") == "skill"]
+                plugin_names = list(dict.fromkeys(
+                    r["plugin_name"] for r in resources if r.get("plugin_name")
+                ))
+                skills_str = ", ".join(skill_names) if skill_names else "—"
+                plugins_str = ", ".join(plugin_names) if plugin_names else "—"
+                comp = u.get("resource_comparison", {})
+                match = comp.get("match", True) if comp else True
+                if not match:
+                    any_mismatch = True
+                match_str = "✅" if match else "⚠️ Mismatch"
+                lines.append(
+                    f"| {u.get('config', '?')} | {u.get('run_id', '?')} "
+                    f"| {sid_short} | {model} | {skills_str} | {plugins_str} | {match_str} |"
+                )
+
+            lines.append("")
+
+            if any_mismatch:
+                lines.extend([
+                    "### ⚠️ Asset Mismatches Detected",
+                    "",
+                    "One or more runs loaded skills/plugins that did not match the expected "
+                    "configuration. This may indicate skill contamination or auto-discovery "
+                    "loading additional resources. Review the session events.jsonl files for details.",
+                    "",
+                ])
+
+            lines.extend(["---", ""])
 
     # Consistency Analysis
     lines.append("## Consistency Analysis")

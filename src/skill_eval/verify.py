@@ -359,6 +359,15 @@ def run_verify(config: EvalConfig, project_root: Path) -> None:
     num_runs = config.runs
     results: list[dict] = []
 
+    # Load generation usage data for session trace info
+    usage_path = reports_dir / "generation-usage.json"
+    generation_usage: list[dict] = []
+    if usage_path.exists():
+        try:
+            generation_usage = json.loads(usage_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+
     for cfg in config.configurations:
         config_dir = output_base / cfg.name
         if not config_dir.exists():
@@ -385,12 +394,12 @@ def run_verify(config: EvalConfig, project_root: Path) -> None:
 
     # Write build-notes.md
     notes_path = reports_dir / config.output.notes_file
-    _write_build_notes(notes_path, config, results)
+    _write_build_notes(notes_path, config, results, generation_usage)
     click.echo(f"\n📝 Build notes written to: {notes_path}")
 
     # Write machine-readable verification data
     json_path = reports_dir / config.output.verification_data_file
-    _write_verification_json(json_path, results)
+    _write_verification_json(json_path, results, generation_usage)
     click.echo(f"📝 Verification data written to: {json_path}")
 
 
@@ -398,6 +407,7 @@ def _write_build_notes(
     path: Path,
     config: EvalConfig,
     results: list[dict],
+    generation_usage: list[dict] | None = None,
 ) -> None:
     """Write the build/run verification report."""
     lines = [
@@ -448,6 +458,68 @@ def _write_build_notes(
                 )
         lines.append("")
 
+    # Asset Usage Per Run (from session tracing)
+    if generation_usage:
+        has_traces = any(u.get("session_id") for u in generation_usage)
+        if has_traces:
+            lines.extend([
+                "## Asset Usage Per Run",
+                "",
+                "| Configuration | Run | Session ID | Model | Skills Loaded | Plugins | Match? |",
+                "|---|---|---|---|---|---|---|",
+            ])
+            mismatches: list[dict] = []
+            for u in generation_usage:
+                sid = u.get("session_id", "—")
+                if sid and len(sid) > 12:
+                    sid_short = sid[:8] + "…" + sid[-4:]
+                else:
+                    sid_short = sid or "—"
+                model = u.get("model", "—")
+                resources = u.get("loaded_resources", [])
+                skill_names = [r["name"] for r in resources if r.get("resource_type") == "skill"]
+                plugin_names = list(dict.fromkeys(
+                    r["plugin_name"] for r in resources
+                    if r.get("plugin_name")
+                ))
+                skills_str = ", ".join(skill_names) if skill_names else "—"
+                plugins_str = ", ".join(plugin_names) if plugin_names else "—"
+                comp = u.get("resource_comparison", {})
+                match = comp.get("match", True) if comp else True
+                match_str = "✅" if match else "⚠️ Mismatch"
+                lines.append(
+                    f"| {u.get('config', '?')} | {u.get('run_id', '?')} "
+                    f"| {sid_short} | {model} | {skills_str} | {plugins_str} | {match_str} |"
+                )
+                if not match:
+                    mismatches.append(u)
+
+            lines.append("")
+
+            if mismatches:
+                lines.extend([
+                    "### ⚠️ Asset Mismatches",
+                    "",
+                    "| Configuration | Run | Issue |",
+                    "|---|---|---|",
+                ])
+                for u in mismatches:
+                    comp = u.get("resource_comparison", {})
+                    issues: list[str] = []
+                    for s in comp.get("unexpected_skills", []):
+                        issues.append(f"Unexpected skill: {s}")
+                    for s in comp.get("missing_skills", []):
+                        issues.append(f"Missing expected skill: {s}")
+                    for p in comp.get("unexpected_plugins", []):
+                        issues.append(f"Unexpected plugin: {p}")
+                    for p in comp.get("missing_plugins", []):
+                        issues.append(f"Missing expected plugin: {p}")
+                    lines.append(
+                        f"| {u.get('config', '?')} | {u.get('run_id', '?')} "
+                        f"| {'; '.join(issues)} |"
+                    )
+                lines.append("")
+
     # Skill configuration summary
     lines.extend([
         "## Skill Configurations",
@@ -464,11 +536,22 @@ def _write_build_notes(
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _write_verification_json(path: Path, results: list[dict]) -> None:
+def _write_verification_json(
+    path: Path,
+    results: list[dict],
+    generation_usage: list[dict] | None = None,
+) -> None:
     """Write machine-readable verification data as JSON."""
+    # Build a lookup from (config, run_id) → session trace data
+    trace_lookup: dict[tuple[str, int], dict] = {}
+    if generation_usage:
+        for u in generation_usage:
+            key = (u.get("config", ""), u.get("run_id", 0))
+            trace_lookup[key] = u
+
     json_results = []
     for r in results:
-        json_results.append({
+        entry: dict = {
             "config": r["config"],
             "run_id": r.get("run_id", 1),
             "scenario": r["scenario"],
@@ -477,6 +560,23 @@ def _write_verification_json(path: Path, results: list[dict]) -> None:
             "build_warnings": r.get("warnings", {}),
             "format_issues": r.get("format_issues", 0),
             "security_vulnerabilities": r.get("security_vulnerabilities", {}),
-        })
+        }
+
+        # Enrich with session trace data
+        trace_data = trace_lookup.get((r["config"], r.get("run_id", 1)))
+        if trace_data:
+            entry["session_id"] = trace_data.get("session_id")
+            entry["model"] = trace_data.get("model")
+            resources = trace_data.get("loaded_resources", [])
+            entry["loaded_skills"] = [
+                rr["name"] for rr in resources if rr.get("resource_type") == "skill"
+            ]
+            entry["loaded_plugins"] = list(dict.fromkeys(
+                rr["plugin_name"] for rr in resources if rr.get("plugin_name")
+            ))
+            comp = trace_data.get("resource_comparison", {})
+            entry["asset_match"] = comp.get("match", True) if comp else True
+
+        json_results.append(entry)
     data = {"timestamp": datetime.now(timezone.utc).isoformat(), "results": json_results}
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
