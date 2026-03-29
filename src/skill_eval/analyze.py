@@ -98,36 +98,30 @@ def run_analyze(config: EvalConfig, project_root: Path, parallel: int = 2) -> No
         click.echo("  ❌ No runs to analyze")
         return
 
-    # Phase 1: Per-run analysis (parallel)
-    click.echo(f"\n  Analyzing {len(runs_to_analyze)} runs (parallel={parallel})...")
+    # Phase 1: Per-run analysis (sequential)
+    click.echo(f"\n  Analyzing {len(runs_to_analyze)} runs...")
 
     analysis_usage: list[dict] = []
-    with ThreadPoolExecutor(max_workers=parallel) as executor:
-        futures = {
-            executor.submit(_analyze_single_run, config, run_id, project_root): run_id
-            for run_id in runs_to_analyze
-        }
-        for future in as_completed(futures):
-            run_id = futures[future]
-            try:
-                _, success, usage = future.result()
-                if success:
-                    status = "✅"
-                    if usage:
-                        mins, secs = divmod(int(usage.get("wall_time_seconds", 0)), 60)
-                        click.echo(
-                            f"  {status} Run {run_id}: "
-                            f"{usage.get('input_tokens', 0):,} in / "
-                            f"{usage.get('output_tokens', 0):,} out / "
-                            f"{mins}m {secs}s"
-                        )
-                        analysis_usage.append(usage)
-                    else:
-                        click.echo(f"  {status} Run {run_id} analysis complete")
+    for run_id in runs_to_analyze:
+        click.echo(f"\n  --- Analyzing run {run_id}/{num_runs} ---")
+        try:
+            _, success, usage = _analyze_single_run(config, run_id, project_root)
+            if success:
+                if usage:
+                    mins, secs = divmod(int(usage.get("wall_time_seconds", 0)), 60)
+                    click.echo(
+                        f"  ✅ Run {run_id}: "
+                        f"{usage.get('input_tokens', 0):,} in / "
+                        f"{usage.get('output_tokens', 0):,} out / "
+                        f"{mins}m {secs}s"
+                    )
+                    analysis_usage.append(usage)
                 else:
-                    click.echo(f"  ⚠️  Run {run_id} analysis failed or timed out")
-            except Exception as e:
-                click.echo(f"  ❌ Run {run_id} error: {e}")
+                    click.echo(f"  ✅ Run {run_id} analysis complete")
+            else:
+                click.echo(f"  ⚠️  Run {run_id} analysis failed or timed out")
+        except Exception as e:
+            click.echo(f"  ❌ Run {run_id} error: {e}")
 
     # Phase 2: Aggregate scores (fast, Python-only)
     click.echo(f"\n  --- Aggregating results ---")

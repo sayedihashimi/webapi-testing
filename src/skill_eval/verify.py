@@ -350,18 +350,14 @@ def _verify_single(
     }
 
 
-def run_verify(config: EvalConfig, project_root: Path, parallel: int = 3) -> None:
-    """Verify all generated projects build and run.
-
-    Uses a thread pool to verify multiple projects in parallel.
-    """
+def run_verify(config: EvalConfig, project_root: Path) -> None:
+    """Verify all generated projects build and run (sequential)."""
     output_base = project_root / config.output.directory
     reports_dir = project_root / config.output.reports_directory
     reports_dir.mkdir(parents=True, exist_ok=True)
 
-    # Collect all verification tasks
-    tasks: list[tuple[str, int, str, Path]] = []
     num_runs = config.runs
+    results: list[dict] = []
 
     for cfg in config.configurations:
         config_dir = output_base / cfg.name
@@ -377,38 +373,15 @@ def run_verify(config: EvalConfig, project_root: Path, parallel: int = 3) -> Non
 
             for scenario in config.scenarios:
                 project_dir = run_dir / scenario.name
-                tasks.append((cfg.name, run_id, scenario.name, project_dir))
+                label = f"{cfg.name}/run-{run_id}/{scenario.name}"
+                click.echo(f"  Verifying: {label}")
 
-    click.echo(f"  Verifying {len(tasks)} projects (parallel={parallel})...")
-
-    results: list[dict] = []
-    with ThreadPoolExecutor(max_workers=parallel) as executor:
-        futures = {
-            executor.submit(
-                _verify_single, config, cfg_name, run_id, scenario_name, project_dir,
-            ): (cfg_name, run_id, scenario_name)
-            for cfg_name, run_id, scenario_name, project_dir in tasks
-        }
-        for future in as_completed(futures):
-            cfg_name, run_id, scenario_name = futures[future]
-            try:
-                result = future.result()
+                result = _verify_single(config, cfg.name, run_id, scenario.name, project_dir)
                 build = result["build"]
-                run = result["run"]
+                run_status = result["run"]
                 warns = result.get("warnings", {}).get("total", 0)
-                click.echo(f"    {cfg_name}/run-{run_id}/{scenario_name}: Build {build} | Run {run} | Warnings: {warns}")
+                click.echo(f"    Build {build} | Run {run_status} | Warnings: {warns}")
                 results.append(result)
-            except Exception as e:
-                click.echo(f"    ❌ {cfg_name}/run-{run_id}/{scenario_name}: Error: {e}")
-                results.append({
-                    "config": cfg_name, "run_id": run_id, "scenario": scenario_name,
-                    "build": "❌ Error", "build_success": False,
-                    "run": "❌ Error", "run_success": False,
-                    "notes": str(e)[:200],
-                })
-
-    # Sort results for consistent output
-    results.sort(key=lambda r: (r["config"], r.get("run_id", 0), r["scenario"]))
 
     # Write build-notes.md
     notes_path = reports_dir / config.output.notes_file
