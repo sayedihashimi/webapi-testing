@@ -131,8 +131,19 @@ def parse_events_file(events_path: Path) -> SessionTrace:
 
 # Session discovery -----------------------------------------------------------
 
-def _find_latest_events_file(copilot_home: Path) -> Path | None:
-    """Return the most recently modified ``events.jsonl`` under *copilot_home*."""
+def _find_latest_events_file(
+    copilot_home: Path,
+    created_after: float | None = None,
+) -> Path | None:
+    """Return the most recently modified ``events.jsonl`` under *copilot_home*.
+
+    Parameters
+    ----------
+    created_after:
+        If provided, only consider session directories whose ``events.jsonl``
+        was modified after this Unix timestamp.  This helps locate the correct
+        session when multiple Copilot invocations run close together.
+    """
     session_state = copilot_home / "session-state"
     if not session_state.is_dir():
         return None
@@ -141,7 +152,10 @@ def _find_latest_events_file(copilot_home: Path) -> Path | None:
     for d in session_state.iterdir():
         ef = d / "events.jsonl"
         if ef.is_file():
-            candidates.append((ef.stat().st_mtime, ef))
+            mtime = ef.stat().st_mtime
+            if created_after is not None and mtime < created_after:
+                continue
+            candidates.append((mtime, ef))
 
     if not candidates:
         return None
@@ -150,7 +164,10 @@ def _find_latest_events_file(copilot_home: Path) -> Path | None:
     return candidates[0][1]
 
 
-def trace_session(copilot_home: Path | None = None) -> SessionTrace | None:
+def trace_session(
+    copilot_home: Path | None = None,
+    created_after: float | None = None,
+) -> SessionTrace | None:
     """Find the most recent ``events.jsonl`` and parse it.
 
     Parameters
@@ -164,7 +181,7 @@ def trace_session(copilot_home: Path | None = None) -> SessionTrace | None:
     if copilot_home is None:
         copilot_home = Path.home() / ".copilot"
 
-    events_path = _find_latest_events_file(copilot_home)
+    events_path = _find_latest_events_file(copilot_home, created_after)
     if events_path is None:
         return None
 
@@ -216,12 +233,13 @@ def compare_resources(
 def preserve_events_file(
     copilot_home: Path,
     destination: Path,
+    created_after: float | None = None,
 ) -> Path | None:
     """Copy the most recent ``events.jsonl`` to *destination*.
 
     Returns the destination path on success, or ``None``.
     """
-    events_path = _find_latest_events_file(copilot_home)
+    events_path = _find_latest_events_file(copilot_home, created_after)
     if events_path is None:
         return None
 

@@ -153,7 +153,6 @@ def _run_copilot(
     *,
     cwd: Path | None = None,
     project_root: Path | None = None,
-    copilot_home: Path | None = None,
     idle_timeout: int = _IDLE_TIMEOUT,
     max_retries: int = 1,
 ) -> dict | None:
@@ -161,12 +160,6 @@ def _run_copilot(
 
     Monitors the Copilot process CPU and network activity. If idle for
     *idle_timeout* seconds, it is killed and retried up to *max_retries*.
-
-    Parameters
-    ----------
-    copilot_home:
-        If provided, sets ``COPILOT_HOME`` in the subprocess environment so
-        session telemetry is written to an isolated directory.
 
     Returns a dict with usage stats (tokens, duration) or None on failure.
     """
@@ -186,16 +179,12 @@ def _run_copilot(
     if cwd:
         click.echo(f"  Working directory: {cwd}")
 
-    env = None
-    if copilot_home is not None:
-        env = {**os.environ, "COPILOT_HOME": str(copilot_home)}
-
     for attempt in range(1 + max_retries):
         if attempt > 0:
             click.echo(f"  ⚠️  Retry {attempt}/{max_retries} after idle timeout")
 
         start_time = time.monotonic()
-        proc = subprocess.Popen(cmd, cwd=cwd, env=env)
+        proc = subprocess.Popen(cmd, cwd=cwd)
         timed_out = _watchdog_wait(proc, idle_timeout)
         elapsed = time.monotonic() - start_time
 
@@ -476,14 +465,11 @@ def run_generate(
                     config, cfg.name, project_root,
                     scenario=scenario, run_id=run_id,
                 )
-                # Isolated COPILOT_HOME so we can reliably find events.jsonl
-                temp_copilot_home = Path(tempfile.mkdtemp(
-                    prefix=f"copilot-home-{cfg.name}-run{run_id}-",
-                ))
+                # Record timestamp so we can find the right events.jsonl
+                trace_timestamp = time.time()
                 try:
                     usage = _run_copilot(
                         prompt, cfg, cwd=staging_dir, project_root=project_root,
-                        copilot_home=temp_copilot_home,
                     )
                     if usage is None:
                         usage = {}
@@ -492,10 +478,8 @@ def run_generate(
                     usage["scenario"] = scenario.name
 
                     # --- Session tracing ---
-                    trace = trace_session(copilot_home=temp_copilot_home)
-                    if trace is None:
-                        # Fallback: try the default home
-                        trace = trace_session()
+                    # Find the events.jsonl created after our timestamp
+                    trace = trace_session(created_after=trace_timestamp)
                     if trace is not None:
                         usage["session_id"] = trace.session_id
                         usage["model"] = trace.model
@@ -542,8 +526,9 @@ def run_generate(
 
                         # Preserve events.jsonl in run output
                         preserve_events_file(
-                            temp_copilot_home,
+                            Path.home() / ".copilot",
                             run_output / "events.jsonl",
+                            created_after=trace_timestamp,
                         )
 
                     all_usage.append(usage)
@@ -551,8 +536,6 @@ def run_generate(
                 except RuntimeError as e:
                     click.echo(f"    ❌ {scenario.name} failed: {e}")
                     continue
-                finally:
-                    shutil.rmtree(temp_copilot_home, ignore_errors=True)
 
         finally:
             if added_skills:
