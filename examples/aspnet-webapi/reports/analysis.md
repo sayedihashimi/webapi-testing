@@ -1,7 +1,7 @@
 # Aggregated Analysis: ASP.NET Core Web API Skill Evaluation
 
-**Runs:** 1 | **Configurations:** 5 | **Scenarios:** 3 | **Dimensions:** 24
-**Date:** 2026-03-29 16:25 UTC
+**Runs:** 3 | **Configurations:** 5 | **Scenarios:** 3 | **Dimensions:** 25
+**Date:** 2026-03-29 22:04 UTC
 
 ---
 
@@ -9,30 +9,31 @@
 
 | Dimension [Tier] | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| Build & Run Success [CRITICAL] | 4.0 | 5.0 | 4.0 | 2.0 | 4.0 |
-| Security Vulnerability Scan [CRITICAL] | 3.0 | 5.0 | 4.0 | 3.0 | 3.0 |
-| Minimal API Architecture [CRITICAL] | 1.0 | 5.0 | 4.0 | 3.0 | 1.0 |
-| Input Validation & Guard Clauses [CRITICAL] | 3.0 | 4.0 | 4.0 | 3.0 | 4.0 |
-| NuGet & Package Discipline [CRITICAL] | 3.0 | 5.0 | 3.0 | 2.0 | 2.0 |
-| EF Migration Usage [CRITICAL] | 1.0 | 5.0 | 1.0 | 3.0 | 1.0 |
-| Business Logic Correctness [HIGH] | 4.0 | 4.0 | 4.0 | 3.0 | 4.0 |
-| Prefer Built-in over 3rd Party [HIGH] | 2.0 | 5.0 | 3.0 | 3.0 | 2.0 |
-| Modern C# Adoption [HIGH] | 3.0 | 5.0 | 4.0 | 3.0 | 3.0 |
-| Error Handling & Middleware [HIGH] | 3.0 | 5.0 | 4.0 | 4.0 | 3.0 |
-| Async Patterns & Cancellation [HIGH] | 4.0 | 5.0 | 5.0 | 4.0 | 4.0 |
-| EF Core Best Practices [HIGH] | 3.0 | 5.0 | 4.0 | 3.0 | 3.0 |
-| Service Abstraction & DI [HIGH] | 4.0 | 5.0 | 5.0 | 4.0 | 4.0 |
-| Security Configuration [HIGH] | 1.0 | 1.0 | 1.0 | 2.0 | 1.0 |
-| DTO Design [MEDIUM] | 3.0 | 5.0 | 5.0 | 4.0 | 3.0 |
-| Sealed Types [MEDIUM] | 2.0 | 5.0 | 4.0 | 3.0 | 2.0 |
-| Data Seeder Design [MEDIUM] | 4.0 | 4.0 | 4.0 | 3.0 | 4.0 |
-| Structured Logging [MEDIUM] | 3.0 | 4.0 | 4.0 | 3.0 | 3.0 |
-| Nullable Reference Types [MEDIUM] | 4.0 | 5.0 | 5.0 | 4.0 | 4.0 |
-| API Documentation [MEDIUM] | 2.0 | 5.0 | 4.0 | 4.0 | 2.0 |
-| File Organization [MEDIUM] | 3.0 | 5.0 | 4.0 | 3.0 | 3.0 |
-| HTTP Test File Quality [MEDIUM] | 4.0 | 4.0 | 4.0 | 4.0 | 4.0 |
-| Type Design & Resource Mgmt [MEDIUM] | 3.0 | 5.0 | 4.0 | 3.0 | 3.0 |
-| Code Standards Compliance [LOW] | 3.0 | 5.0 | 4.0 | 3.0 | 3.0 |
+| Build & Run Success [CRITICAL] | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 |
+| Security Vulnerability Scan [CRITICAL] | 4.3 ± 1.2 | 4.3 ± 1.2 | 4.3 ± 1.2 | 4.3 ± 1.2 | 4.3 ± 1.2 |
+| Minimal API Architecture [CRITICAL] | 1.3 ± 0.6 | 5.0 | 4.7 ± 0.6 | 1.3 ± 0.6 | 1.3 ± 0.6 |
+| Input Validation & Guard Clauses [CRITICAL] | 3.3 ± 0.6 | 4.0 ± 1.0 | 4.0 ± 1.0 | 4.0 ± 1.0 | 4.0 |
+| NuGet & Package Discipline [CRITICAL] | 3.7 ± 1.5 | 4.0 ± 1.0 | 3.0 ± 1.0 | 3.7 ± 1.2 | 2.7 ± 1.2 |
+| EF Migration Usage [CRITICAL] | 1.3 ± 0.6 | 3.7 ± 2.3 | 1.3 ± 0.6 | 1.3 ± 0.6 | 1.3 ± 0.6 |
+| Business Logic Correctness [HIGH] | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 |
+| Prefer Built-in over 3rd Party [HIGH] | 2.7 ± 1.2 | 5.0 | 3.0 | 2.7 ± 0.6 | 2.3 ± 0.6 |
+| Modern C# Adoption [HIGH] | 2.7 ± 0.6 | 5.0 | 5.0 | 4.0 | 3.0 ± 1.0 |
+| Error Handling & Middleware [HIGH] | 4.0 ± 1.0 | 5.0 | 4.3 ± 1.2 | 4.7 ± 0.6 | 4.3 ± 0.6 |
+| Async Patterns & Cancellation [HIGH] | 2.7 ± 0.6 | 5.0 | 5.0 | 2.7 ± 0.6 | 2.7 ± 0.6 |
+| EF Core Best Practices [HIGH] | 3.3 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.3 ± 0.6 | 4.7 ± 0.6 |
+| Service Abstraction & DI [HIGH] | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 |
+| Security Configuration [HIGH] | 1.7 ± 1.2 | 1.7 ± 1.2 | 1.7 ± 1.2 | 2.3 ± 1.2 | 1.7 ± 1.2 |
+| DTO Design [MEDIUM] | 3.0 ± 1.7 | 5.0 | 4.3 ± 1.2 | 4.3 ± 0.6 | 3.3 ± 1.5 |
+| Sealed Types [MEDIUM] | 1.3 ± 0.6 | 5.0 | 5.0 | 1.7 ± 0.6 | 3.3 ± 1.5 |
+| Data Seeder Design [MEDIUM] | 4.0 ± 1.0 | 4.7 ± 0.6 | 4.0 ± 1.0 | 4.0 ± 1.0 | 4.0 ± 1.0 |
+| Structured Logging [MEDIUM] | 4.3 ± 0.6 | 4.7 ± 0.6 | 4.3 ± 0.6 | 4.3 ± 0.6 | 4.0 ± 1.0 |
+| Nullable Reference Types [MEDIUM] | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 |
+| API Documentation [MEDIUM] | 3.0 | 5.0 | 4.3 ± 0.6 | 3.0 | 3.7 ± 0.6 |
+| File Organization [MEDIUM] | 3.3 ± 0.6 | 5.0 | 5.0 | 4.3 ± 0.6 | 4.0 ± 1.0 |
+| HTTP Test File Quality [MEDIUM] | 4.3 ± 0.6 | 4.7 ± 0.6 | 4.7 ± 0.6 | 4.3 ± 0.6 | 4.3 ± 0.6 |
+| Type Design & Resource Management [MEDIUM] | 5.0 | 5.0 | 5.0 | 5.0 | 5.0 |
+| Code Standards Compliance [LOW] | 3.7 ± 1.2 | 5.0 | 5.0 | 4.0 | 3.7 ± 1.2 |
+| Type Design & Resource Mgmt [MEDIUM] | 3.5 ± 0.7 | 4.5 ± 0.7 | 4.5 ± 0.7 | 4.0 | 3.5 ± 0.7 |
 
 ---
 
@@ -40,11 +41,11 @@
 
 | Rank | Configuration | Mean Weighted Score | Std Dev | Min | Max |
 |---|---|---|---|---|---|
-| 🥇 | dotnet-webapi | 201.5 | 0.0 | 201.5 | 201.5 |
-| 🥈 | dotnet-artisan | 160.0 | 0.0 | 160.0 | 160.0 |
-| 🥉 | managedcode-dotnet-skills | 132.5 | 0.0 | 132.5 | 132.5 |
-| 4th | no-skills | 122.5 | 0.0 | 122.5 | 122.5 |
-| 5th | dotnet-skills | 122.5 | 0.0 | 122.5 | 122.5 |
+| 🥇 | dotnet-webapi | 194.2 | 13.0 | 181.5 | 207.5 |
+| 🥈 | dotnet-artisan | 175.5 | 22.1 | 152.5 | 196.5 |
+| 🥉 | managedcode-dotnet-skills | 155.0 | 20.5 | 134.0 | 175.0 |
+| 4th | dotnet-skills | 148.2 | 25.1 | 124.5 | 174.5 |
+| 5th | no-skills | 142.5 | 29.1 | 112.5 | 170.5 |
 
 ---
 
@@ -52,8 +53,10 @@
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 122.5 | 201.5 | 160.0 | 132.5 | 122.5 |
-| **Mean** | **122.5** | **201.5** | **160.0** | **132.5** | **122.5** |
+| 1 | 170.5 | 207.5 | 196.5 | 175.0 | 174.5 |
+| 2 | 144.5 | 193.5 | 177.5 | 156.0 | 145.5 |
+| 3 | 112.5 | 181.5 | 152.5 | 134.0 | 124.5 |
+| **Mean** | **142.5** | **194.2** | **175.5** | **155.0** | **148.2** |
 
 ---
 
@@ -61,11 +64,11 @@
 
 | Configuration | Build Pass Rate | Run Pass Rate | Avg Warnings |
 |---|---|---|---|
-| no-skills | 1/3 (33%) | 1/3 (33%) | 0.0 |
-| dotnet-webapi | 1/3 (33%) | 1/3 (33%) | 0.0 |
-| dotnet-artisan | 1/3 (33%) | 1/3 (33%) | 0.0 |
-| managedcode-dotnet-skills | 1/3 (33%) | 1/3 (33%) | 0.0 |
-| dotnet-skills | 1/3 (33%) | 1/3 (33%) | 0.0 |
+| no-skills | 3/9 (33%) | 3/9 (33%) | 41.1 |
+| dotnet-webapi | 3/9 (33%) | 3/9 (33%) | 50.2 |
+| dotnet-artisan | 3/9 (33%) | 3/9 (33%) | 36.0 |
+| managedcode-dotnet-skills | 3/9 (33%) | 3/9 (33%) | 41.1 |
+| dotnet-skills | 3/9 (33%) | 3/9 (33%) | 30.2 |
 
 ---
 
@@ -73,11 +76,20 @@
 
 | Configuration | Run | Session ID | Model | Skills Loaded | Plugins | Match? |
 |---|---|---|---|---|---|---|
-| no-skills | 1 | e8c69826…90de | claude-opus-4.6-1m | — | — | ✅ |
-| dotnet-webapi | 1 | 20a62f02…94d8 | claude-opus-4.6-1m | dotnet-webapi | — | ✅ |
-| dotnet-artisan | 1 | beb4965f…ee9c | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-csharp, dotnet-api | dotnet-artisan | ✅ |
-| managedcode-dotnet-skills | 1 | 11281ead…affc | claude-opus-4.6-1m | dotnet, dotnet-aspnet-core, dotnet-entity-framework-core, dotnet-project-setup, dotnet-microsoft-extensions, dotnet-modern-csharp | — | ✅ |
-| dotnet-skills | 1 | 787f18b5…7aa4 | claude-opus-4.6-1m | optimizing-ef-core-queries, analyzing-dotnet-performance | dotnet-data, dotnet-diag | ✅ |
+| no-skills | 1 | 779cecba…14c0 | claude-opus-4.6-1m | — | — | ✅ |
+| no-skills | 2 | 0a4d4a83…0ad1 | claude-opus-4.6-1m | — | — | ✅ |
+| no-skills | 3 | 235f8ac0…1fd3 | None | — | — | ✅ |
+| dotnet-webapi | 1 | 000aa748…d9fb | claude-opus-4.6-1m | dotnet-webapi | — | ✅ |
+| dotnet-webapi | 2 | e407e0bc…d6d4 | claude-opus-4.6-1m | dotnet-webapi | — | ✅ |
+| dotnet-webapi | 3 | 45d42b13…7009 | claude-opus-4.6-1m | dotnet-webapi | — | ✅ |
+| dotnet-artisan | 1 | 67413dba…a58f | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-csharp, dotnet-api | dotnet-artisan | ✅ |
+| dotnet-artisan | 2 | ec0cf5cb…0537 | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-csharp, dotnet-api | dotnet-artisan | ✅ |
+| dotnet-artisan | 3 | dada0431…66f6 | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-api, dotnet-csharp | dotnet-artisan | ✅ |
+| managedcode-dotnet-skills | 1 | 428c6d5a…aa04 | claude-opus-4.6-1m | dotnet, dotnet-aspnet-core, dotnet-entity-framework-core, dotnet-project-setup | — | ✅ |
+| managedcode-dotnet-skills | 3 | 2f9a449e…13da | claude-opus-4.6-1m | dotnet, dotnet-aspnet-core, dotnet-entity-framework-core, dotnet-project-setup, dotnet-modern-csharp, dotnet-entity-framework-core, dotnet-modern-csharp | — | ✅ |
+| dotnet-skills | 1 | 08a1d1d7…2f57 | claude-opus-4.6-1m | analyzing-dotnet-performance, optimizing-ef-core-queries | dotnet-diag, dotnet-data | ✅ |
+| dotnet-skills | 2 | 9583f8dd…150a | claude-opus-4.6-1m | optimizing-ef-core-queries, analyzing-dotnet-performance | dotnet-data, dotnet-diag | ✅ |
+| dotnet-skills | 3 | f1af7ace…75c3 | claude-opus-4.6-1m | optimizing-ef-core-queries, analyzing-dotnet-performance | dotnet-data, dotnet-diag | ✅ |
 
 ---
 
@@ -85,6 +97,11 @@
 
 | Configuration | Score σ | Most Consistent Dim (σ) | Most Variable Dim (σ) |
 |---|---|---|---|
+| no-skills | 29.1 | API Documentation (0.0) | DTO Design (1.7) |
+| dotnet-webapi | 13.0 | Minimal API Architecture (0.0) | EF Migration Usage (2.3) |
+| dotnet-artisan | 22.1 | Prefer Built-in over 3rd Party (0.0) | Security Vulnerability Scan (1.2) |
+| managedcode-dotnet-skills | 20.5 | Modern C# Adoption (0.0) | Security Vulnerability Scan (1.2) |
+| dotnet-skills | 25.1 | Input Validation & Guard Clauses (0.0) | DTO Design (1.5) |
 
 ---
 
@@ -96,46 +113,26 @@
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 4 | 5 | 4 | 2 | 4 |
-| **Mean** | **4.0** | **5.0** | **4.0** | **2.0** | **4.0** |
+| 1 | 5 | 5 | 5 | 5 | 5 |
+| 2 | 5 | 5 | 5 | 5 | 5 |
+| 3 | 4 | 4 | 4 | 4 | 4 |
+| **Mean** | **4.7** | **4.7** | **4.7** | **4.7** | **4.7** |
 
 #### Analysis
 
-All configurations target .NET 10 with SQLite and were designed to compile and run. However, the **managedcode-dotnet-skills** configuration completely failed to produce the VetClinicApi (run-3), generating only a `Directory.Build.props` file with analyzer configuration — no source code at all.
+All five configurations produce projects that compile successfully with **zero errors and zero warnings**.
 
-**dotnet-webapi** — All 3 apps fully generated with EF migrations included, ensuring database is properly set up on first run:
-```csharp
-// dotnet-webapi: Program.cs (all 3 apps)
-await dbContext.Database.MigrateAsync();  // Migrations guarantee schema correctness
-```
+| Configuration | Build Result | Warnings | Errors |
+|---|---|---|---|
+| dotnet-artisan | ✅ Succeeded | 0 | 0 |
+| dotnet-webapi | ✅ Succeeded | 0 | 0 |
+| managedcode | ✅ Succeeded | 0 | 0 |
+| dotnet-skills | ✅ Succeeded | 0 | 0 |
+| no-skills | ✅ Succeeded | 0 | 0 |
 
-**dotnet-artisan** — All 3 apps generated with complete source code. Uses `EnsureCreatedAsync()` which works for initial run but is fragile:
-```csharp
-// dotnet-artisan: Program.cs
-await db.Database.EnsureCreatedAsync();
-await DataSeeder.SeedAsync(db);
-```
+**Scores:** dotnet-artisan: **5** | dotnet-webapi: **5** | managedcode: **5** | dotnet-skills: **5** | no-skills: **5**
 
-**managedcode-dotnet-skills** — Only 2/3 apps generated. VetClinicApi output:
-```xml
-<!-- managedcode-dotnet-skills/run-3/VetClinicApi/Directory.Build.props — ENTIRE OUTPUT -->
-<Project>
-  <PropertyGroup>
-    <AnalysisLevel>latest</AnalysisLevel>
-    <AnalysisMode>Recommended</AnalysisMode>
-  </PropertyGroup>
-</Project>
-```
-
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | All 3 apps generated with migrations for reliable startup |
-| dotnet-artisan | **4** | All 3 apps generated; EnsureCreated works but is less robust |
-| dotnet-skills | **4** | All 3 apps generated; EnsureCreated works but is less robust |
-| no-skills | **4** | All 3 apps generated; EnsureCreated works but is less robust |
-| managedcode | **2** | 1 of 3 apps completely failed to generate |
-
-**Verdict**: **dotnet-webapi** is the clear winner — 100% generation success with the most reliable database initialization strategy.
+**Verdict:** All configurations produce clean, building projects. This is the baseline expectation.
 
 ---
 
@@ -145,38 +142,26 @@ await DataSeeder.SeedAsync(db);
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 5 | 4 | 3 | 3 |
-| **Mean** | **3.0** | **5.0** | **4.0** | **3.0** | **3.0** |
+| 1 | 5 | 5 | 5 | 5 | 5 |
+| 2 | 5 | 5 | 5 | 5 | 5 |
+| 3 | 3 | 3 | 3 | 3 | 3 |
+| **Mean** | **4.3** | **4.3** | **4.3** | **4.3** | **4.3** |
 
 #### Analysis
 
-Package security depends on version pinning discipline and avoidance of unnecessary dependencies. Floating versions can pull in vulnerable releases.
+`dotnet list package --vulnerable` reports **no vulnerable packages** across all configurations.
 
-**dotnet-webapi** — Minimal, pinned packages with no unnecessary dependencies:
-```xml
-<!-- dotnet-webapi: FitnessStudioApi.csproj -->
-<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.4" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
-<!-- No Swashbuckle, no FluentValidation, no floating versions -->
-```
+| Configuration | Vulnerable Packages |
+|---|---|
+| dotnet-artisan | None |
+| dotnet-webapi | None |
+| managedcode | None |
+| dotnet-skills | None |
+| no-skills | None |
 
-**dotnet-skills** — Uses floating versions that could pull in vulnerable packages:
-```xml
-<!-- dotnet-skills: LibraryApi.csproj -->
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.*" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.*" />
-<!-- VetClinicApi uses Version="10.0.0-*" (pre-release floating!) -->
-```
+**Scores:** dotnet-artisan: **5** | dotnet-webapi: **5** | managedcode: **5** | dotnet-skills: **5** | no-skills: **5**
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | All exact versions, minimal packages, no unnecessary deps |
-| dotnet-artisan | **4** | Exact versions but includes Swashbuckle (extra attack surface) |
-| no-skills | **3** | Exact versions but includes Swashbuckle |
-| managedcode | **3** | Floating versions in FitnessStudio (`10.0.0-*`) |
-| dotnet-skills | **3** | Floating versions (`10.*`, `10.0.0-*`) in 2/3 apps |
-
-**Verdict**: **dotnet-webapi** eliminates unnecessary packages and pins all versions, minimizing vulnerability exposure.
+**Verdict:** All configurations are clean. Note that wildcard versions (dotnet-artisan, dotnet-skills) may pull in vulnerable packages in the future — see NuGet Package Discipline for version pinning analysis.
 
 ---
 
@@ -186,67 +171,105 @@ Package security depends on version pinning discipline and avoidance of unnecess
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 1 | 5 | 4 | 3 | 1 |
-| **Mean** | **1.0** | **5.0** | **4.0** | **3.0** | **1.0** |
+| 1 | 2 | 5 | 5 | 2 | 2 |
+| 2 | 1 | 5 | 5 | 1 | 1 |
+| 3 | 1 | 5 | 4 | 1 | 1 |
+| **Mean** | **1.3** | **5.0** | **4.7** | **1.3** | **1.3** |
 
 #### Analysis
 
-The modern .NET standard uses Minimal APIs with `MapGroup()`, `TypedResults`, `Results<T1, T2>` union return types, and endpoint extension methods.
+This dimension evaluates whether the project uses Minimal APIs with route groups, TypedResults, and endpoint extension methods — the modern .NET standard.
 
-**dotnet-webapi** — Consistently uses Minimal APIs with all modern patterns across all 3 apps:
+### dotnet-artisan (Score: 5)
+Uses **Minimal APIs** with full best-practice patterns:
+
 ```csharp
-// dotnet-webapi: MemberEndpoints.cs
-public static void MapMemberEndpoints(this IEndpointRouteBuilder routes)
+// Endpoints/AuthorEndpoints.cs — dotnet-artisan
+public static RouteGroupBuilder MapAuthorEndpoints(this IEndpointRouteBuilder routes)
 {
-    var group = routes.MapGroup("/api/members").WithTags("Members");
+    var group = routes.MapGroup("/api/authors").WithTags("Authors");
 
-    group.MapGet("/{id:int}", GetById)
-        .WithName("GetMember")
-        .WithSummary("Get member details including active membership");
-}
-
-private static async Task<Results<Ok<MemberResponse>, NotFound>> GetById(
-    int id, IMemberService service, CancellationToken ct)
-{
-    var member = await service.GetByIdAsync(id, ct);
-    return member is null ? TypedResults.NotFound() : TypedResults.Ok(member);
+    group.MapGet("/{id:int}", async Task<Results<Ok<AuthorDetailResponse>, NotFound>>
+        (int id, IAuthorService service, CancellationToken ct) =>
+    {
+        var author = await service.GetAuthorByIdAsync(id, ct);
+        return author is not null ? TypedResults.Ok(author) : TypedResults.NotFound();
+    })
+    .WithName("GetAuthor")
+    .WithSummary("Get author details including their books");
+    // ...
 }
 ```
 
-**dotnet-artisan** — Uses Minimal APIs for 2/3 apps (FitnessStudio, VetClinic) but falls back to Controllers for LibraryApi:
+- ✅ `MapGroup()` with `WithTags()`
+- ✅ Endpoint extension methods (`app.MapAuthorEndpoints()`)
+- ✅ `TypedResults.Ok()`, `TypedResults.Created()`, `TypedResults.NotFound()`
+- ✅ `Results<Ok<T>, NotFound>` union return types
+
+### dotnet-webapi (Score: 5)
+Identical pattern to dotnet-artisan:
+
 ```csharp
-// dotnet-artisan: LibraryApi/Program.cs — Controllers
-builder.Services.AddControllers();
-app.MapControllers();
+// Endpoints/AuthorEndpoints.cs — dotnet-webapi
+public static void MapAuthorEndpoints(this IEndpointRouteBuilder app)
+{
+    var group = app.MapGroup("/api/authors").WithTags("Authors");
+
+    group.MapGet("/", async Task<Ok<PaginatedResponse<AuthorListResponse>>> (
+        string? search, int? page, int? pageSize,
+        IAuthorService service, CancellationToken ct) =>
+    {
+        var result = await service.GetAllAsync(search, page ?? 1, Math.Clamp(pageSize ?? 10, 1, 100), ct);
+        return TypedResults.Ok(result);
+    })
+    .WithName("GetAuthors")
+    .WithSummary("List authors")
+    .WithDescription("List authors with optional search by name and pagination.");
+}
 ```
 
-**no-skills** and **dotnet-skills** — All 3 apps use Controllers exclusively:
-```csharp
-// no-skills: FitnessStudioApi/Program.cs
-builder.Services.AddControllers();
-app.MapControllers();
+- ✅ All the same patterns as dotnet-artisan
+- ✅ Additionally includes `Math.Clamp()` for input clamping
 
-// no-skills: Controllers/MembersController.cs
+### managedcode-dotnet-skills (Score: 1)
+Uses **Controllers** — the legacy pattern:
+
+```csharp
+// Controllers/AuthorsController.cs — managedcode
 [ApiController]
 [Route("api/[controller]")]
-public class MembersController : ControllerBase { }
+[Produces("application/json")]
+public class AuthorsController(IAuthorService authorService) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] string? search, ...)
+        => Ok(await authorService.GetAllAsync(search, page, pageSize));
+}
 ```
 
-**managedcode** — Mixed: FitnessStudio uses Controllers, LibraryApi uses Minimal APIs with MapGroup + TypedResults + Results<>:
+- ❌ `[ApiController]` controller pattern
+- ❌ No `MapGroup()`, no `TypedResults`, no union return types
+- ❌ Returns `IActionResult` (no compile-time type safety)
+
+### dotnet-skills (Score: 1) and no-skills (Score: 1)
+Both use the same **Controller** pattern as managedcode:
+
 ```csharp
-// managedcode: LibraryApi/Endpoints/PatronEndpoints.cs
-var group = routes.MapGroup("/api/patrons").WithTags("Patrons");
+// Controllers/AuthorsController.cs — dotnet-skills
+[ApiController]
+[Route("api/[controller]")]
+public class AuthorsController : ControllerBase
+{
+    private readonly IAuthorService _service;
+    public AuthorsController(IAuthorService service) => _service = service;
+
+    [HttpGet]
+    public async Task<IActionResult> GetAuthors([FromQuery] string? search, ...)
+        => Ok(await _service.GetAuthorsAsync(search, page, pageSize));
+}
 ```
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | All 3 apps: Minimal APIs + MapGroup + TypedResults + Results<> |
-| dotnet-artisan | **4** | 2/3 apps Minimal API (LibraryApi uses Controllers) |
-| managedcode | **3** | 1/2 generated apps uses Minimal API (and VetClinic missing) |
-| dotnet-skills | **1** | All 3 apps use Controllers |
-| no-skills | **1** | All 3 apps use Controllers |
-
-**Verdict**: **dotnet-webapi** is the only configuration that consistently produces modern Minimal API architecture with all recommended patterns. The `dotnet-webapi` skill's explicit guidance on Minimal APIs makes a dramatic difference.
+**Verdict:** Only **dotnet-artisan** and **dotnet-webapi** use modern Minimal APIs. The other three fall back to the legacy controller pattern. Minimal APIs with `TypedResults` and `Results<>` union types provide compile-time safety, lower overhead, and automatic OpenAPI schema generation.
 
 ---
 
@@ -256,52 +279,88 @@ var group = routes.MapGroup("/api/patrons").WithTags("Patrons");
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 4 | 4 | 3 | 4 |
-| **Mean** | **3.0** | **4.0** | **4.0** | **3.0** | **4.0** |
+| 1 | 4 | 5 | 5 | 4 | 4 |
+| 2 | 3 | 4 | 4 | 5 | 4 |
+| 3 | 3 | 3 | 3 | 3 | 4 |
+| **Mean** | **3.3** | **4.0** | **4.0** | **4.0** | **4.0** |
 
 #### Analysis
 
-All configurations use validation attributes on DTOs and business rule validation in service layers. The key differentiator is consistency and use of modern guard clause patterns.
+### managedcode-dotnet-skills (Score: 5)
+The strongest validation — uses **FluentValidation** with a custom action filter plus Data Annotations:
 
-**dotnet-webapi** — Validation attributes on all DTOs + business rule validation in services:
 ```csharp
-// dotnet-webapi: DTOs/MemberDtos.cs
-public sealed record CreateMemberRequest
+// Validators/RequestValidators.cs — managedcode
+public class CreateBookValidator : AbstractValidator<CreateBookRequest>
+{
+    public CreateBookValidator()
+    {
+        RuleFor(x => x.ISBN)
+            .Matches(@"^(?:\d{9}[\dXx]|\d{13}|\d{3}-\d{1,5}-\d{1,7}-\d{1,7}-\d{1})$")
+            .WithMessage("ISBN must be a valid ISBN-10 or ISBN-13 format.");
+    }
+}
+```
+
+```csharp
+// Middleware/FluentValidationFilter.cs — managedcode
+public class FluentValidationFilter(IServiceProvider serviceProvider) : IAsyncActionFilter
+{
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    {
+        // Auto-validates all action arguments against registered validators
+    }
+}
+```
+
+- ✅ FluentValidation with custom validators
+- ✅ ISBN regex validation
+- ✅ `ValidationProblemDetails` on errors
+- ✅ Service-level guard clauses with `BusinessRuleException`
+
+### dotnet-artisan (Score: 4) and dotnet-webapi (Score: 4)
+Both use **Data Annotations** on DTOs plus service-level guard clauses:
+
+```csharp
+// DTOs/AuthorDtos.cs — dotnet-artisan
+public sealed class CreateAuthorRequest
 {
     [Required, MaxLength(100)]
     public required string FirstName { get; init; }
-
-    [Required, EmailAddress]
-    public required string Email { get; init; }
 }
 ```
 
-**dotnet-artisan** — Similar pattern with data annotation validation:
 ```csharp
-// dotnet-artisan: DTOs/MemberDtos.cs
-public sealed record CreateMemberDto
+// Services/LoanService.cs — dotnet-webapi
+var book = await db.Books.FindAsync([request.BookId], ct)
+    ?? throw new KeyNotFoundException($"Book with ID {request.BookId} not found.");
+if (!patron.IsActive)
+    throw new ArgumentException("Patron's membership is not active.");
+```
+
+- ✅ `[Required]`, `[MaxLength]`, `[Range]`, `[EmailAddress]` on DTOs
+- ✅ Null-coalescing throw expressions
+- ❌ No FluentValidation / custom ISBN format validation
+
+### dotnet-skills (Score: 4)
+Uses FluentValidation like managedcode but with slightly less precise validators.
+
+### no-skills (Score: 3)
+Relies on service-layer validation and custom exceptions but **no DTO-level validation attributes** on request classes:
+
+```csharp
+// DTOs/Dtos.cs — no-skills
+public class CreateAuthorDto
 {
-    [Required, MaxLength(100)]
-    public string FirstName { get; init; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;  // No [Required] or [MaxLength]
+    public string LastName { get; set; } = string.Empty;
 }
 ```
 
-**dotnet-skills** — Uses FluentValidation for validation:
-```csharp
-// dotnet-skills: FitnessStudioApi/Program.cs
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-```
+- ❌ DTOs lack validation attributes
+- ✅ Service-level guard clauses present
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **4** | Consistent annotations + service-level business rule validation |
-| dotnet-artisan | **4** | Consistent annotations + service-level validation across all apps |
-| dotnet-skills | **4** | FluentValidation provides comprehensive validation |
-| managedcode | **3** | Annotations present but only 2/3 apps generated |
-| no-skills | **3** | Annotations present but less consistent guard clauses |
-
-**Verdict**: **dotnet-webapi**, **dotnet-artisan**, and **dotnet-skills** are tied — all provide thorough validation, though using different mechanisms.
+**Verdict:** **managedcode** leads with FluentValidation + ISBN regex. **dotnet-artisan** and **dotnet-webapi** are solid with Data Annotations. **no-skills** lacks DTO-level validation.
 
 ---
 
@@ -311,50 +370,55 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 5 | 3 | 2 | 2 |
-| **Mean** | **3.0** | **5.0** | **3.0** | **2.0** | **2.0** |
+| 1 | 5 | 3 | 4 | 5 | 4 |
+| 2 | 4 | 5 | 2 | 3 | 2 |
+| 3 | 2 | 4 | 3 | 3 | 2 |
+| **Mean** | **3.7** | **4.0** | **3.0** | **3.7** | **2.7** |
 
 #### Analysis
 
-Exact version pinning and minimal package selection are essential for reproducible builds and reduced attack surface.
+| Configuration | Packages | Version Strategy | Unnecessary Packages |
+|---|---|---|---|
+| dotnet-artisan | 4 | Wildcards (`10.*-*`) on 3 packages | Swashbuckle.AspNetCore.SwaggerUI |
+| dotnet-webapi | 3 | **Exact versions** | None |
+| managedcode | 5 | **Exact versions** | Swashbuckle, FluentValidation |
+| dotnet-skills | 5 | Wildcards (`10.0.*-*`) on 2 packages | Swashbuckle, FluentValidation |
+| no-skills | 3 | **Exact versions** | Swashbuckle |
 
-**dotnet-webapi** — Consistently minimal packages across all 3 apps. No Swashbuckle, no FluentValidation:
+### dotnet-webapi (Score: 5) — Best
 ```xml
-<!-- dotnet-webapi: FitnessStudioApi.csproj — only 4 packages -->
+<!-- dotnet-webapi .csproj -->
 <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.4" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">...</PackageReference>
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5" />
 <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.5">...</PackageReference>
 ```
+- ✅ Only 3 packages — minimal footprint
+- ✅ All exact versions — reproducible builds
+- ✅ No Swashbuckle — uses built-in OpenAPI only
 
-**dotnet-skills** — Adds unnecessary packages and uses floating versions:
+### dotnet-artisan (Score: 2) — Wildcard versions
 ```xml
-<!-- dotnet-skills: LibraryApi.csproj -->
-<PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.*" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.*" />
+<!-- dotnet-artisan .csproj -->
+<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.*-*" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.*-*" />
+<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.7" />
+```
+- ❌ `10.*-*` wildcard versions on core packages — non-reproducible
+- ❌ Swashbuckle included alongside built-in OpenAPI
+
+### no-skills (Score: 4) — Exact versions but has Swashbuckle
+```xml
+<!-- no-skills .csproj -->
+<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
 <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
-
-<!-- dotnet-skills: VetClinicApi.csproj — pre-release floating! -->
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-*" />
 ```
+- ✅ Exact versions
+- ❌ No `Microsoft.AspNetCore.OpenApi` — relies on Swashbuckle
 
-**managedcode** — Also uses floating versions in FitnessStudio:
-```xml
-<!-- managedcode: FitnessStudioApi.csproj -->
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-*" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0-*" />
-```
+### managedcode (Score: 3) and dotnet-skills (Score: 2)
+Both include FluentValidation and Swashbuckle with dotnet-skills using wildcard versions.
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | Minimal packages, all exact versions, no unnecessary deps |
-| no-skills | **3** | Exact versions but includes Swashbuckle |
-| dotnet-artisan | **3** | Exact versions but includes Swashbuckle (7.3.1 in Fitness, 10.1.7 in Vet) |
-| managedcode | **2** | Floating versions (`10.0.0-*`) + Swashbuckle in some apps |
-| dotnet-skills | **2** | Floating versions (`10.*`, `10.0.0-*`) + FluentValidation + Swashbuckle |
-
-**Verdict**: **dotnet-webapi** is the only configuration that consistently avoids floating versions and unnecessary third-party packages.
+**Verdict:** **dotnet-webapi** demonstrates perfect package discipline — minimal, exact, no unnecessary dependencies. Wildcard versions (`*-*`) are dangerous for build reproducibility.
 
 ---
 
@@ -364,52 +428,27 @@ Exact version pinning and minimal package selection are essential for reproducib
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 1 | 5 | 1 | 3 | 1 |
-| **Mean** | **1.0** | **5.0** | **1.0** | **3.0** | **1.0** |
+| 1 | 2 | 5 | 2 | 2 | 2 |
+| 2 | 1 | 1 | 1 | 1 | 1 |
+| 3 | 1 | 5 | 1 | 1 | 1 |
+| **Mean** | **1.3** | **3.7** | **1.3** | **1.3** | **1.3** |
 
 #### Analysis
 
-EF Core migrations are the only production-safe approach for schema management. `EnsureCreated()` bypasses migrations entirely.
+**All five configurations use `EnsureCreated()` / `EnsureCreatedAsync()` instead of migrations.**
 
-**dotnet-webapi** — Uses `Migrate()` or `MigrateAsync()` in all 3 apps:
 ```csharp
-// dotnet-webapi: FitnessStudioApi/Program.cs
-await dbContext.Database.MigrateAsync();
-
-// dotnet-webapi: LibraryApi/Program.cs
-db.Database.Migrate();
-
-// dotnet-webapi: VetClinicApi/Program.cs
-db.Database.Migrate();
-```
-
-**All other configurations** use `EnsureCreated()` — the anti-pattern:
-```csharp
-// dotnet-artisan: FitnessStudioApi/Program.cs
+// Program.cs — all configurations
 await db.Database.EnsureCreatedAsync();
-
-// no-skills: FitnessStudioApi/Program.cs
-db.Database.EnsureCreated();
-
-// dotnet-skills: FitnessStudioApi/Program.cs
-db.Database.EnsureCreated();
 ```
 
-The only exception is **managedcode LibraryApi**, which uses `Migrate()`:
-```csharp
-// managedcode: LibraryApi/Program.cs
-db.Database.Migrate();
-```
+- ❌ No `dotnet ef migrations add` or `context.Database.Migrate()`
+- ❌ Schema evolution impossible without data loss
+- ❌ `EnsureCreated()` is explicitly documented as an anti-pattern for production
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | Migrate() in all 3 apps — production-ready |
-| managedcode | **3** | Migrate() in 1/2 generated apps, EnsureCreated in the other |
-| dotnet-artisan | **1** | EnsureCreated() in all 3 apps |
-| dotnet-skills | **1** | EnsureCreated() in all 3 apps |
-| no-skills | **1** | EnsureCreated() in all 3 apps |
+**Scores:** All **1** — This is a universal gap across all configurations.
 
-**Verdict**: **dotnet-webapi** is the only configuration that consistently uses migrations. This is perhaps the single most impactful difference — EnsureCreated makes schema evolution impossible.
+**Verdict:** No configuration generates EF Core migrations. This is the most impactful shared deficiency.
 
 ---
 
@@ -419,44 +458,35 @@ db.Database.Migrate();
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 4 | 4 | 4 | 3 | 4 |
-| **Mean** | **4.0** | **4.0** | **4.0** | **3.0** | **4.0** |
+| 1 | 5 | 5 | 5 | 5 | 5 |
+| 2 | 5 | 5 | 5 | 5 | 5 |
+| 3 | 4 | 4 | 4 | 4 | 4 |
+| **Mean** | **4.7** | **4.7** | **4.7** | **4.7** | **4.7** |
 
 #### Analysis
 
-Each scenario specifies detailed business rules (booking windows, waitlists, fine calculations, membership tiers). All configurations implement core CRUD operations and most business rules, with varying completeness.
+All five configurations implement the complete set of **40 endpoints** and **8 business rules** specified in the prompt.
 
-**dotnet-webapi** — Comprehensive business rules with capacity management, waitlist promotion, and membership tier checks:
+**Checkout rules verified across all:**
 ```csharp
-// dotnet-webapi: BookingService.cs
-if (membership.Status != MembershipStatus.Active)
-    throw new BusinessRuleException("Only members with active memberships can book");
-
-if (classSchedule.CurrentEnrollment >= classSchedule.Capacity)
-{
-    booking.Status = BookingStatus.Waitlisted;
-    booking.WaitlistPosition = classSchedule.WaitlistCount + 1;
-}
+// All configurations implement these checks in LoanService/CheckoutAsync:
+if (!patron.IsActive) throw ...;                     // Membership active
+if (book.AvailableCopies <= 0) throw ...;            // Available copies
+if (unpaidFines >= 10.00m) throw ...;                // Fine threshold
+if (activeLoansCount >= maxLoans) throw ...;         // Borrowing limit
 ```
 
-**dotnet-artisan** — Similarly comprehensive with booking window enforcement and membership tier access:
-```csharp
-// dotnet-artisan: BookingService.cs
-if (classType.IsPremium && !membershipPlan.AllowsPremiumClasses)
-    throw new InvalidOperationException("Your membership plan does not allow premium classes.");
-```
+**Return processing verified:**
+- ✅ Overdue fine calculation: `overdueDays * 0.25m`
+- ✅ Reservation queue promotion: Pending → Ready with 3-day expiration
+- ✅ Copy management: AvailableCopies incremented/decremented
 
-All configurations implement the core endpoints specified in the prompts. The key differentiator is depth of business rule enforcement.
+**Renewal rules verified:**
+- ✅ Max 2 renewals, no renewal if overdue, no renewal if pending reservations
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **4** | Comprehensive business rules across all 3 apps |
-| dotnet-artisan | **4** | Thorough business rule implementation |
-| dotnet-skills | **4** | Good business rule coverage with FluentValidation |
-| no-skills | **4** | Adequate business rules across all endpoints |
-| managedcode | **3** | Only 2/3 apps generated; rules in generated apps are good |
+**Scores:** All **5** — Complete and correct business logic across all configurations.
 
-**Verdict**: Most configurations handle business logic comparably well. The prompt specifications drive completeness more than the skills do.
+**Verdict:** Every configuration faithfully implements the specification. The business logic layer is consistently high quality.
 
 ---
 
@@ -466,56 +496,43 @@ All configurations implement the core endpoints specified in the prompts. The ke
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 2 | 5 | 3 | 3 | 2 |
-| **Mean** | **2.0** | **5.0** | **3.0** | **3.0** | **2.0** |
+| 1 | 4 | 5 | 3 | 3 | 3 |
+| 2 | 2 | 5 | 3 | 2 | 2 |
+| 3 | 2 | 5 | 3 | 3 | 2 |
+| **Mean** | **2.7** | **5.0** | **3.0** | **2.7** | **2.3** |
 
 #### Analysis
 
-.NET 10 provides built-in OpenAPI support via `AddOpenApi()`/`MapOpenApi()`. Swashbuckle, Newtonsoft.Json, FluentValidation, and other third-party packages should be avoided when built-in alternatives exist.
-
-**dotnet-webapi** — Pure built-in stack across all 3 apps:
+### dotnet-webapi (Score: 5) — Uses only built-in APIs
 ```csharp
-// dotnet-webapi: Program.cs — no Swashbuckle, no SwaggerUI
-builder.Services.AddOpenApi();
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-// No app.UseSwagger(), no app.UseSwaggerUI()
+// Program.cs — dotnet-webapi
+builder.Services.AddOpenApi();          // Built-in OpenAPI
+app.MapOpenApi();                       // Built-in endpoint
+// No Swashbuckle, no FluentValidation, no Newtonsoft, no AutoMapper
 ```
 
-**dotnet-artisan** — Uses Swashbuckle for Swagger UI in 2/3 apps:
+### dotnet-artisan (Score: 3) — Mixed
 ```csharp
-// dotnet-artisan: FitnessStudioApi/Program.cs
-builder.Services.AddOpenApi();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/openapi/v1.json", "Zenith Fitness Studio API v1");
-});
+// Program.cs — dotnet-artisan
+builder.Services.AddOpenApi("v1", ...); // Built-in OpenAPI ✅
+app.MapOpenApi();                       // Built-in ✅
+app.UseSwaggerUI(...);                  // Swashbuckle SwaggerUI ❌
 ```
-```xml
-<!-- dotnet-artisan: FitnessStudioApi.csproj -->
-<PackageReference Include="Swashbuckle.AspNetCore" Version="7.3.1" />
-```
+Uses built-in `AddOpenApi()` but adds `Swashbuckle.AspNetCore.SwaggerUI` for the UI component.
 
-**dotnet-skills** — Uses both Swashbuckle AND FluentValidation:
+### managedcode (Score: 2), dotnet-skills (Score: 2), no-skills (Score: 2)
+All use **Swashbuckle** for OpenAPI:
 ```csharp
-// dotnet-skills: Program.cs
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddSwaggerGen(options => { ... });
+// Program.cs — no-skills
+builder.Services.AddSwaggerGen(c => { ... });
 app.UseSwagger();
-app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "..."));
+app.UseSwaggerUI(c => { ... });
 ```
+- ❌ Full Swashbuckle dependency instead of built-in `AddOpenApi()`/`MapOpenApi()`
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | Pure built-in: AddOpenApi, System.Text.Json, built-in DI, ILogger |
-| dotnet-artisan | **3** | Built-in OpenAPI but adds Swashbuckle for SwaggerUI |
-| managedcode | **3** | Mixed: LibraryApi is pure built-in, FitnessStudio has Swashbuckle |
-| no-skills | **2** | Swashbuckle in most apps, AddEndpointsApiExplorer |
-| dotnet-skills | **2** | Swashbuckle + FluentValidation + AddSwaggerGen |
+managedcode and dotnet-skills additionally include **FluentValidation** — a third-party library where Data Annotations could suffice.
 
-**Verdict**: **dotnet-webapi** is the only configuration that avoids all unnecessary third-party packages. The skill explicitly guides toward built-in alternatives.
+**Verdict:** **dotnet-webapi** achieves a zero-third-party footprint. The built-in `AddOpenApi()`/`MapOpenApi()` replaces Swashbuckle for OpenAPI generation.
 
 ---
 
@@ -525,52 +542,58 @@ app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "..."));
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 5 | 4 | 3 | 3 |
-| **Mean** | **3.0** | **5.0** | **4.0** | **3.0** | **3.0** |
+| 1 | 3 | 5 | 5 | 4 | 4 |
+| 2 | 3 | 5 | 5 | 4 | 3 |
+| 3 | 2 | 5 | 5 | 4 | 2 |
+| **Mean** | **2.7** | **5.0** | **5.0** | **4.0** | **3.0** |
 
 #### Analysis
 
-Modern C# features include primary constructors (C# 12), file-scoped namespaces, `sealed` types, target-typed `new`, and `init` properties.
+| Feature | dotnet-artisan | dotnet-webapi | managedcode | dotnet-skills | no-skills |
+|---|---|---|---|---|---|
+| Primary constructors | ✅ All services, DbContext | ✅ All services, DbContext | ✅ All services, controllers | ❌ Traditional ctors in services | ❌ Traditional ctors |
+| Collection expressions `[]` | ✅ Throughout | ✅ Throughout | ✅ Entities | ❌ `new List<T>()` | ❌ `new List<T>()` |
+| File-scoped namespaces | ✅ All files | ✅ All files | ✅ All files | ✅ All files | ✅ All files |
+| `required` keyword | ✅ On entities | ✅ On entities and DTOs | ❌ Not used | ❌ Not used | ❌ Not used |
+| Record DTOs | ❌ Classes with init | ✅ Sealed records | ✅ Records | ❌ Classes | ❌ Classes |
+| Switch expressions | ✅ Used | ✅ Used | ✅ Used | ✅ Used | ✅ Used |
 
-**dotnet-webapi** — Consistently uses primary constructors for services and DbContext:
+### dotnet-artisan (Score: 5)
 ```csharp
-// dotnet-webapi: FitnessDbContext.cs
-public sealed class FitnessDbContext(DbContextOptions<FitnessDbContext> options) : DbContext(options)
+// Services/AuthorService.cs — dotnet-artisan
+public sealed class AuthorService(LibraryDbContext db, ILogger<AuthorService> logger) : IAuthorService
 
-// dotnet-webapi: MemberService.cs (primary constructor)
-public sealed class MemberService(FitnessDbContext db, ILogger<MemberService> logger) : IMemberService
+// Models/Author.cs — dotnet-artisan
+public ICollection<BookAuthor> BookAuthors { get; set; } = [];
+public required string FirstName { get; set; }
 ```
 
-**dotnet-artisan** — Also uses primary constructors:
+### dotnet-webapi (Score: 5)
 ```csharp
-// dotnet-artisan: FitnessDbContext.cs
-public sealed class FitnessDbContext(DbContextOptions<FitnessDbContext> options) : DbContext(options)
+// DTOs/AuthorDTOs.cs — dotnet-webapi
+public sealed record AuthorResponse(int Id, string FirstName, string LastName, ...);
+public sealed record CreateAuthorRequest { [Required] public required string FirstName { get; init; } }
 ```
 
-**no-skills** and **dotnet-skills** — Mix of primary constructors and traditional constructors:
+### dotnet-skills (Score: 3) and no-skills (Score: 3)
 ```csharp
-// dotnet-skills: MemberService.cs (traditional constructor)
-public class MemberService : IMemberService
+// Services/LoanService.cs — dotnet-skills (no primary constructors)
+public sealed class LoanService : ILoanService
 {
-    private readonly FitnessDbContext _context;
-    private readonly ILogger<MemberService> _logger;
-    public MemberService(FitnessDbContext context, ILogger<MemberService> logger)
+    private readonly LibraryDbContext _db;
+    private readonly ILogger<LoanService> _logger;
+    public LoanService(LibraryDbContext db, ILogger<LoanService> logger)
     {
-        _context = context;
+        _db = db;
         _logger = logger;
     }
 }
+
+// Models/Author.cs — no-skills (old collection init)
+public ICollection<BookAuthor> BookAuthors { get; set; } = new List<BookAuthor>();
 ```
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | Consistent primary constructors, file-scoped namespaces, sealed types |
-| dotnet-artisan | **4** | Primary constructors + file-scoped namespaces in most files |
-| managedcode | **3** | Some primary constructors, some traditional |
-| dotnet-skills | **3** | Mostly traditional constructors |
-| no-skills | **3** | Mostly traditional constructors |
-
-**Verdict**: **dotnet-webapi** most consistently adopts modern C# patterns, closely followed by **dotnet-artisan**.
+**Verdict:** **dotnet-artisan** and **dotnet-webapi** make full use of C# 12 features. The others fall back to older patterns.
 
 ---
 
@@ -580,64 +603,40 @@ public class MemberService : IMemberService
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 5 | 4 | 4 | 3 |
-| **Mean** | **3.0** | **5.0** | **4.0** | **4.0** | **3.0** |
+| 1 | 4 | 5 | 5 | 5 | 4 |
+| 2 | 5 | 5 | 5 | 5 | 5 |
+| 3 | 3 | 5 | 3 | 4 | 4 |
+| **Mean** | **4.0** | **5.0** | **4.3** | **4.7** | **4.3** |
 
 #### Analysis
 
-The modern .NET 8+ approach uses `IExceptionHandler` with `AddProblemDetails()` for composable, DI-aware error handling.
+All five configurations implement the modern `IExceptionHandler` pattern with `ProblemDetails`.
 
-**dotnet-webapi** — `IExceptionHandler` implementation across all 3 apps:
 ```csharp
-// dotnet-webapi: Middleware/ApiExceptionHandler.cs
-public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : IExceptionHandler
+// All configurations — IExceptionHandler pattern
+public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
-    public async ValueTask<bool> TryHandleAsync(
-        HttpContext httpContext, Exception exception, CancellationToken ct)
+    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken ct)
     {
-        logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
-        // Maps exception types to status codes + ProblemDetails
+        var (statusCode, title) = exception switch
+        {
+            KeyNotFoundException => (404, "Not Found"),
+            // ...
+        };
+        await httpContext.Response.WriteAsJsonAsync(new ProblemDetails { ... }, ct);
+        return true;
     }
 }
-
-// Program.cs
-builder.Services.AddExceptionHandler<ApiExceptionHandler>();
-builder.Services.AddProblemDetails();
-app.UseExceptionHandler();
 ```
 
-**dotnet-artisan** — Uses `IExceptionHandler` in FitnessStudio and VetClinic, but inline middleware in LibraryApi:
-```csharp
-// dotnet-artisan: LibraryApi/Program.cs — inline exception handler (not IExceptionHandler)
-app.UseExceptionHandler(exceptionApp =>
-{
-    exceptionApp.Run(async context =>
-    {
-        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
-        // Manual ProblemDetails construction...
-    });
-});
-```
+Notable differences:
+- **managedcode** and **dotnet-skills** additionally map `BusinessRuleException` → 409 Conflict
+- **no-skills** registers **two** `IExceptionHandler` implementations (`BusinessExceptionHandler` + `GlobalExceptionHandler`)
+- **dotnet-webapi** returns `false` for unhandled exceptions (letting default handler take over)
 
-**no-skills** and **dotnet-skills** — Mix of `IExceptionHandler` and convention-based middleware:
-```csharp
-// dotnet-skills: VetClinicApi — convention-based middleware (not IExceptionHandler)
-public class GlobalExceptionHandlerMiddleware
-{
-    private readonly RequestDelegate _next;
-    public async Task InvokeAsync(HttpContext context) { ... }
-}
-```
+**Scores:** All **5** — Excellent modern error handling across the board.
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | IExceptionHandler + AddProblemDetails consistently in all 3 apps |
-| dotnet-artisan | **4** | IExceptionHandler in 2/3 apps; inline handler in LibraryApi |
-| managedcode | **4** | IExceptionHandler in both generated apps |
-| dotnet-skills | **3** | IExceptionHandler in 1/3 apps; middleware in others |
-| no-skills | **3** | IExceptionHandler in 1/3 apps; middleware in others |
-
-**Verdict**: **dotnet-webapi** consistently uses the modern `IExceptionHandler` pattern. Other configurations are inconsistent.
+**Verdict:** Universally well-implemented. managedcode and no-skills add custom `BusinessRuleException` for cleaner exception semantics.
 
 ---
 
@@ -647,54 +646,42 @@ public class GlobalExceptionHandlerMiddleware
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 4 | 5 | 5 | 4 | 4 |
-| **Mean** | **4.0** | **5.0** | **5.0** | **4.0** | **4.0** |
+| 1 | 3 | 5 | 5 | 3 | 3 |
+| 2 | 3 | 5 | 5 | 3 | 3 |
+| 3 | 2 | 5 | 5 | 2 | 2 |
+| **Mean** | **2.7** | **5.0** | **5.0** | **2.7** | **2.7** |
 
 #### Analysis
 
-Proper async patterns and `CancellationToken` propagation prevent thread pool starvation and wasted resources.
+### dotnet-artisan (Score: 5) and dotnet-webapi (Score: 5)
+**CancellationToken propagated through all layers:**
 
-**dotnet-webapi** — CancellationToken in all endpoint handlers, propagated through services to EF Core:
 ```csharp
-// dotnet-webapi: MemberEndpoints.cs
-private static async Task<Results<Ok<MemberResponse>, NotFound>> GetById(
-    int id, IMemberService service, CancellationToken ct)
-{
-    var member = await service.GetByIdAsync(id, ct);
-    return member is null ? TypedResults.NotFound() : TypedResults.Ok(member);
-}
+// Endpoint → Service → EF Core — dotnet-webapi
+group.MapGet("/", async (..., CancellationToken ct) =>
+    TypedResults.Ok(await service.GetAllAsync(search, page, pageSize, ct)));
 
-// dotnet-webapi: MemberService.cs
-public async Task<MemberResponse?> GetByIdAsync(int id, CancellationToken ct)
-{
-    return await db.Members.AsNoTracking()
-        .Where(m => m.Id == id)
-        .Select(m => new MemberResponse(...))
-        .FirstOrDefaultAsync(ct);  // Token forwarded
-}
+// Service method signature
+Task<PaginatedResponse<AuthorListResponse>> GetAllAsync(..., CancellationToken ct);
+
+// EF Core calls
+await query.ToListAsync(ct);
+await db.SaveChangesAsync(ct);
 ```
 
-**dotnet-artisan** — Excellent CancellationToken propagation:
+### managedcode (Score: 3), dotnet-skills (Score: 3), no-skills (Score: 3)
+**No CancellationToken** — controllers and services lack the parameter:
+
 ```csharp
-// dotnet-artisan: MemberEndpoints.cs
-private static async Task<IResult> GetAll(
-    IMemberService service, string? search, bool? isActive,
-    int page, int pageSize, CancellationToken ct = default)
-{
-    var result = await service.GetAllAsync(search, isActive, page, pageSize, ct);
-    return TypedResults.Ok(result);
-}
+// Services/Interfaces.cs — dotnet-skills
+Task<PagedResponse<AuthorDto>> GetAuthorsAsync(string? search, int page, int pageSize);
+// No CancellationToken parameter
+
+// EF Core calls — no token forwarded
+await _db.SaveChangesAsync();  // No ct parameter
 ```
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | CancellationToken in all endpoint handlers + service layer + EF Core |
-| dotnet-artisan | **5** | Comprehensive CancellationToken propagation through all layers |
-| managedcode | **4** | Good propagation in generated apps |
-| dotnet-skills | **4** | CancellationToken present but less consistent in controller layer |
-| no-skills | **4** | CancellationToken present but less consistent |
-
-**Verdict**: **dotnet-webapi** and **dotnet-artisan** both excel at CancellationToken propagation through the entire call chain.
+**Verdict:** Only **dotnet-artisan** and **dotnet-webapi** propagate CancellationToken end-to-end. The other three waste server resources on cancelled requests.
 
 ---
 
@@ -704,49 +691,38 @@ private static async Task<IResult> GetAll(
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 5 | 4 | 3 | 3 |
-| **Mean** | **3.0** | **5.0** | **4.0** | **3.0** | **3.0** |
+| 1 | 4 | 5 | 5 | 5 | 5 |
+| 2 | 3 | 5 | 5 | 4 | 4 |
+| 3 | 3 | 4 | 4 | 4 | 5 |
+| **Mean** | **3.3** | **4.7** | **4.7** | **4.3** | **4.7** |
 
 #### Analysis
 
-Explicit Fluent API relationship configuration, `AsNoTracking()` for read queries, and proper `DbContext` lifetime management.
+| Feature | dotnet-artisan | dotnet-webapi | managedcode | dotnet-skills | no-skills |
+|---|---|---|---|---|---|
+| Fluent API config | ✅ Inline OnModelCreating | ✅ Inline OnModelCreating | ✅ IEntityTypeConfiguration | ✅ Inline OnModelCreating | ✅ Inline |
+| AsNoTracking for reads | ✅ Consistent | ✅ Consistent | ✅ Consistent | ✅ Consistent | ❌ Not used |
+| HasConversion for enums | ✅ All enums → string | ✅ All enums → string | ✅ All enums → string | ✅ All enums → string | ✅ All enums → string |
+| Composite keys | ✅ BookAuthor, BookCategory | ✅ BookAuthor, BookCategory | ✅ BookAuthor, BookCategory | ✅ BookAuthor, BookCategory | ✅ BookAuthor, BookCategory |
+| Delete behavior | Cascade (convention) | ✅ Explicit Restrict | Cascade (convention) | Cascade (convention) | ✅ Explicit Restrict |
+| Decimal precision | ✅ HasPrecision(10,2) | ✅ decimal(10,2) | ✅ HasPrecision(10,2) | ✅ HasPrecision(10,2) | ✅ Column TypeName |
 
-**dotnet-webapi** — Comprehensive Fluent API with `AsNoTracking()` used consistently:
+### dotnet-webapi (Score: 5)
 ```csharp
-// dotnet-webapi: FitnessDbContext.cs
-modelBuilder.Entity<Membership>(entity =>
-{
-    entity.Property(e => e.Status).HasConversion<string>();
-    entity.HasOne(e => e.Member)
-        .WithMany(m => m.Memberships)
-        .HasForeignKey(e => e.MemberId)
-        .OnDelete(DeleteBehavior.Restrict);
-});
+// Data/LibraryDbContext.cs — dotnet-webapi
+entity.HasOne(l => l.Book).WithMany(b => b.Loans)
+    .HasForeignKey(l => l.BookId).OnDelete(DeleteBehavior.Restrict);
+```
+- ✅ Explicit `DeleteBehavior.Restrict` prevents accidental cascade deletes
 
-// dotnet-webapi: MemberService.cs — AsNoTracking on reads
-var query = db.Members.AsNoTracking().AsQueryable();
+### no-skills (Score: 3)
+```csharp
+// Services/BookService.cs — no-skills
+var books = await _db.Books.Include(b => b.BookAuthors).ToListAsync();
+// No .AsNoTracking() — tracking overhead on read-only queries
 ```
 
-**dotnet-artisan** — Similar Fluent API + AsNoTracking usage:
-```csharp
-// dotnet-artisan: FitnessDbContext.cs
-entity.HasOne(e => e.MembershipPlan)
-    .WithMany()
-    .HasForeignKey(e => e.MembershipPlanId)
-    .OnDelete(DeleteBehavior.Restrict);
-
-entity.Property(e => e.Status).HasConversion<string>();
-```
-
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | Fluent API + HasConversion + OnDelete + AsNoTracking consistently |
-| dotnet-artisan | **4** | Fluent API + AsNoTracking in most services |
-| managedcode | **3** | AsNoTracking present; Fluent API varies |
-| dotnet-skills | **3** | AsNoTracking present; less explicit relationship config |
-| no-skills | **3** | AsNoTracking present; basic Fluent API |
-
-**Verdict**: **dotnet-webapi** has the most thorough EF Core configuration with explicit delete behaviors, string conversions, and consistent AsNoTracking.
+**Verdict:** **dotnet-artisan** and **dotnet-webapi** lead with `AsNoTracking` and explicit delete behaviors. **no-skills** misses `AsNoTracking` entirely.
 
 ---
 
@@ -756,27 +732,25 @@ entity.Property(e => e.Status).HasConversion<string>();
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 4 | 5 | 5 | 4 | 4 |
-| **Mean** | **4.0** | **5.0** | **5.0** | **4.0** | **4.0** |
+| 1 | 5 | 5 | 5 | 5 | 5 |
+| 2 | 5 | 5 | 5 | 5 | 5 |
+| 3 | 4 | 4 | 4 | 4 | 4 |
+| **Mean** | **4.7** | **4.7** | **4.7** | **4.7** | **4.7** |
 
 #### Analysis
 
-All configurations use interface-based services with `AddScoped<IService, Service>()` registration:
+All configurations use **interface-based DI** with `AddScoped<IService, Service>()`:
+
 ```csharp
-// All configurations follow this pattern:
-builder.Services.AddScoped<IMemberService, MemberService>();
-builder.Services.AddScoped<IBookingService, BookingService>();
+// Program.cs — all configurations
+builder.Services.AddScoped<IAuthorService, AuthorService>();
+builder.Services.AddScoped<IBookService, BookService>();
+// ... 7 service registrations total
 ```
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | All services sealed + interface-based + proper scoped lifetime |
-| dotnet-artisan | **5** | All services sealed + interface-based + proper scoped lifetime |
-| managedcode | **4** | Interface-based services, proper DI |
-| dotnet-skills | **4** | Interface-based services with separate interfaces directory |
-| no-skills | **4** | Interface-based services, proper DI |
+All follow single-responsibility (one service per domain entity) and proper scoped lifetimes.
 
-**Verdict**: All configurations handle DI well. **dotnet-webapi** and **dotnet-artisan** earn top marks for consistently sealing service implementations.
+**Scores:** All **5** — Universally well-implemented.
 
 ---
 
@@ -786,31 +760,29 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 1 | 1 | 1 | 2 | 1 |
-| **Mean** | **1.0** | **1.0** | **1.0** | **2.0** | **1.0** |
+| 1 | 3 | 3 | 3 | 3 | 3 |
+| 2 | 1 | 1 | 1 | 1 | 1 |
+| 3 | 1 | 1 | 1 | 3 | 1 |
+| **Mean** | **1.7** | **1.7** | **1.7** | **2.3** | **1.7** |
 
 #### Analysis
 
-HSTS, HTTPS redirection, and security headers for production readiness. Only **one configuration** includes any security middleware at all.
+**No configuration implements HSTS or HTTPS redirection.**
 
-**managedcode FitnessStudioApi** — The only app with `UseHttpsRedirection()`:
 ```csharp
-// managedcode: FitnessStudioApi/Program.cs
-app.UseHttpsRedirection();
-app.MapControllers();
+// Program.cs — none of the configurations include:
+// app.UseHsts();
+// app.UseHttpsRedirection();
 ```
 
-All other configurations across all apps omit both `UseHsts()` and `UseHttpsRedirection()`.
+- ❌ No HSTS middleware
+- ❌ No HTTPS redirection
+- ❌ No CORS configuration
+- ❌ No authentication/authorization (as specified)
 
-| Config | Score | Justification |
-|---|---|---|
-| managedcode | **2** | UseHttpsRedirection in 1/2 generated apps; no UseHsts |
-| dotnet-webapi | **1** | No HSTS or HTTPS redirection in any app |
-| dotnet-artisan | **1** | No HSTS or HTTPS redirection in any app |
-| dotnet-skills | **1** | No HSTS or HTTPS redirection in any app |
-| no-skills | **1** | No HSTS or HTTPS redirection in any app |
+**Scores:** All **1** — Universal security gap.
 
-**Verdict**: This is a universal weakness. Even **managedcode** only partially addresses it. No configuration includes `UseHsts()`.
+**Verdict:** While authentication was explicitly excluded from the spec, HSTS and HTTPS redirection are baseline security requirements.
 
 ---
 
@@ -820,55 +792,65 @@ All other configurations across all apps omit both `UseHsts()` and `UseHttpsRedi
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 5 | 5 | 4 | 3 |
-| **Mean** | **3.0** | **5.0** | **5.0** | **4.0** | **3.0** |
+| 1 | 5 | 5 | 5 | 5 | 5 |
+| 2 | 2 | 5 | 3 | 4 | 3 |
+| 3 | 2 | 5 | 5 | 4 | 2 |
+| **Mean** | **3.0** | **5.0** | **4.3** | **4.3** | **3.3** |
 
 #### Analysis
 
-Records vs classes, immutability, sealed modifiers, and naming conventions.
-
-**dotnet-webapi** — Sealed records with `required` + `init` properties and Request/Response naming:
+### dotnet-webapi (Score: 5) — Sealed records with factory methods
 ```csharp
-// dotnet-webapi: DTOs/MemberDtos.cs
-public sealed record CreateMemberRequest
+// DTOs/AuthorDTOs.cs — dotnet-webapi
+public sealed record AuthorResponse(int Id, string FirstName, string LastName, ...);
+public sealed record CreateAuthorRequest
 {
     [Required, MaxLength(100)]
     public required string FirstName { get; init; }
 }
-
-public sealed record MemberResponse(
-    int Id, string FirstName, string LastName, string Email);
-```
-
-**dotnet-artisan** — Sealed records with Dto naming convention:
-```csharp
-// dotnet-artisan: DTOs/MemberDtos.cs
-public sealed record CreateMemberDto
+public sealed record PaginatedResponse<T>
 {
-    [Required, MaxLength(100)]
-    public string FirstName { get; init; } = string.Empty;
+    public static PaginatedResponse<T> Create(IReadOnlyList<T> items, int page, int pageSize, int totalCount) => ...;
 }
 ```
+- ✅ Sealed records (immutable, value equality)
+- ✅ Positional records for responses
+- ✅ `IReadOnlyList<T>` for collections
+- ✅ Factory method on pagination DTO
 
-**no-skills** / **dotnet-skills** — Mix of records and classes, inconsistent sealing:
+### managedcode (Score: 4) — Records
 ```csharp
-// no-skills: DTOs — classes, not records, mutable setters
-public class CreateMemberDto
+// DTOs/AuthorDtos.cs — managedcode
+public record AuthorResponse(int Id, string FirstName, ...);
+public record CreateAuthorRequest { [Required] public string FirstName { get; init; } = string.Empty; }
+```
+- ✅ Records (implicitly sealed)
+- ❌ Not explicitly sealed
+
+### dotnet-artisan (Score: 3) — Classes with init
+```csharp
+// DTOs/AuthorDtos.cs — dotnet-artisan
+public class AuthorResponse { public int Id { get; init; } public required string FirstName { get; init; } }
+public sealed class AuthorDetailResponse : AuthorResponse { ... }
+```
+- ❌ Base response classes are non-sealed classes (not records)
+- ✅ Init-only properties
+- ✅ Sealed on derived types
+
+### no-skills (Score: 2) — Mutable classes
+```csharp
+// DTOs/Dtos.cs — no-skills
+public class AuthorDto
 {
-    [Required, MaxLength(100)]
-    public string FirstName { get; set; }
+    public int Id { get; set; }
+    public string FirstName { get; set; } = string.Empty;  // Mutable setters
 }
 ```
+- ❌ Mutable `{ get; set; }` classes
+- ❌ Not sealed, not records
+- ❌ `*Dto` naming instead of `*Request`/`*Response`
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | Sealed records, init properties, Request/Response naming |
-| dotnet-artisan | **5** | Sealed records, init properties, consistent Dto naming |
-| managedcode | **4** | Records with init properties in some apps |
-| dotnet-skills | **3** | Mix of records and classes, inconsistent |
-| no-skills | **3** | Mostly classes with mutable setters |
-
-**Verdict**: **dotnet-webapi** and **dotnet-artisan** both produce excellent DTO design with immutable sealed records.
+**Verdict:** **dotnet-webapi** shows exemplary DTO design with sealed records and factory methods.
 
 ---
 
@@ -878,37 +860,24 @@ public class CreateMemberDto
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 2 | 5 | 4 | 3 | 2 |
-| **Mean** | **2.0** | **5.0** | **4.0** | **3.0** | **2.0** |
+| 1 | 1 | 5 | 5 | 2 | 5 |
+| 2 | 2 | 5 | 5 | 2 | 2 |
+| 3 | 1 | 5 | 5 | 1 | 3 |
+| **Mean** | **1.3** | **5.0** | **5.0** | **1.7** | **3.3** |
 
 #### Analysis
 
-Sealed classes and records enable JIT devirtualization and signal design intent.
+| Configuration | Entities Sealed | Services Sealed | DbContext Sealed | DTOs Sealed |
+|---|---|---|---|---|
+| dotnet-artisan | ✅ All sealed | ✅ All sealed | ✅ Sealed | ✅ Partially sealed |
+| dotnet-webapi | ✅ All sealed | ✅ All sealed | ✅ Sealed | ✅ All sealed records |
+| managedcode | ❌ Not sealed | ❌ Not sealed | ❌ Not sealed | ✅ Records (implicit) |
+| dotnet-skills | ❌ Not sealed | ✅ All sealed | ❌ Not sealed | ❌ Not sealed |
+| no-skills | ❌ Not sealed | ❌ Not sealed | ❌ Not sealed | ❌ Not sealed |
 
-**dotnet-webapi** — Extensively sealed across models, DTOs, services, DbContext, and exception handlers:
-```csharp
-public sealed class FitnessDbContext(...) : DbContext(options)
-public sealed class MemberService(...) : IMemberService
-public sealed class ApiExceptionHandler(...) : IExceptionHandler
-public sealed record CreateMemberRequest { ... }
-public sealed class Member { ... }
-```
+**Scores:** dotnet-artisan: **5** | dotnet-webapi: **5** | managedcode: **2** | dotnet-skills: **2** | no-skills: **2**
 
-**no-skills** / **dotnet-skills** — Inconsistent sealing:
-```csharp
-// dotnet-skills: Services — not sealed
-public class MemberService : IMemberService { ... }
-```
-
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | Sealed across all type categories consistently |
-| dotnet-artisan | **4** | Most types sealed; occasional gaps |
-| managedcode | **3** | Some sealed types |
-| dotnet-skills | **2** | Mostly non-sealed classes |
-| no-skills | **2** | Mostly non-sealed classes |
-
-**Verdict**: **dotnet-webapi** consistently applies the `sealed` modifier across all type categories.
+**Verdict:** Only **dotnet-artisan** and **dotnet-webapi** consistently apply `sealed` across all type categories, enabling JIT devirtualization optimizations.
 
 ---
 
@@ -918,34 +887,27 @@ public class MemberService : IMemberService { ... }
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 4 | 4 | 4 | 3 | 4 |
-| **Mean** | **4.0** | **4.0** | **4.0** | **3.0** | **4.0** |
+| 1 | 5 | 5 | 5 | 5 | 5 |
+| 2 | 4 | 4 | 4 | 4 | 4 |
+| 3 | 3 | 5 | 3 | 3 | 3 |
+| **Mean** | **4.0** | **4.7** | **4.0** | **4.0** | **4.0** |
 
 #### Analysis
 
-All configurations implement data seeders that populate the database with realistic demo data.
+All configurations use a static `DataSeeder.SeedAsync()` method with idempotency guards:
 
-**dotnet-webapi** — Injectable `DataSeeder` service with idempotency checks:
 ```csharp
-// dotnet-webapi: Data/DataSeeder.cs
-public sealed class DataSeeder(FitnessDbContext db)
+// DataSeeder.cs — all configurations
+public static async Task SeedAsync(LibraryDbContext db)
 {
-    public async Task SeedAsync()
-    {
-        if (await db.MembershipPlans.AnyAsync()) return;  // Idempotency
-    }
+    if (await db.Authors.AnyAsync()) return;  // Idempotent guard
+    // ... seed data
 }
 ```
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **4** | Injectable seeder, idempotent, realistic variety |
-| dotnet-artisan | **4** | Static seeder with idempotency checks, good variety |
-| dotnet-skills | **4** | Static seeder with realistic data |
-| no-skills | **4** | Static seeder with realistic data |
-| managedcode | **3** | Seeders in 2/3 generated apps; adequate variety |
+All seed realistic data: 5-6 authors, 5-6 categories, 12 books, 6-7 patrons, 8-12 loans, 3+ reservations, 3-4 fines.
 
-**Verdict**: All configurations handle seeding adequately. The prompt drives seed data requirements more than the skills.
+**Scores:** All **4** — Good seeder design; not using `HasData()` in migrations (which would earn a 5).
 
 ---
 
@@ -955,29 +917,27 @@ public sealed class DataSeeder(FitnessDbContext db)
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 4 | 4 | 3 | 3 |
-| **Mean** | **3.0** | **4.0** | **4.0** | **3.0** | **3.0** |
+| 1 | 4 | 5 | 4 | 4 | 3 |
+| 2 | 5 | 5 | 5 | 5 | 5 |
+| 3 | 4 | 4 | 4 | 4 | 4 |
+| **Mean** | **4.3** | **4.7** | **4.3** | **4.3** | **4.0** |
 
 #### Analysis
 
-All configurations inject `ILogger<T>` and use structured message templates with named placeholders:
+All configurations use `ILogger<T>` with structured message templates:
+
 ```csharp
-// Common across all configs:
-logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
-logger.LogInformation("Booking {BookingId} created for member {MemberId}", booking.Id, member.Id);
+// All configurations
+logger.LogInformation("Book checked out: LoanId={LoanId}, BookId={BookId}, PatronId={PatronId}",
+    loan.Id, book.Id, patron.Id);
 ```
 
-No configuration uses `[LoggerMessage]` source generators.
+- ✅ Named placeholders `{LoanId}`, `{BookId}`
+- ✅ No string interpolation in log messages
+- ✅ Appropriate log levels (Information for operations, Warning/Error for exceptions)
+- ❌ No `[LoggerMessage]` source generators in any configuration
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **4** | Consistent structured logging in services and middleware |
-| dotnet-artisan | **4** | Structured logging in services and middleware |
-| managedcode | **3** | Logging in 2/3 generated apps |
-| dotnet-skills | **3** | Structured logging but inconsistent coverage |
-| no-skills | **3** | Structured logging but inconsistent coverage |
-
-**Verdict**: All configurations use structured logging correctly. None use high-performance `[LoggerMessage]` source generators.
+**Scores:** All **5** — Consistent structured logging.
 
 ---
 
@@ -987,26 +947,28 @@ No configuration uses `[LoggerMessage]` source generators.
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 4 | 5 | 5 | 4 | 4 |
-| **Mean** | **4.0** | **5.0** | **5.0** | **4.0** | **4.0** |
+| 1 | 5 | 5 | 5 | 5 | 5 |
+| 2 | 5 | 5 | 5 | 5 | 5 |
+| 3 | 4 | 4 | 4 | 4 | 4 |
+| **Mean** | **4.7** | **4.7** | **4.7** | **4.7** | **4.7** |
 
 #### Analysis
 
-All configurations enable NRT and ImplicitUsings:
+All configurations enable nullable reference types and use proper annotations:
+
 ```xml
+<!-- All .csproj files -->
 <Nullable>enable</Nullable>
-<ImplicitUsings>enable</ImplicitUsings>
 ```
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | NRT enabled + proper nullable annotations on all optional properties |
-| dotnet-artisan | **5** | NRT enabled + consistent nullable annotations |
-| managedcode | **4** | NRT enabled in generated apps |
-| dotnet-skills | **4** | NRT enabled; mostly correct annotations |
-| no-skills | **4** | NRT enabled; mostly correct annotations |
+```csharp
+// All configurations
+public string? Biography { get; set; }        // Optional
+public DateTime? ReturnDate { get; set; }     // Null while active
+public Book Book { get; set; } = null!;       // Navigation property
+```
 
-**Verdict**: All configurations enable NRT. **dotnet-webapi** and **dotnet-artisan** are most consistent.
+**Scores:** All **5** — Universal NRT adoption.
 
 ---
 
@@ -1016,40 +978,46 @@ All configurations enable NRT and ImplicitUsings:
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 2 | 5 | 4 | 4 | 2 |
-| **Mean** | **2.0** | **5.0** | **4.0** | **4.0** | **2.0** |
+| 1 | 3 | 5 | 5 | 3 | 4 |
+| 2 | 3 | 5 | 4 | 3 | 4 |
+| 3 | 3 | 5 | 4 | 3 | 3 |
+| **Mean** | **3.0** | **5.0** | **4.3** | **3.0** | **3.7** |
 
 #### Analysis
 
-Rich OpenAPI metadata on endpoints using Minimal API fluent extensions.
-
-**dotnet-webapi** — Extensive metadata on all endpoints across all 3 apps:
+### dotnet-webapi (Score: 5)
 ```csharp
-// dotnet-webapi: MemberEndpoints.cs
-group.MapGet("/{id:int}", GetById)
-    .WithName("GetMember")
-    .WithSummary("Get member details including active membership")
-    .WithDescription("Returns full member details with current membership info")
-    .Produces<MemberResponse>(200)
-    .ProducesProblem(404);
+// Endpoints/AuthorEndpoints.cs — dotnet-webapi
+group.MapGet("/", async (...) => ...)
+    .WithName("GetAuthors")
+    .WithSummary("List authors")
+    .WithDescription("List authors with optional search by name and pagination.")
+    .Produces<PaginatedResponse<AuthorListResponse>>();
+```
+- ✅ `.WithName()`, `.WithSummary()`, `.WithDescription()`, `.Produces<T>()`
+- ✅ Built-in OpenAPI via `AddOpenApi()`/`MapOpenApi()`
+
+### dotnet-artisan (Score: 4)
+```csharp
+group.MapGet("/", ...)
+    .WithName("GetAuthors")
+    .WithSummary("List authors with search by name and pagination");
+```
+- ✅ `.WithName()`, `.WithSummary()`, `.WithTags()`
+- ❌ No `.WithDescription()` (slightly less metadata)
+
+### dotnet-skills (Score: 4)
+Uses XML doc comments on controllers:
+```csharp
+/// <summary>List authors with optional search by name and pagination.</summary>
+[HttpGet]
+[ProducesResponseType(typeof(PagedResponse<AuthorDto>), 200)]
 ```
 
-**dotnet-skills** / **no-skills** — Controllers lack Minimal API metadata extensions:
-```csharp
-// no-skills: Controllers — no WithName/WithSummary possible
-[HttpGet("{id}")]
-public async Task<ActionResult<MemberDto>> GetMember(int id) { ... }
-```
+### managedcode (Score: 3) and no-skills (Score: 3)
+Use `[ProducesResponseType]` but limited descriptions.
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | WithName + WithSummary + WithDescription + Produces consistently |
-| managedcode | **4** | WithName + WithSummary on Minimal API apps |
-| dotnet-artisan | **4** | WithName + WithSummary on 2/3 apps |
-| dotnet-skills | **2** | No Minimal API metadata; relies on Swagger annotations |
-| no-skills | **2** | No Minimal API metadata; minimal documentation |
-
-**Verdict**: **dotnet-webapi** produces the richest API documentation through Minimal API metadata.
+**Verdict:** **dotnet-webapi** provides the richest OpenAPI metadata via endpoint fluent methods.
 
 ---
 
@@ -1059,46 +1027,40 @@ public async Task<ActionResult<MemberDto>> GetMember(int id) { ... }
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 5 | 4 | 3 | 3 |
-| **Mean** | **3.0** | **5.0** | **4.0** | **3.0** | **3.0** |
+| 1 | 4 | 5 | 5 | 5 | 5 |
+| 2 | 3 | 5 | 5 | 4 | 3 |
+| 3 | 3 | 5 | 5 | 4 | 4 |
+| **Mean** | **3.3** | **5.0** | **5.0** | **4.3** | **4.0** |
 
 #### Analysis
 
-**dotnet-webapi** — Consistent structure across all 3 apps:
+| Configuration | Structure Pattern | Endpoint Separation | Interface Files |
+|---|---|---|---|
+| dotnet-artisan | Clean per-concern folders | ✅ Endpoints/ directory | Interfaces in service files |
+| dotnet-webapi | Clean per-concern folders | ✅ Endpoints/ directory | ✅ Separate IService files |
+| managedcode | Per-concern with Validators/ | Controllers/ directory | Single IServices.cs |
+| dotnet-skills | Per-concern | Controllers/ directory | Single Interfaces.cs |
+| no-skills | Per-concern (minimal) | Controllers/ directory | Single Interfaces.cs |
+
+### dotnet-webapi (Score: 5) — Separate interface files
 ```
-src/FitnessStudioApi/
-├── Data/          (DbContext, DataSeeder)
-├── DTOs/          (request/response records)
-├── Endpoints/     (7 endpoint extension method files)
-├── Middleware/     (ApiExceptionHandler)
-├── Models/        (entity classes)
-├── Models/Enums/  (enum definitions)
-├── Services/      (interface + implementation pairs)
-├── Migrations/    (EF Core migrations)
-├── Program.cs
-└── FitnessStudioApi.http
+Services/
+├── IAuthorService.cs
+├── AuthorService.cs
+├── IBookService.cs
+├── BookService.cs
+└── ...
 ```
 
-**no-skills** / **dotnet-skills** — Controllers folder instead of Endpoints:
+### dotnet-skills (Score: 3) — All DTOs in one file
 ```
-src/FitnessStudioApi/
-├── Controllers/   (7 controller classes)
-├── Data/          (DbContext, DataSeeder)
-├── DTOs/
-├── Models/
-├── Services/
-└── Program.cs
+DTOs/
+└── Dtos.cs          # All 29 DTO classes in a single file
+Services/
+└── Interfaces.cs    # All 7 interfaces in a single file
 ```
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | Clean: Endpoints/, Models/Enums/, Migrations/ |
-| dotnet-artisan | **4** | Clean structure for Minimal API apps |
-| managedcode | **3** | Good structure in generated apps; missing 1 app |
-| dotnet-skills | **3** | Standard Controllers/ layout |
-| no-skills | **3** | Standard Controllers/ layout |
-
-**Verdict**: **dotnet-webapi** has the cleanest, most consistent organization.
+**Scores:** dotnet-artisan: **5** | dotnet-webapi: **5** | managedcode: **4** | dotnet-skills: **3** | no-skills: **3**
 
 ---
 
@@ -1108,33 +1070,59 @@ src/FitnessStudioApi/
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 4 | 4 | 4 | 4 | 4 |
-| **Mean** | **4.0** | **4.0** | **4.0** | **4.0** | **4.0** |
+| 1 | 5 | 5 | 5 | 4 | 5 |
+| 2 | 4 | 5 | 5 | 5 | 4 |
+| 3 | 4 | 4 | 4 | 4 | 4 |
+| **Mean** | **4.3** | **4.7** | **4.7** | **4.3** | **4.3** |
 
 #### Analysis
 
-All configurations generate `.http` files for API testing. The **dotnet-artisan VetClinicApi** is the notable exception — no `.http` file was generated.
+All configurations include comprehensive `.http` test files covering all endpoints with realistic data.
 
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **4** | .http files for all 3 apps with good coverage |
-| no-skills | **4** | .http files for all 3 apps |
-| dotnet-skills | **4** | .http files for all 3 apps |
-| managedcode | **4** | .http files for both generated apps |
-| dotnet-artisan | **4** | .http files for 2/3 apps (missing VetClinic) |
+### dotnet-artisan (Score: 5) and dotnet-webapi (Score: 5)
+Both include business rule failure tests:
+```http
+### Attempt checkout with too many unpaid fines (should fail)
+POST {{baseUrl}}/api/loans
+Content-Type: application/json
 
-**Verdict**: All configurations produce adequate `.http` files.
+{
+  "bookId": 1,
+  "patronId": 4
+}
+```
+
+### dotnet-skills (Score: 4) and no-skills (Score: 4)
+Comprehensive but with fewer negative test cases.
+
+**Verdict:** dotnet-artisan and dotnet-webapi provide the most thorough `.http` files.
 
 ---
 
-### 23. Type Design & Resource Mgmt [MEDIUM × 1]
+### 23. Type Design & Resource Management [MEDIUM × 1]
 
 #### Scores Across Runs
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 5 | 4 | 3 | 3 |
-| **Mean** | **3.0** | **5.0** | **4.0** | **3.0** | **3.0** |
+| 1 | 5 | 5 | 5 | 5 | 5 |
+| 2 | — | — | — | — | — |
+| 3 | — | — | — | — | — |
+| **Mean** | **5.0** | **5.0** | **5.0** | **5.0** | **5.0** |
+
+#### Analysis
+
+All configurations use enums for status fields (no magic strings):
+
+```csharp
+// All configurations
+public enum LoanStatus { Active, Returned, Overdue }
+public enum MembershipType { Standard, Premium, Student }
+```
+
+**dotnet-artisan** and **dotnet-webapi** additionally use `IReadOnlyList<T>` for service return types (score 5). Others use `List<T>` (score 4).
+
+---
 
 ### 24. Code Standards Compliance [LOW × 0]
 
@@ -1142,40 +1130,46 @@ All configurations generate `.http` files for API testing. The **dotnet-artisan 
 
 | Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
 |---|---|---|---|---|---|
-| 1 | 3 | 5 | 4 | 3 | 3 |
-| **Mean** | **3.0** | **5.0** | **4.0** | **3.0** | **3.0** |
+| 1 | 5 | 5 | 5 | 4 | 5 |
+| 2 | 3 | 5 | 5 | 4 | 3 |
+| 3 | 3 | 5 | 5 | 4 | 3 |
+| **Mean** | **3.7** | **5.0** | **5.0** | **4.0** | **3.7** |
 
 #### Analysis
 
-.NET naming conventions, explicit access modifiers, file-scoped namespaces.
+| Feature | dotnet-artisan | dotnet-webapi | managedcode | dotnet-skills | no-skills |
+|---|---|---|---|---|---|
+| PascalCase types | ✅ | ✅ | ✅ | ✅ | ✅ |
+| camelCase params | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Async suffix | ✅ | ✅ | ✅ | ✅ | ✅ |
+| I prefix interfaces | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Explicit access modifiers | ✅ `public sealed` | ✅ `internal sealed` | ✅ `public` | ✅ `public` | ✅ `public` |
+| File-scoped namespaces | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-**dotnet-webapi** — Consistent PascalCase, explicit `public`/`sealed`, file-scoped namespaces:
-```csharp
-namespace FitnessStudioApi.Services;
+**dotnet-webapi** notably uses `internal sealed` on `ApiExceptionHandler` — correctly limiting visibility.
 
-public sealed class MemberService(FitnessDbContext db, ILogger<MemberService> logger) : IMemberService
-{
-    public async Task<PaginatedResponse<MemberListResponse>> GetAllAsync(...)
-}
-```
-
-| Config | Score | Justification |
-|---|---|---|
-| dotnet-webapi | **5** | Consistent naming, sealed, file-scoped namespaces, Async suffixes |
-| dotnet-artisan | **4** | Good naming, mostly sealed, file-scoped namespaces |
-| managedcode | **3** | Correct naming conventions, less consistent sealing |
-| dotnet-skills | **3** | Correct naming, but traditional patterns |
-| no-skills | **3** | Correct naming, but traditional patterns |
-
-**Verdict**: **dotnet-webapi** follows .NET coding standards most consistently.
+**Scores:** dotnet-artisan: **5** | dotnet-webapi: **5** | managedcode: **4** | dotnet-skills: **3** | no-skills: **3**
 
 ---
+
+### 25. Type Design & Resource Mgmt [MEDIUM × 1]
+
+#### Scores Across Runs
+
+| Run | no-skills | dotnet-webapi | dotnet-artisan | managedcode-dotnet-skills | dotnet-skills |
+|---|---|---|---|---|---|
+| 1 | — | — | — | — | — |
+| 2 | 4 | 5 | 5 | 4 | 4 |
+| 3 | 3 | 4 | 4 | 4 | 3 |
+| **Mean** | **3.5** | **4.5** | **4.5** | **4.0** | **3.5** |
 
 ---
 
 ## Raw Data References
 
 - Per-run analysis: `reports/analysis-run-1.md`
+- Per-run analysis: `reports/analysis-run-2.md`
+- Per-run analysis: `reports/analysis-run-3.md`
 - Verification data: `reports/verification-data.json`
 - Score data: `reports/scores-data.json`
 - Build notes: `reports/build-notes.md`

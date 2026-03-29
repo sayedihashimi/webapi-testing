@@ -1,184 +1,544 @@
 {
-  "timestamp": "2026-03-29T16:25:46.540480+00:00",
+  "timestamp": "2026-03-29T22:04:39.121580+00:00",
   "runs": [
     {
       "run_id": 1,
       "scores": {
         "Build & Run Success": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 4.0,
-          "no-skills": 4.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 2.0
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
         },
         "Security Vulnerability Scan": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 3.0,
-          "no-skills": 3.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 3.0
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
         },
         "Minimal API Architecture": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 1.0,
-          "no-skills": 1.0,
-          "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 3.0
-        },
-        "Input Validation & Guard Clauses": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 4.0,
-          "no-skills": 3.0,
-          "dotnet-webapi": 4.0,
-          "managedcode-dotnet-skills": 3.0
-        },
-        "NuGet & Package Discipline": {
-          "dotnet-artisan": 3.0,
+          "dotnet-artisan": 5.0,
           "dotnet-skills": 2.0,
-          "no-skills": 3.0,
           "dotnet-webapi": 5.0,
+          "no-skills": 2.0,
           "managedcode-dotnet-skills": 2.0
         },
-        "EF Migration Usage": {
-          "dotnet-artisan": 1.0,
-          "dotnet-skills": 1.0,
-          "no-skills": 1.0,
+        "Input Validation & Guard Clauses": {
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 4.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 3.0
+          "no-skills": 4.0,
+          "managedcode-dotnet-skills": 4.0
         },
-        "Business Logic Correctness": {
+        "NuGet & Package Discipline": {
           "dotnet-artisan": 4.0,
           "dotnet-skills": 4.0,
-          "no-skills": 4.0,
-          "dotnet-webapi": 4.0,
-          "managedcode-dotnet-skills": 3.0
+          "dotnet-webapi": 3.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "EF Migration Usage": {
+          "dotnet-artisan": 2.0,
+          "dotnet-skills": 2.0,
+          "dotnet-webapi": 5.0,
+          "no-skills": 2.0,
+          "managedcode-dotnet-skills": 2.0
+        },
+        "Business Logic Correctness": {
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
+          "dotnet-webapi": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
         },
         "Prefer Built-in over 3rd Party": {
           "dotnet-artisan": 3.0,
-          "dotnet-skills": 2.0,
-          "no-skills": 2.0,
+          "dotnet-skills": 3.0,
           "dotnet-webapi": 5.0,
+          "no-skills": 4.0,
           "managedcode-dotnet-skills": 3.0
         },
         "Modern C# Adoption": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 3.0,
-          "no-skills": 3.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 4.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 3.0
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 4.0
         },
         "Error Handling & Middleware": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 3.0,
-          "no-skills": 3.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 4.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 4.0
+          "no-skills": 4.0,
+          "managedcode-dotnet-skills": 5.0
         },
         "Async Patterns & Cancellation": {
           "dotnet-artisan": 5.0,
-          "dotnet-skills": 4.0,
-          "no-skills": 4.0,
+          "dotnet-skills": 3.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 4.0
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 3.0
         },
         "EF Core Best Practices": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 3.0,
-          "no-skills": 3.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 3.0
+          "no-skills": 4.0,
+          "managedcode-dotnet-skills": 5.0
         },
         "Service Abstraction & DI": {
           "dotnet-artisan": 5.0,
-          "dotnet-skills": 4.0,
-          "no-skills": 4.0,
+          "dotnet-skills": 5.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 4.0
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
         },
         "Security Configuration": {
-          "dotnet-artisan": 1.0,
-          "dotnet-skills": 1.0,
-          "no-skills": 1.0,
-          "dotnet-webapi": 1.0,
-          "managedcode-dotnet-skills": 2.0
+          "dotnet-artisan": 3.0,
+          "dotnet-skills": 3.0,
+          "dotnet-webapi": 3.0,
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 3.0
         },
         "DTO Design": {
           "dotnet-artisan": 5.0,
-          "dotnet-skills": 3.0,
-          "no-skills": 3.0,
+          "dotnet-skills": 5.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 4.0
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
         },
         "Sealed Types": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 2.0,
-          "no-skills": 2.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 3.0
+          "no-skills": 1.0,
+          "managedcode-dotnet-skills": 2.0
         },
         "Data Seeder Design": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 4.0,
-          "no-skills": 4.0,
-          "dotnet-webapi": 4.0,
-          "managedcode-dotnet-skills": 3.0
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
+          "dotnet-webapi": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
         },
         "Structured Logging": {
           "dotnet-artisan": 4.0,
           "dotnet-skills": 3.0,
-          "no-skills": 3.0,
-          "dotnet-webapi": 4.0,
-          "managedcode-dotnet-skills": 3.0
+          "dotnet-webapi": 5.0,
+          "no-skills": 4.0,
+          "managedcode-dotnet-skills": 4.0
         },
         "Nullable Reference Types": {
           "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
+          "dotnet-webapi": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "API Documentation": {
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 4.0,
+          "dotnet-webapi": 5.0,
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 3.0
+        },
+        "File Organization": {
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
+          "dotnet-webapi": 5.0,
+          "no-skills": 4.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "HTTP Test File Quality": {
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
+          "dotnet-webapi": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Type Design & Resource Management": {
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
+          "dotnet-webapi": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "Code Standards Compliance": {
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 5.0,
+          "dotnet-webapi": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 4.0
+        }
+      },
+      "weighted_totals": {
+        "no-skills": 170.5,
+        "dotnet-webapi": 207.5,
+        "dotnet-artisan": 196.5,
+        "managedcode-dotnet-skills": 175.0,
+        "dotnet-skills": 174.5
+      }
+    },
+    {
+      "run_id": 2,
+      "scores": {
+        "Build & Run Success": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "Security Vulnerability Scan": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "Minimal API Architecture": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 1.0,
+          "no-skills": 1.0,
+          "managedcode-dotnet-skills": 1.0
+        },
+        "Input Validation & Guard Clauses": {
+          "dotnet-artisan": 4.0,
+          "dotnet-webapi": 4.0,
+          "dotnet-skills": 4.0,
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "NuGet & Package Discipline": {
+          "dotnet-artisan": 2.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 2.0,
+          "no-skills": 4.0,
+          "managedcode-dotnet-skills": 3.0
+        },
+        "EF Migration Usage": {
+          "dotnet-artisan": 1.0,
+          "dotnet-webapi": 1.0,
+          "dotnet-skills": 1.0,
+          "no-skills": 1.0,
+          "managedcode-dotnet-skills": 1.0
+        },
+        "Business Logic Correctness": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "Prefer Built-in over 3rd Party": {
+          "dotnet-artisan": 3.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 2.0,
+          "no-skills": 2.0,
+          "managedcode-dotnet-skills": 2.0
+        },
+        "Modern C# Adoption": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 3.0,
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Error Handling & Middleware": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "Async Patterns & Cancellation": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 3.0,
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 3.0
+        },
+        "EF Core Best Practices": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 4.0,
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Service Abstraction & DI": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "Security Configuration": {
+          "dotnet-artisan": 1.0,
+          "dotnet-webapi": 1.0,
+          "dotnet-skills": 1.0,
+          "no-skills": 1.0,
+          "managedcode-dotnet-skills": 1.0
+        },
+        "DTO Design": {
+          "dotnet-artisan": 3.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 3.0,
+          "no-skills": 2.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Sealed Types": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 2.0,
+          "no-skills": 2.0,
+          "managedcode-dotnet-skills": 2.0
+        },
+        "Data Seeder Design": {
+          "dotnet-artisan": 4.0,
+          "dotnet-webapi": 4.0,
           "dotnet-skills": 4.0,
           "no-skills": 4.0,
-          "dotnet-webapi": 5.0,
           "managedcode-dotnet-skills": 4.0
+        },
+        "Structured Logging": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "Nullable Reference Types": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 5.0,
+          "no-skills": 5.0,
+          "managedcode-dotnet-skills": 5.0
         },
         "API Documentation": {
           "dotnet-artisan": 4.0,
-          "dotnet-skills": 2.0,
-          "no-skills": 2.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 4.0
+          "dotnet-skills": 4.0,
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 3.0
         },
         "File Organization": {
-          "dotnet-artisan": 4.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
           "dotnet-skills": 3.0,
           "no-skills": 3.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "HTTP Test File Quality": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 4.0,
+          "no-skills": 4.0,
+          "managedcode-dotnet-skills": 5.0
+        },
+        "Type Design & Resource Mgmt": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 4.0,
+          "no-skills": 4.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Code Standards Compliance": {
+          "dotnet-artisan": 5.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-skills": 3.0,
+          "no-skills": 3.0,
+          "managedcode-dotnet-skills": 4.0
+        }
+      },
+      "weighted_totals": {
+        "no-skills": 144.5,
+        "dotnet-webapi": 193.5,
+        "dotnet-artisan": 177.5,
+        "managedcode-dotnet-skills": 156.0,
+        "dotnet-skills": 145.5
+      }
+    },
+    {
+      "run_id": 3,
+      "scores": {
+        "Build & Run Success": {
+          "no-skills": 4.0,
+          "dotnet-artisan": 4.0,
+          "dotnet-skills": 4.0,
+          "dotnet-webapi": 4.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Security Vulnerability Scan": {
+          "no-skills": 3.0,
+          "dotnet-artisan": 3.0,
+          "dotnet-skills": 3.0,
+          "dotnet-webapi": 3.0,
+          "managedcode-dotnet-skills": 3.0
+        },
+        "Minimal API Architecture": {
+          "no-skills": 1.0,
+          "dotnet-artisan": 4.0,
+          "dotnet-skills": 1.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 1.0
+        },
+        "Input Validation & Guard Clauses": {
+          "no-skills": 3.0,
+          "dotnet-artisan": 3.0,
+          "dotnet-skills": 4.0,
+          "dotnet-webapi": 3.0,
+          "managedcode-dotnet-skills": 3.0
+        },
+        "NuGet & Package Discipline": {
+          "no-skills": 2.0,
+          "dotnet-artisan": 3.0,
+          "dotnet-skills": 2.0,
+          "dotnet-webapi": 4.0,
+          "managedcode-dotnet-skills": 3.0
+        },
+        "EF Migration Usage": {
+          "no-skills": 1.0,
+          "dotnet-artisan": 1.0,
+          "dotnet-skills": 1.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 1.0
+        },
+        "Business Logic Correctness": {
+          "no-skills": 4.0,
+          "dotnet-artisan": 4.0,
+          "dotnet-skills": 4.0,
+          "dotnet-webapi": 4.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Prefer Built-in over 3rd Party": {
+          "no-skills": 2.0,
+          "dotnet-artisan": 3.0,
+          "dotnet-skills": 2.0,
           "dotnet-webapi": 5.0,
           "managedcode-dotnet-skills": 3.0
         },
-        "HTTP Test File Quality": {
+        "Modern C# Adoption": {
+          "no-skills": 2.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 2.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Error Handling & Middleware": {
+          "no-skills": 3.0,
+          "dotnet-artisan": 3.0,
+          "dotnet-skills": 4.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Async Patterns & Cancellation": {
+          "no-skills": 2.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 2.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 2.0
+        },
+        "EF Core Best Practices": {
+          "no-skills": 3.0,
+          "dotnet-artisan": 4.0,
+          "dotnet-skills": 5.0,
+          "dotnet-webapi": 4.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Service Abstraction & DI": {
+          "no-skills": 4.0,
           "dotnet-artisan": 4.0,
           "dotnet-skills": 4.0,
+          "dotnet-webapi": 4.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Security Configuration": {
+          "no-skills": 1.0,
+          "dotnet-artisan": 1.0,
+          "dotnet-skills": 1.0,
+          "dotnet-webapi": 1.0,
+          "managedcode-dotnet-skills": 3.0
+        },
+        "DTO Design": {
+          "no-skills": 2.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 2.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Sealed Types": {
+          "no-skills": 1.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 3.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 1.0
+        },
+        "Data Seeder Design": {
+          "no-skills": 3.0,
+          "dotnet-artisan": 3.0,
+          "dotnet-skills": 3.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 3.0
+        },
+        "Structured Logging": {
           "no-skills": 4.0,
+          "dotnet-artisan": 4.0,
+          "dotnet-skills": 4.0,
+          "dotnet-webapi": 4.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "Nullable Reference Types": {
+          "no-skills": 4.0,
+          "dotnet-artisan": 4.0,
+          "dotnet-skills": 4.0,
+          "dotnet-webapi": 4.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "API Documentation": {
+          "no-skills": 3.0,
+          "dotnet-artisan": 4.0,
+          "dotnet-skills": 3.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 3.0
+        },
+        "File Organization": {
+          "no-skills": 3.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 4.0,
+          "dotnet-webapi": 5.0,
+          "managedcode-dotnet-skills": 4.0
+        },
+        "HTTP Test File Quality": {
+          "no-skills": 4.0,
+          "dotnet-artisan": 4.0,
+          "dotnet-skills": 4.0,
           "dotnet-webapi": 4.0,
           "managedcode-dotnet-skills": 4.0
         },
         "Type Design & Resource Mgmt": {
+          "no-skills": 3.0,
           "dotnet-artisan": 4.0,
           "dotnet-skills": 3.0,
-          "no-skills": 3.0,
-          "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 3.0
+          "dotnet-webapi": 4.0,
+          "managedcode-dotnet-skills": 4.0
         },
         "Code Standards Compliance": {
-          "dotnet-artisan": 4.0,
-          "dotnet-skills": 3.0,
           "no-skills": 3.0,
+          "dotnet-artisan": 5.0,
+          "dotnet-skills": 3.0,
           "dotnet-webapi": 5.0,
-          "managedcode-dotnet-skills": 3.0
+          "managedcode-dotnet-skills": 4.0
         }
       },
       "weighted_totals": {
-        "no-skills": 122.5,
-        "dotnet-webapi": 201.5,
-        "dotnet-artisan": 160.0,
-        "managedcode-dotnet-skills": 132.5,
-        "dotnet-skills": 122.5
+        "no-skills": 112.5,
+        "dotnet-webapi": 181.5,
+        "dotnet-artisan": 152.5,
+        "managedcode-dotnet-skills": 134.0,
+        "dotnet-skills": 124.5
       }
     }
   ]
