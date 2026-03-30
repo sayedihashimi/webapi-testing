@@ -1,7 +1,46 @@
 # Aggregated Analysis: ASP.NET Core Web API Skill Evaluation
 
 **Runs:** 3 | **Configurations:** 4 | **Scenarios:** 3 | **Dimensions:** 24
-**Date:** 2026-03-30 05:22 UTC
+**Date:** 2026-03-30 05:28 UTC
+
+---
+
+## Overview
+
+Evaluate how custom Copilot skills impact the quality of generated ASP.NET Core Web API code across three realistic application scenarios.
+
+---
+
+## What Was Tested
+
+### Scenarios
+
+Each run generates one of the following application scenarios (randomly selected per run):
+
+| Scenario | Description |
+|---|---|
+| FitnessStudioApi | Booking/membership system with class scheduling, waitlists, and instructor management |
+| LibraryApi | Book loans, reservations, overdue fines, and availability tracking |
+| VetClinicApi | Pet healthcare with appointments, vaccinations, and medical records |
+
+### Configurations
+
+Each configuration gives Copilot different custom skills or plugins. The **no-skills** baseline uses default Copilot with no custom instructions.
+
+| Configuration | Description | Skills | Plugins |
+|---|---|---|---|
+| no-skills | Baseline (default Copilot) | — | — |
+| dotnet-artisan | dotnet-artisan plugin chain | — | plugins/dotnet-artisan |
+| managedcode-dotnet-skills | Community managed-code skills | skills/managedcode-dotnet-skills | — |
+| dotnet-skills | Official .NET Skills (dotnet/skills) | — | plugins/dotnet-skills/dotnet, plugins/dotnet-skills/dotnet-ai, plugins/dotnet-skills/dotnet-data, plugins/dotnet-skills/dotnet-diag, plugins/dotnet-skills/dotnet-experimental, plugins/dotnet-skills/dotnet-maui, plugins/dotnet-skills/dotnet-msbuild, plugins/dotnet-skills/dotnet-nuget, plugins/dotnet-skills/dotnet-template-engine, plugins/dotnet-skills/dotnet-test, plugins/dotnet-skills/dotnet-upgrade |
+
+### How It Works
+
+1. **Generate** — For each configuration, Copilot CLI (`copilot --yolo`) is given a scenario prompt and generates a complete project from scratch. One scenario is randomly selected per run.
+2. **Verify** — Each generated project is built (`dotnet build`), run, format-checked, and scanned for NuGet vulnerabilities.
+3. **Analyze** — An AI judge reviews the source code of all configurations side-by-side and scores each across 24 quality dimensions.
+
+Generation model: **claude-opus-4.6-1m**
 
 ---
 
@@ -92,25 +131,6 @@ Scores shown as **mean ± standard deviation** across runs.
 | dotnet-artisan | 3/3 (100%) | 3/3 (100%) | 114.7 |
 | managedcode-dotnet-skills | 3/3 (100%) | 3/3 (100%) | 127.3 |
 | dotnet-skills | 3/3 (100%) | 3/3 (100%) | 94.0 |
-
----
-
-## Asset Usage Summary
-
-| Configuration | Run | Session ID | Model | Skills Loaded | Plugins | Match? |
-|---|---|---|---|---|---|---|
-| no-skills | 1 | 6a98279d…dfcd | claude-opus-4.6-1m | — | — | ✅ |
-| no-skills | 2 | c5d6d655…f0d6 | claude-opus-4.6-1m | — | — | ✅ |
-| no-skills | 3 | abd996f5…6359 | claude-opus-4.6-1m | — | — | ✅ |
-| dotnet-artisan | 1 | 5ee8fd93…7950 | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-csharp, dotnet-api | dotnet-artisan | ✅ |
-| dotnet-artisan | 2 | e7ed9d47…2379 | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-api, dotnet-csharp | dotnet-artisan | ✅ |
-| dotnet-artisan | 3 | 894060c3…30d6 | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-api, dotnet-csharp | dotnet-artisan | ✅ |
-| managedcode-dotnet-skills | 1 | 86dfb05b…7c29 | claude-opus-4.6-1m | dotnet, dotnet-aspnet-core, dotnet-project-setup, dotnet-modern-csharp, dotnet-entity-framework-core, dotnet-minimal-apis, dotnet-microsoft-extensions | — | ✅ |
-| managedcode-dotnet-skills | 2 | e140e302…53d4 | claude-opus-4.6-1m | dotnet, dotnet-aspnet-core, dotnet-entity-framework-core, dotnet-modern-csharp, dotnet-project-setup | — | ✅ |
-| managedcode-dotnet-skills | 3 | f163762c…d1ca | claude-opus-4.6-1m | dotnet-aspnet-core | — | ✅ |
-| dotnet-skills | 1 | 00d36ed0…aadd | claude-opus-4.6-1m | analyzing-dotnet-performance, optimizing-ef-core-queries | dotnet-diag, dotnet-data | ✅ |
-| dotnet-skills | 2 | ee48f009…90dd | claude-opus-4.6-1m | analyzing-dotnet-performance, optimizing-ef-core-queries | dotnet-diag, dotnet-data | ✅ |
-| dotnet-skills | 3 | 52aa5393…f78f | claude-opus-4.6-1m | optimizing-ef-core-queries, analyzing-dotnet-performance | dotnet-data, dotnet-diag | ✅ |
 
 ---
 
@@ -1170,6 +1190,25 @@ private static readonly Dictionary<AppointmentStatus, AppointmentStatus[]> s_val
 **Verdict**: All follow conventions well. dotnet-artisan earns the edge for runtime-style static field naming.
 
 ---
+
+---
+
+## Asset Usage Summary
+
+| Configuration | Run | Session ID | Model | Skills Loaded | Plugins | Match? |
+|---|---|---|---|---|---|---|
+| no-skills | 1 | 6a98279d…dfcd | claude-opus-4.6-1m | — | — | ✅ |
+| no-skills | 2 | c5d6d655…f0d6 | claude-opus-4.6-1m | — | — | ✅ |
+| no-skills | 3 | abd996f5…6359 | claude-opus-4.6-1m | — | — | ✅ |
+| dotnet-artisan | 1 | 5ee8fd93…7950 | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-csharp, dotnet-api | dotnet-artisan | ✅ |
+| dotnet-artisan | 2 | e7ed9d47…2379 | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-api, dotnet-csharp | dotnet-artisan | ✅ |
+| dotnet-artisan | 3 | 894060c3…30d6 | claude-opus-4.6-1m | using-dotnet, dotnet-advisor, dotnet-api, dotnet-csharp | dotnet-artisan | ✅ |
+| managedcode-dotnet-skills | 1 | 86dfb05b…7c29 | claude-opus-4.6-1m | dotnet, dotnet-aspnet-core, dotnet-project-setup, dotnet-modern-csharp, dotnet-entity-framework-core, dotnet-minimal-apis, dotnet-microsoft-extensions | — | ✅ |
+| managedcode-dotnet-skills | 2 | e140e302…53d4 | claude-opus-4.6-1m | dotnet, dotnet-aspnet-core, dotnet-entity-framework-core, dotnet-modern-csharp, dotnet-project-setup | — | ✅ |
+| managedcode-dotnet-skills | 3 | f163762c…d1ca | claude-opus-4.6-1m | dotnet-aspnet-core | — | ✅ |
+| dotnet-skills | 1 | 00d36ed0…aadd | claude-opus-4.6-1m | analyzing-dotnet-performance, optimizing-ef-core-queries | dotnet-diag, dotnet-data | ✅ |
+| dotnet-skills | 2 | ee48f009…90dd | claude-opus-4.6-1m | analyzing-dotnet-performance, optimizing-ef-core-queries | dotnet-diag, dotnet-data | ✅ |
+| dotnet-skills | 3 | 52aa5393…f78f | claude-opus-4.6-1m | optimizing-ef-core-queries, analyzing-dotnet-performance | dotnet-data, dotnet-diag | ✅ |
 
 ---
 

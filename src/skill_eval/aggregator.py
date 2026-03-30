@@ -350,6 +350,83 @@ def _write_aggregated_report(
         "",
     ]
 
+    # Overview
+    if config.description:
+        lines.extend([
+            "## Overview",
+            "",
+            config.description.strip(),
+            "",
+            "---",
+            "",
+        ])
+
+    # What Was Tested
+    lines.extend([
+        "## What Was Tested",
+        "",
+    ])
+
+    # Scenarios
+    lines.extend([
+        "### Scenarios",
+        "",
+        "Each run generates one of the following application scenarios "
+        "(randomly selected per run):",
+        "",
+        "| Scenario | Description |",
+        "|---|---|",
+    ])
+    for s in config.scenarios:
+        lines.append(f"| {s.name} | {s.description} |")
+    lines.append("")
+
+    # Configurations
+    cfg_lookup = {c.name: c for c in config.configurations}
+    lines.extend([
+        "### Configurations",
+        "",
+        "Each configuration gives Copilot different custom skills or plugins. "
+        "The **no-skills** baseline uses default Copilot with no custom instructions.",
+        "",
+        "| Configuration | Description | Skills | Plugins |",
+        "|---|---|---|---|",
+    ])
+    for name in config_names:
+        cfg = cfg_lookup.get(name)
+        if not cfg:
+            continue
+        label = cfg.label or name
+        skills = ", ".join(cfg.skills) if cfg.skills else "—"
+        plugins = ", ".join(cfg.plugins) if cfg.plugins else "—"
+        lines.append(f"| {name} | {label} | {skills} | {plugins} |")
+    lines.append("")
+
+    # How It Works
+    # Detect the model used from generation_usage
+    model_name = "—"
+    if generation_usage:
+        models = {u.get("model") for u in generation_usage if u.get("model")}
+        model_name = ", ".join(sorted(models)) if models else "—"
+
+    lines.extend([
+        "### How It Works",
+        "",
+        "1. **Generate** — For each configuration, Copilot CLI (`copilot --yolo`) "
+        "is given a scenario prompt and generates a complete project from scratch. "
+        "One scenario is randomly selected per run.",
+        "2. **Verify** — Each generated project is built (`dotnet build`), "
+        "run, format-checked, and scanned for NuGet vulnerabilities.",
+        "3. **Analyze** — An AI judge reviews the source code of all "
+        "configurations side-by-side and scores each across "
+        f"{len(all_dims)} quality dimensions.",
+        "",
+        f"Generation model: **{model_name}**",
+        "",
+        "---",
+        "",
+    ])
+
     # Scoring Methodology
     tier_weights = {"critical": 3.0, "high": 2.0, "medium": 1.0, "low": 0.5}
     tier_counts: dict[str, int] = {}
@@ -489,81 +566,6 @@ def _write_aggregated_report(
 
         lines.extend(["", "---", ""])
 
-    # Asset Usage Summary (from session tracing)
-    if generation_usage:
-        has_traces = any(u.get("session_id") for u in generation_usage)
-        if has_traces:
-            lines.append("## Asset Usage Summary")
-            lines.append("")
-
-            # Per-configuration summary: which skills loaded across all runs
-            lines.append("| Configuration | Run | Session ID | Model | Skills Loaded | Plugins | Match? |")
-            lines.append("|---|---|---|---|---|---|---|")
-
-            any_mismatch = False
-            for u in generation_usage:
-                sid = u.get("session_id", "—")
-                if sid and len(sid) > 12:
-                    sid_short = sid[:8] + "…" + sid[-4:]
-                else:
-                    sid_short = sid or "—"
-                model = u.get("model", "—")
-                resources = u.get("loaded_resources", [])
-                skill_names = [r["name"] for r in resources if r.get("resource_type") == "skill"]
-                plugin_names = list(dict.fromkeys(
-                    r["plugin_name"] for r in resources if r.get("plugin_name")
-                ))
-                skills_str = ", ".join(skill_names) if skill_names else "—"
-                plugins_str = ", ".join(plugin_names) if plugin_names else "—"
-                comp = u.get("resource_comparison", {})
-                match = comp.get("match", True) if comp else True
-                if not match:
-                    any_mismatch = True
-                match_str = "✅" if match else "⚠️ Mismatch"
-                lines.append(
-                    f"| {u.get('config', '?')} | {u.get('run_id', '?')} "
-                    f"| {sid_short} | {model} | {skills_str} | {plugins_str} | {match_str} |"
-                )
-
-            lines.append("")
-
-            if any_mismatch:
-                # Check for contamination specifically
-                contaminated_runs = [
-                    u for u in generation_usage
-                    if u.get("resource_comparison", {}).get("contaminated")
-                ]
-                if contaminated_runs:
-                    lines.extend([
-                        "### 🚨 Skill Contamination Detected",
-                        "",
-                        "The following runs loaded skills from outside their configured "
-                        "directories. **Scores for these configurations may be inflated "
-                        "or deflated** because the model had access to skills it should "
-                        "not have seen.",
-                        "",
-                        "| Configuration | Run | Contaminating Skill | Loaded From |",
-                        "|---|---|---|---|",
-                    ])
-                    for u in contaminated_runs:
-                        comp = u.get("resource_comparison", {})
-                        for c in comp.get("contaminated", []):
-                            lines.append(
-                                f"| {u.get('config', '?')} | {u.get('run_id', '?')} "
-                                f"| {c['name']} | {c.get('path', '?')} |"
-                            )
-                    lines.append("")
-                else:
-                    lines.extend([
-                        "### ⚠️ Asset Notes",
-                        "",
-                        "Some runs had missing expected skills or plugins. "
-                        "Review the session events.jsonl files for details.",
-                        "",
-                    ])
-
-            lines.extend(["---", ""])
-
     # Consistency Analysis
     lines.append("## Consistency Analysis")
     lines.append("")
@@ -649,6 +651,82 @@ def _write_aggregated_report(
                 lines.append("")
                 lines.append(content)
                 lines.append("")
+
+    # Asset Usage Summary (from session tracing) — operational detail at end
+    if generation_usage:
+        has_traces = any(u.get("session_id") for u in generation_usage)
+        if has_traces:
+            lines.extend([
+                "---",
+                "",
+                "## Asset Usage Summary",
+                "",
+                "| Configuration | Run | Session ID | Model | Skills Loaded | Plugins | Match? |",
+                "|---|---|---|---|---|---|---|",
+            ])
+
+            any_mismatch = False
+            for u in generation_usage:
+                if u.get("config") not in config_names:
+                    continue
+                sid = u.get("session_id", "—")
+                if sid and len(sid) > 12:
+                    sid_short = sid[:8] + "…" + sid[-4:]
+                else:
+                    sid_short = sid or "—"
+                model = u.get("model", "—")
+                resources = u.get("loaded_resources", [])
+                skill_names = [r["name"] for r in resources if r.get("resource_type") == "skill"]
+                plugin_names = list(dict.fromkeys(
+                    r["plugin_name"] for r in resources if r.get("plugin_name")
+                ))
+                skills_str = ", ".join(skill_names) if skill_names else "—"
+                plugins_str = ", ".join(plugin_names) if plugin_names else "—"
+                comp = u.get("resource_comparison", {})
+                match = comp.get("match", True) if comp else True
+                if not match:
+                    any_mismatch = True
+                match_str = "✅" if match else "⚠️ Mismatch"
+                lines.append(
+                    f"| {u.get('config', '?')} | {u.get('run_id', '?')} "
+                    f"| {sid_short} | {model} | {skills_str} | {plugins_str} | {match_str} |"
+                )
+
+            lines.append("")
+
+            if any_mismatch:
+                contaminated_runs = [
+                    u for u in generation_usage
+                    if u.get("resource_comparison", {}).get("contaminated")
+                ]
+                if contaminated_runs:
+                    lines.extend([
+                        "### 🚨 Skill Contamination Detected",
+                        "",
+                        "The following runs loaded skills from outside their configured "
+                        "directories. **Scores for these configurations may be inflated "
+                        "or deflated** because the model had access to skills it should "
+                        "not have seen.",
+                        "",
+                        "| Configuration | Run | Contaminating Skill | Loaded From |",
+                        "|---|---|---|---|",
+                    ])
+                    for u in contaminated_runs:
+                        comp = u.get("resource_comparison", {})
+                        for c in comp.get("contaminated", []):
+                            lines.append(
+                                f"| {u.get('config', '?')} | {u.get('run_id', '?')} "
+                                f"| {c['name']} | {c.get('path', '?')} |"
+                            )
+                    lines.append("")
+                else:
+                    lines.extend([
+                        "### ⚠️ Asset Notes",
+                        "",
+                        "Some runs had missing expected skills or plugins. "
+                        "Review the session events.jsonl files for details.",
+                        "",
+                    ])
 
     # Data references
     lines.extend([
