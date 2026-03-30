@@ -9,10 +9,10 @@ A framework for evaluating how **GitHub Copilot custom skills** impact code gene
 │  @skill-eval agent  (or  skill-eval CLI)                     │
 │                                                              │
 │  1. GENERATE  — Build the same apps with different           │
-│                 skill configs using Copilot CLI               │
+│                 skill configs using Copilot CLI              │
 │  2. VERIFY    — Build, format-check, security-scan, & run    │
 │  3. ANALYZE   — Score quality across weighted dimensions     │
-│                 and produce per-run + aggregated reports      │
+│                 and produce per-run + aggregated reports     │
 │                                                              │
 │  Supports N runs per config with parallel execution,         │
 │  watchdog timeouts, session tracing, and token tracking.     │
