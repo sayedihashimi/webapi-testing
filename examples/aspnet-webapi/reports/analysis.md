@@ -41,6 +41,7 @@ Each configuration gives Copilot different custom skills or plugins. The **no-sk
 3. **Analyze** — An AI judge reviews the source code of all configurations side-by-side and scores each across 26 quality dimensions.
 
 Generation model: **claude-opus-4.6-1m**
+Analysis model: **gpt-5.3-codex**
 
 ---
 

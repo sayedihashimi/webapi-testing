@@ -446,6 +446,7 @@ def _write_aggregated_report(
         f"{len(all_dims)} quality dimensions.",
         "",
         f"Generation model: **{model_name}**",
+        f"Analysis model: **{config.analysis_model}**",
         "",
         "---",
         "",
