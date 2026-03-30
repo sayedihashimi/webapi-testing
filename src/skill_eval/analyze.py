@@ -39,6 +39,8 @@ def _analyze_single_run(
     prompt = render_analyze_prompt(shuffled_config, project_root, run_id=run_id)
 
     cmd = ["copilot", "-p", prompt, "--yolo"]
+    if config.analysis_model:
+        cmd.extend(["--model", config.analysis_model])
     start_time = time.time()
     proc = subprocess.Popen(cmd)
 

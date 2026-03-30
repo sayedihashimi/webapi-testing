@@ -95,8 +95,10 @@ def verify(ctx: click.Context) -> None:
 
 
 @main.command()
+@click.option("--model", "-m", type=str, default=None,
+              help="AI model for analysis (overrides eval.yaml analysis_model).")
 @click.pass_context
-def analyze(ctx: click.Context) -> None:
+def analyze(ctx: click.Context, model: str | None) -> None:
     """Run comparative analysis across all configurations.
 
     Generates an analysis prompt from the configured dimensions and invokes
@@ -105,6 +107,8 @@ def analyze(ctx: click.Context) -> None:
     from skill_eval.analyze import run_analyze
 
     config = _load(ctx)
+    if model is not None:
+        config.analysis_model = model
     run_analyze(config, ctx.obj["project_root"])
 
 
@@ -121,6 +125,8 @@ def analyze(ctx: click.Context) -> None:
               help="Number of generation runs per configuration (overrides eval.yaml)")
 @click.option("--resume", is_flag=True,
               help="Skip runs where output already exists.")
+@click.option("--model", "-m", type=str, default=None,
+              help="AI model for analysis (overrides eval.yaml analysis_model).")
 @click.pass_context
 def run(
     ctx: click.Context,
@@ -130,6 +136,7 @@ def run(
     configurations: tuple[str, ...],
     runs: int | None,
     resume: bool,
+    model: str | None,
 ) -> None:
     """Run the full evaluation pipeline: generate → verify → analyze.
 
@@ -145,6 +152,8 @@ def run(
     config = _load(ctx)
     if runs is not None:
         config.runs = runs
+    if model is not None:
+        config.analysis_model = model
     click.echo(f"  Runs per configuration: {config.runs}")
     project_root = ctx.obj["project_root"]
     timings: dict[str, float] = {}

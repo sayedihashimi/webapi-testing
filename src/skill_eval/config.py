@@ -124,6 +124,7 @@ class EvalConfig(BaseModel):
     dimensions: list[Dimension]
     output: OutputSettings = OutputSettings()
     runs: int = 3
+    analysis_model: str = "GPT-5.3-Codex"
 
     @field_validator("scenarios")
     @classmethod
