@@ -1,27 +1,30 @@
 # Copilot Skill Evaluation Framework
 
-A framework for evaluating how **GitHub Copilot custom skills** impact code generation quality. It generates the same apps under different skill configurations, then produces a detailed comparative analysis — for **any tech stack**.
+A framework for evaluating how **GitHub Copilot custom skills** impact code generation quality. It generates the same apps under different skill configurations, runs multi-stage verification, and produces a weighted comparative analysis — for **any tech stack**.
 
 ## How It Works
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│  @skill-eval agent  (or  skill-eval CLI)                 │
-│                                                          │
-│  1. GENERATE  — Build the same apps with different       │
-│                 skill configs using Copilot CLI           │
-│  2. VERIFY    — Build & run each generated project       │
-│  3. ANALYZE   — Compare quality across N dimensions      │
-│                 and produce a verdict report              │
-└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  @skill-eval agent  (or  skill-eval CLI)                     │
+│                                                              │
+│  1. GENERATE  — Build the same apps with different           │
+│                 skill configs using Copilot CLI               │
+│  2. VERIFY    — Build, format-check, security-scan, & run    │
+│  3. ANALYZE   — Score quality across weighted dimensions     │
+│                 and produce per-run + aggregated reports      │
+│                                                              │
+│  Supports N runs per config with parallel execution,         │
+│  watchdog timeouts, session tracing, and token tracking.     │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 You define:
 - **Scenarios** — realistic app specifications (prompt files)
 - **Configurations** — skill sets to compare (baseline vs your skills)
-- **Dimensions** — quality criteria to evaluate (type safety, error handling, etc.)
+- **Dimensions** — weighted quality criteria grouped by tier (critical → low)
 
-The framework generates identical apps under each configuration, then uses Copilot to analyze and compare the results.
+The framework generates identical apps under each configuration, verifies they build and run, then uses an AI model to score and compare the results across all dimensions.
 
 ## Quick Start
 
@@ -67,20 +70,30 @@ Copy your skills into the `skills/` directory.
 python -m skill_eval run
 ```
 
-This runs the full pipeline: generate → verify → analyze. The analysis report lands in `reports/analysis.md`.
+This runs the full pipeline: generate → verify → analyze. Reports land in `reports/`.
 
 #### Individual steps
 
 ```bash
-python -m skill_eval generate                  # Generate code only
-python -m skill_eval generate -c my-skill      # Generate one configuration
-python -m skill_eval verify                    # Build/run verification only
-python -m skill_eval analyze                   # Analysis only
-python -m skill_eval run --skip-generate       # Skip generation, verify + analyze
-python -m skill_eval run --analyze-only        # Only run analysis
-python -m skill_eval validate-config           # Check eval.yaml is valid
+python -m skill_eval generate                     # Generate code only
+python -m skill_eval generate -c my-skill         # Generate one configuration
 python -m skill_eval generate --runs 3            # Generate 3 runs per config
-python -m skill_eval run --runs 3                  # Full pipeline with 3 runs
+python -m skill_eval generate --resume            # Skip runs where output exists
+python -m skill_eval verify                       # Build/run verification only
+python -m skill_eval analyze                      # Analysis only
+python -m skill_eval analyze --model gpt-5.3-codex  # Use specific analysis model
+python -m skill_eval run --runs 3                 # Full pipeline with 3 runs
+python -m skill_eval run --skip-generate          # Skip generation, verify + analyze
+python -m skill_eval run --skip-verify            # Skip verification, generate + analyze
+python -m skill_eval run --analyze-only           # Only run analysis
+python -m skill_eval validate-config              # Check eval.yaml is valid
+```
+
+#### Global options
+
+```bash
+python -m skill_eval --config path/to/eval.yaml run   # Custom config path
+python -m skill_eval --project-root /path run         # Custom project root
 ```
 
 ## Configuration: `eval.yaml`
@@ -88,7 +101,8 @@ python -m skill_eval run --runs 3                  # Full pipeline with 3 runs
 ```yaml
 name: "My Skill Evaluation"
 description: "Evaluate my React skills"
-runs: 1
+runs: 3
+analysis_model: "gpt-5.3-codex"
 
 scenarios:
   - name: Dashboard
@@ -142,6 +156,9 @@ output:
   reports_directory: reports
   analysis_file: analysis.md
   notes_file: build-notes.md
+  per_run_analysis_pattern: "analysis-run-{run}.md"
+  verification_data_file: "verification-data.json"
+  scores_data_file: "scores-data.json"
 ```
 
 ## Writing Scenario Prompts
@@ -195,28 +212,36 @@ copilot-skill-eval/
 ├── .github/
 │   ├── agents/
 │   │   └── skill-eval.agent.md      # Copilot agent (primary UX)
-│   └── prompts/
+│   └── prompts/                     # Research & planning docs
 ├── prompts/scenarios/               # Your app specification prompts
 ├── skills/                          # Skills to evaluate (you bring these)
 ├── plugins/                         # Plugins to evaluate (optional)
 ├── src/skill_eval/                  # Python CLI (automation layer)
-│   ├── cli.py                       # CLI entry point
+│   ├── cli.py                       # CLI entry point (Click framework)
 │   ├── config.py                    # YAML config + Pydantic models
 │   ├── generate.py                  # Step 1: Copilot code generation
-│   ├── verify.py                    # Step 2: Build & run checks
+│   ├── verify.py                    # Step 2: Build, format, security, run
 │   ├── analyze.py                   # Step 3: Comparative analysis
+│   ├── aggregator.py                # Cross-run score aggregation
+│   ├── session_tracer.py            # Skill/plugin usage tracing per run
 │   ├── skill_manager.py             # Copilot skill registration
 │   ├── prompt_renderer.py           # Jinja2 template rendering
 │   └── init_cmd.py                  # Interactive project setup
 ├── templates/                       # Jinja2 prompt templates
-│   ├── create-all-apps.md.j2        # Generation prompt template
+│   ├── create-all-apps.md.j2        # Batch generation prompt
+│   ├── create-single-app.md.j2      # Single app generation prompt
 │   ├── analyze.md.j2                # Analysis prompt template
-│   └── scenario.prompt.md.j2        # Starter scenario template
+│   ├── scenario.prompt.md.j2        # Starter scenario template
+│   ├── Directory.Build.props        # Roslyn analyzer injection for .NET
+│   └── .editorconfig                # Code formatting defaults
 ├── output/                          # Generated code (gitignored)
-├── reports/                         # Analysis reports (gitignored)
+├── reports/                         # Analysis reports
 ├── examples/
-│   ├── aspnet-webapi/               # Web API example (3 scenarios)
-│   └── aspnet-razor-pages/          # Razor Pages example (3 scenarios)
+│   ├── aspnet-webapi/               # Web API example (3 scenarios, 24 dims)
+│   └── aspnet-razor-pages/          # Razor Pages example (3 scenarios, 23 dims)
+├── docs/
+│   └── authoring-guide.md           # Scenario prompt authoring guide
+├── research/                        # Research artifacts
 └── pyproject.toml                   # Python dependencies
 ```
 
@@ -237,7 +262,15 @@ The `examples/aspnet-webapi/` directory contains a complete working evaluation t
 | `managedcode-dotnet-skills` | Community skills covering 6 .NET areas |
 | `dotnet-skills` | Official .NET skills from [dotnet/skills](https://github.com/dotnet/skills) — 11 plugins covering core .NET, data, testing, build, and more |
 
-**15 dimensions:** API style, sealed types, primary constructors, DTO design, CancellationToken propagation, AsNoTracking usage, and more.
+**24 dimensions** across 4 tiers:
+| Tier | Count | Examples |
+|------|-------|----------|
+| Critical (3×) | 6 | Build & Run Success, Security Scan, Minimal API Architecture, Input Validation, NuGet Discipline, EF Migrations |
+| High (2×) | 8 | Business Logic Correctness, Prefer Built-in over 3rd Party, Modern C# Adoption, Error Handling & Middleware |
+| Medium (1×) | 9 | Async/Await, Logging, Pagination, OpenAPI Documentation |
+| Low (0.5×) | 1 | Style conventions |
+
+**Reports generated:** 3 per-run analysis reports, aggregated scores JSON, verification data, build notes, and token usage stats.
 
 To run it:
 ```bash
@@ -251,7 +284,13 @@ The `examples/aspnet-razor-pages/` directory evaluates skill impact on server-re
 
 **Scenarios:** Event Registration Portal, Property Management, Employee Directory & HR Portal
 
-**16 dimensions:** Page model design, form handling & validation, tag helper usage, Bootstrap integration, layout & partials, TempData messaging, and more.
+**23 dimensions** across 4 tiers:
+| Tier | Count | Examples |
+|------|-------|----------|
+| Critical (3×) | 5 | Build & Run Success, Security Scan, Input Validation, NuGet Discipline, EF Migrations |
+| High (2×) | 9 | Page Model Design, Form Handling & Validation, Business Logic Correctness, Prefer Built-in, Modern C# |
+| Medium (1×) | 8 | Tag Helpers, Bootstrap, Layout & Partials, Accessibility |
+| Low (0.5×) | 1 | Style conventions |
 
 To run it:
 ```bash
@@ -280,6 +319,35 @@ verification:
 ```
 
 Build warnings are parsed and categorized (naming, performance, security, reliability) and included in the build notes report.
+
+## Multi-Run Pipeline
+
+Running multiple evaluation passes increases result reliability and surfaces variance:
+
+```bash
+python -m skill_eval run --runs 3
+```
+
+Each run:
+1. **Generates** code for a randomly-selected scenario per config
+2. **Verifies** the generated project (build, format, security, run)
+3. **Analyzes** quality across all dimensions, producing `analysis-run-{N}.md`
+
+After all runs complete, the **aggregator** (`src/skill_eval/aggregator.py`) parses per-run scores and produces:
+- Aggregated score tables with weighted totals per config
+- A scoring methodology section explaining tier weights
+- "Overview" and "What Was Tested" sections summarizing the evaluation
+- `scores-data.json` with structured score data
+
+Runs execute with parallel generation across configs, a watchdog timeout with network-connection health checks, and per-config token usage tracking (`generation-usage.json`).
+
+## Session Tracing
+
+The session tracer (`src/skill_eval/session_tracer.py`) monitors which Copilot skills, plugins, and instruction files are actually loaded during code generation. This:
+
+- **Prevents skill contamination** — isolates `skill_directories` per config so one config's skills don't leak into another
+- **Verifies skill activation** — confirms the intended skills were loaded by parsing Copilot CLI session events from `~/.copilot/session-state`
+- **Uses path-based matching** as the sole authority for skill detection
 
 ## The Agent: `@skill-eval`
 
