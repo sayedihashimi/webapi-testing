@@ -1,7 +1,33 @@
 # Aggregated Analysis: ASP.NET Core Web API Skill Evaluation
 
 **Runs:** 3 | **Configurations:** 4 | **Scenarios:** 3 | **Dimensions:** 24
-**Date:** 2026-03-30 05:13 UTC
+**Date:** 2026-03-30 05:22 UTC
+
+---
+
+## Scoring Methodology
+
+Each dimension is scored on a **1–5 scale**:
+
+| Score | Meaning |
+|:---:|---|
+| 5 | Excellent — follows all best practices |
+| 4 | Good — minor gaps only |
+| 3 | Acceptable — some issues present |
+| 2 | Below average — significant gaps |
+| 1 | Poor — missing or fundamentally wrong |
+
+Dimensions are grouped into **tiers** that determine their weight in the final weighted score:
+
+| Tier | Weight | Dimensions |
+|---|:---:|:---:|
+| CRITICAL | ×3 | 6 |
+| HIGH | ×2 | 8 |
+| MEDIUM | ×1 | 9 |
+| LOW | ×0.5 | 1 |
+
+**Maximum possible weighted score: 217.5** (all dimensions scoring 5).
+Scores shown as **mean ± standard deviation** across runs.
 
 ---
 
@@ -38,12 +64,12 @@
 
 ## Final Rankings
 
-| Rank | Configuration | Mean Weighted Score | Std Dev | Min | Max |
-|---|---|---|---|---|---|
-| 🥇 | dotnet-artisan | 184.8 | 5.5 | 179.5 | 190.5 |
-| 🥈 | managedcode-dotnet-skills | 151.0 | 7.0 | 143.0 | 156.0 |
-| 🥉 | dotnet-skills | 149.3 | 13.2 | 137.5 | 163.5 |
-| 4th | no-skills | 128.8 | 10.1 | 117.5 | 137.0 |
+| Rank | Configuration | Mean Score | % of Max (217.5) | Std Dev | Min | Max |
+|---|---|---|---|---|---|---|
+| 🥇 | dotnet-artisan | 184.8 | 85% | 5.5 | 179.5 | 190.5 |
+| 🥈 | managedcode-dotnet-skills | 151.0 | 69% | 7.0 | 143.0 | 156.0 |
+| 🥉 | dotnet-skills | 149.3 | 69% | 13.2 | 137.5 | 163.5 |
+| 4th | no-skills | 128.8 | 59% | 10.1 | 117.5 | 137.0 |
 
 ---
 

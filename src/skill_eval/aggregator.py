@@ -350,6 +350,49 @@ def _write_aggregated_report(
         "",
     ]
 
+    # Scoring Methodology
+    tier_weights = {"critical": 3.0, "high": 2.0, "medium": 1.0, "low": 0.5}
+    tier_counts: dict[str, int] = {}
+    for d in config.dimensions:
+        t = d.tier.lower()
+        tier_counts[t] = tier_counts.get(t, 0) + 1
+    max_weighted = sum(d.effective_weight * 5 for d in config.dimensions)
+
+    lines.extend([
+        "## Scoring Methodology",
+        "",
+        "Each dimension is scored on a **1–5 scale**:",
+        "",
+        "| Score | Meaning |",
+        "|:---:|---|",
+        "| 5 | Excellent — follows all best practices |",
+        "| 4 | Good — minor gaps only |",
+        "| 3 | Acceptable — some issues present |",
+        "| 2 | Below average — significant gaps |",
+        "| 1 | Poor — missing or fundamentally wrong |",
+        "",
+        "Dimensions are grouped into **tiers** that determine their weight "
+        "in the final weighted score:",
+        "",
+        "| Tier | Weight | Dimensions |",
+        "|---|:---:|:---:|",
+    ])
+    for tier_name in ["critical", "high", "medium", "low"]:
+        count = tier_counts.get(tier_name, 0)
+        if count > 0:
+            w = tier_weights[tier_name]
+            w_str = f"{w:.0f}" if w == int(w) else f"{w:.1f}"
+            lines.append(f"| {tier_name.upper()} | ×{w_str} | {count} |")
+    lines.extend([
+        "",
+        f"**Maximum possible weighted score: {max_weighted:.1f}** "
+        f"(all dimensions scoring 5).",
+        "Scores shown as **mean ± standard deviation** across runs.",
+        "",
+        "---",
+        "",
+    ])
+
     # Executive Summary
     lines.append("## Executive Summary")
     lines.append("")
@@ -377,8 +420,9 @@ def _write_aggregated_report(
     # Final Rankings
     lines.append("## Final Rankings")
     lines.append("")
-    lines.append("| Rank | Configuration | Mean Weighted Score | Std Dev | Min | Max |")
-    lines.append("|---|---|---|---|---|---|")
+    max_score_label = f"{max_weighted:.0f}" if max_weighted == int(max_weighted) else f"{max_weighted:.1f}"
+    lines.append(f"| Rank | Configuration | Mean Score | % of Max ({max_score_label}) | Std Dev | Min | Max |")
+    lines.append("|---|---|---|---|---|---|---|")
 
     rankings = []
     for cfg in config_names:
@@ -392,7 +436,10 @@ def _write_aggregated_report(
     medals = ["🥇", "🥈", "🥉"]
     for i, (cfg, mean, stdev, mn, mx) in enumerate(rankings):
         medal = medals[i] if i < len(medals) else f"{i+1}th"
-        lines.append(f"| {medal} | {cfg} | {mean:.1f} | {stdev:.1f} | {mn:.1f} | {mx:.1f} |")
+        pct = mean / max_weighted * 100
+        lines.append(
+            f"| {medal} | {cfg} | {mean:.1f} | {pct:.0f}% | {stdev:.1f} | {mn:.1f} | {mx:.1f} |"
+        )
 
     lines.extend(["", "---", ""])
 
