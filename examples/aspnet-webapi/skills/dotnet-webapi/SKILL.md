@@ -49,21 +49,45 @@ inheritance and enable JIT devirtualization (CA1852).
 | Output (single) | `{Entity}Response` | `ProductResponse` |
 | Output (list) | `{Entity}ListResponse` | `ProductListResponse` |
 
+**XML doc comments on all DTOs:** Add `<summary>` XML doc comments to every
+request and response type exposed in the API. These comments are automatically
+included in the generated OpenAPI specification, producing richer documentation
+without extra metadata calls.
+
+Reference: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/openapi-comments
+
+**Date and time values — use `DateTimeOffset`:** When a DTO includes a date or
+time property, always use `DateTimeOffset` instead of `DateTime`.
+`DateTimeOffset` preserves the UTC offset, avoids ambiguous timezone
+conversions, and serializes to ISO 8601 with offset information in JSON — which
+is what API consumers expect.
+
+Reference: https://learn.microsoft.com/en-us/dotnet/api/system.datetimeoffset
+
+**Enum properties — serialize as strings by default:** Unless the user
+explicitly requests integer serialization, all enum properties should be
+serialized as strings. String-serialized enums are human-readable, less fragile
+when values are reordered, and produce better OpenAPI documentation. See Step 4
+for the `JsonStringEnumConverter` configuration.
+
 **Response DTOs** — use positional sealed records for concise, immutable output:
 
 ```csharp
+/// <summary>Represents a product returned by the API.</summary>
 public sealed record ProductResponse(
     int Id,
     string Name,
     decimal Price,
     string CategoryName,
-    bool IsAvailable);
+    bool IsAvailable,
+    DateTimeOffset CreatedAt);
 ```
 
 **Request DTOs** — use sealed records with `init` properties so data annotations
 work naturally:
 
 ```csharp
+/// <summary>Payload for creating a new product.</summary>
 public sealed record CreateProductRequest
 {
     [Required, MaxLength(200)]
@@ -185,8 +209,10 @@ app.MapGet("/api/products/{id}", handler)
     .Produces(StatusCodes.Status404NotFound);
 ```
 
-**Enum serialization:** Configure JSON serialization so enums appear as
-readable strings in both API responses and OpenAPI schemas:
+**Enum serialization (strings by default):** Configure JSON serialization so
+enums appear as readable strings in both API responses and OpenAPI schemas.
+Always add this configuration unless the user explicitly requests integer
+enum serialization:
 
 ```csharp
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -341,9 +367,11 @@ paths (e.g., non-existent IDs). Match the port to `launchSettings.json`.
 - [ ] `CancellationToken` is forwarded to all downstream async calls
 - [ ] OpenAPI document is generated and includes all new endpoints
 - [ ] Endpoints have summary/description metadata for OpenAPI
-- [ ] Enum values appear as strings in JSON responses and OpenAPI schemas
+- [ ] Enum values appear as strings in JSON responses and OpenAPI schemas (unless user explicitly requested integer serialization)
 - [ ] Error responses use RFC 7807 Problem Details format
 - [ ] Domain entities are not exposed directly in API request/response bodies
+- [ ] All API-exposed DTOs have `<summary>` XML doc comments
+- [ ] Date and time properties use `DateTimeOffset`, not `DateTime`
 - [ ] A `.http` file exists with a request for every new endpoint
 - [ ] `dotnet build` passes with zero errors and zero warnings
 - [ ] All DTOs are `sealed record` types (not mutable classes)
@@ -365,10 +393,15 @@ paths (e.g., non-existent IDs). Match the port to `launchSettings.json`.
 | Using mutable classes for DTOs | Use `sealed record` with positional syntax (responses) or `init` properties (requests). |
 | Registering services without interfaces | Define `IService` and register with `AddScoped<IService, Service>()`. |
 | Adding any `Swashbuckle.*` package to new .NET 9+ projects | Use built-in `AddOpenApi()` + `MapOpenApi()`. Do not add `Swashbuckle.AspNetCore`, `Swashbuckle.AspNetCore.SwaggerUI`, or any other Swashbuckle package. |
+| Missing XML doc comments on DTOs | Add `<summary>` XML doc comments to every request and response type. These flow into the generated OpenAPI spec automatically. |
+| Using `DateTime` for date/time properties | Use `DateTimeOffset` instead — it preserves UTC offset, avoids timezone ambiguity, and serializes correctly in JSON. |
+| Serializing enums as integers | Configure `JsonStringEnumConverter` so enums serialize as strings by default. Only use integer serialization if the user explicitly requests it. |
 
 ## More Info
 
 - [ASP.NET Core Web API overview](https://learn.microsoft.com/en-us/aspnet/core/web-api/) — fundamental concepts for building Web APIs
 - [OpenAPI in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/overview) — built-in OpenAPI support in .NET 9+
+- [OpenAPI from XML comments](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/openapi-comments) — how XML doc comments flow into the OpenAPI spec
 - [Minimal APIs overview](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/overview) — routing, parameter binding, and response types
 - [Handle errors in ASP.NET Core APIs](https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors) — Problem Details and exception handling
+- [DateTimeOffset](https://learn.microsoft.com/en-us/dotnet/api/system.datetimeoffset) — preferred type for date/time values in APIs
