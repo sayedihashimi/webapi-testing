@@ -3,6 +3,7 @@ description: >
   Evaluate how custom Copilot skills impact the quality of generated
   ASP.NET Core Razor Pages code across three realistic application scenarios.
 runs: 1
+generation_model: "claude-opus-4.6"
 
 scenarios:
   - name: SparkEvents

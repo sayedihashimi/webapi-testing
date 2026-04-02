@@ -168,8 +168,10 @@ def ci_setup(
 @click.option("--runs", "-r", type=int, default=None,
               help="Number of generation runs per configuration (overrides eval.yaml)")
 @click.option("--resume", is_flag=True, help="Skip runs where output already exists.")
+@click.option("--generation-model", type=str, default=None,
+              help="AI model for code generation (overrides eval.yaml generation_model).")
 @click.pass_context
-def generate(ctx: click.Context, configurations: tuple[str, ...], runs: int | None, resume: bool) -> None:
+def generate(ctx: click.Context, configurations: tuple[str, ...], runs: int | None, resume: bool, generation_model: str | None) -> None:
     """Generate code using Copilot CLI for each skill configuration.
 
     Invokes the Copilot CLI once per configuration per run, each time with
@@ -181,7 +183,10 @@ def generate(ctx: click.Context, configurations: tuple[str, ...], runs: int | No
     resolver = _build_resolver(ctx)
     if runs is not None:
         config.runs = runs
+    if generation_model is not None:
+        config.generation_model = generation_model
     click.echo(f"  Runs per configuration: {config.runs}")
+    click.echo(f"  Generation model: {config.generation_model}")
     run_generate(
         config,
         ctx.obj["project_root"],
@@ -206,10 +211,10 @@ def verify(ctx: click.Context) -> None:
 
 
 @main.command()
-@click.option("--model", "-m", type=str, default=None,
+@click.option("--analysis-model", "-m", type=str, default=None,
               help="AI model for analysis (overrides eval.yaml analysis_model).")
 @click.pass_context
-def analyze(ctx: click.Context, model: str | None) -> None:
+def analyze(ctx: click.Context, analysis_model: str | None) -> None:
     """Run comparative analysis across all configurations.
 
     Generates an analysis prompt from the configured dimensions and invokes
@@ -218,8 +223,8 @@ def analyze(ctx: click.Context, model: str | None) -> None:
     from skill_eval.analyze import run_analyze
 
     config = _load(ctx)
-    if model is not None:
-        config.analysis_model = model
+    if analysis_model is not None:
+        config.analysis_model = analysis_model
     run_analyze(config, ctx.obj["project_root"])
 
 
@@ -236,7 +241,9 @@ def analyze(ctx: click.Context, model: str | None) -> None:
               help="Number of generation runs per configuration (overrides eval.yaml)")
 @click.option("--resume", is_flag=True,
               help="Skip runs where output already exists.")
-@click.option("--model", "-m", type=str, default=None,
+@click.option("--generation-model", type=str, default=None,
+              help="AI model for code generation (overrides eval.yaml generation_model).")
+@click.option("--analysis-model", "-m", type=str, default=None,
               help="AI model for analysis (overrides eval.yaml analysis_model).")
 @click.pass_context
 def run(
@@ -247,7 +254,8 @@ def run(
     configurations: tuple[str, ...],
     runs: int | None,
     resume: bool,
-    model: str | None,
+    generation_model: str | None,
+    analysis_model: str | None,
 ) -> None:
     """Run the full evaluation pipeline: generate → verify → analyze.
 
@@ -264,9 +272,13 @@ def run(
     resolver = _build_resolver(ctx)
     if runs is not None:
         config.runs = runs
-    if model is not None:
-        config.analysis_model = model
+    if generation_model is not None:
+        config.generation_model = generation_model
+    if analysis_model is not None:
+        config.analysis_model = analysis_model
     click.echo(f"  Runs per configuration: {config.runs}")
+    click.echo(f"  Generation model: {config.generation_model}")
+    click.echo(f"  Analysis model:   {config.analysis_model}")
     project_root = ctx.obj["project_root"]
     timings: dict[str, float] = {}
     pipeline_start = _time.monotonic()

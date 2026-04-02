@@ -72,7 +72,8 @@ Reports land in `reports/`. The main output is `reports/analysis.md` with per-di
 name: "My Skill Evaluation"
 description: "Evaluate my React skills"
 runs: 3                          # runs per configuration (increases reliability)
-analysis_model: "gpt-5.3-codex"  # model for comparative analysis
+generation_model: "claude-opus-4.6"  # model for code generation
+analysis_model: "gpt-5.3-codex"     # model for comparative analysis
 
 scenarios:
   - name: Dashboard
@@ -167,12 +168,15 @@ skill-eval run --runs 5                     # 5 runs per config for higher relia
 skill-eval run --skip-generate              # Re-verify + re-analyze existing output
 skill-eval run --analyze-only               # Re-analyze only
 skill-eval run -c my-skill -c baseline      # Only run specific configurations
+skill-eval run --generation-model claude-sonnet-4  # Override generation model
+skill-eval run -m gpt-5.3-codex            # Override analysis model
 
 skill-eval generate                         # Generate code only
 skill-eval generate --resume                # Skip runs where output already exists
+skill-eval generate --generation-model claude-opus-4.6  # Specify generation model
 skill-eval verify                           # Verify builds only
 skill-eval analyze                          # Analyze only
-skill-eval analyze --model gpt-5.3-codex    # Specify analysis model
+skill-eval analyze -m gpt-5.3-codex        # Specify analysis model
 ```
 
 ### Setup & validation

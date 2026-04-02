@@ -172,6 +172,7 @@ def _run_copilot(
     idle_timeout: int = _IDLE_TIMEOUT,
     max_retries: int = 1,
     resolved: ResolvedConfiguration | None = None,
+    generation_model: str | None = None,
 ) -> dict | None:
     """Invoke the Copilot CLI with a watchdog that kills hung processes.
 
@@ -183,6 +184,9 @@ def _run_copilot(
     Returns a dict with usage stats (tokens, duration) or None on failure.
     """
     cmd = ["copilot", "-p", prompt, "--yolo"]
+
+    if generation_model:
+        cmd.extend(["--model", generation_model])
 
     # Use resolved plugin paths if available, otherwise fall back to legacy
     plugin_paths: list[Path] = []
@@ -524,6 +528,7 @@ def run_generate(
                     usage = _run_copilot(
                         prompt, cfg, cwd=staging_dir, project_root=project_root,
                         resolved=resolved,
+                        generation_model=config.generation_model,
                     )
                     if usage is None:
                         usage = {}

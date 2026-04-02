@@ -176,6 +176,7 @@ class EvalConfig(BaseModel):
     dimensions: list[Dimension]
     output: OutputSettings = OutputSettings()
     runs: int = 3
+    generation_model: str = "claude-opus-4.6"
     analysis_model: str = "gpt-5.3-codex"
 
     @field_validator("scenarios")
