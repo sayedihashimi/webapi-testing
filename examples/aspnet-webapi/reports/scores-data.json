@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-31T10:41:14.043008+00:00",
+  "timestamp": "2026-04-02T00:57:15.862420+00:00",
   "runs": [
     {
       "run_id": 1,
@@ -178,14 +178,21 @@
           "dotnet-skills": 4.0,
           "no-skills": 3.0,
           "dotnet-webapi": 5.0
+        },
+        "Token Efficiency": {
+          "no-skills": 4.0,
+          "dotnet-webapi": 4.0,
+          "dotnet-artisan": 2.0,
+          "managedcode-dotnet-skills": 2.0,
+          "dotnet-skills": 1.0
         }
       },
       "weighted_totals": {
-        "no-skills": 124.5,
-        "dotnet-webapi": 187.5,
-        "dotnet-artisan": 180.5,
-        "managedcode-dotnet-skills": 148.0,
-        "dotnet-skills": 147.0
+        "no-skills": 128.5,
+        "dotnet-webapi": 191.5,
+        "dotnet-artisan": 182.5,
+        "managedcode-dotnet-skills": 150.0,
+        "dotnet-skills": 148.0
       }
     },
     {
@@ -323,14 +330,21 @@
           "managedcode-dotnet-skills": 4.0,
           "dotnet-skills": 4.0,
           "no-skills": 3.0
+        },
+        "Token Efficiency": {
+          "no-skills": 5.0,
+          "dotnet-webapi": 4.0,
+          "dotnet-artisan": 4.0,
+          "managedcode-dotnet-skills": 2.0,
+          "dotnet-skills": 3.0
         }
       },
       "weighted_totals": {
-        "no-skills": 105.5,
-        "dotnet-webapi": 153.5,
-        "dotnet-artisan": 126.0,
-        "managedcode-dotnet-skills": 129.0,
-        "dotnet-skills": 127.0
+        "no-skills": 110.5,
+        "dotnet-webapi": 157.5,
+        "dotnet-artisan": 130.0,
+        "managedcode-dotnet-skills": 131.0,
+        "dotnet-skills": 130.0
       }
     },
     {
@@ -510,14 +524,21 @@
           "managedcode-dotnet-skills": 1.0,
           "dotnet-skills": 1.0,
           "dotnet-webapi": 1.0
+        },
+        "Token Efficiency": {
+          "no-skills": 4.0,
+          "dotnet-webapi": 5.0,
+          "dotnet-artisan": 2.0,
+          "managedcode-dotnet-skills": 4.0,
+          "dotnet-skills": 2.0
         }
       },
       "weighted_totals": {
-        "no-skills": 132.5,
-        "dotnet-webapi": 175.5,
-        "dotnet-artisan": 167.0,
-        "managedcode-dotnet-skills": 134.0,
-        "dotnet-skills": 145.0
+        "no-skills": 136.5,
+        "dotnet-webapi": 180.5,
+        "dotnet-artisan": 169.0,
+        "managedcode-dotnet-skills": 138.0,
+        "dotnet-skills": 147.0
       }
     }
   ]
