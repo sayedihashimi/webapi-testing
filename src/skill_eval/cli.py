@@ -23,8 +23,41 @@ from skill_eval.config import load_config
     default=None,
     help="Project root directory (default: current directory)",
 )
+@click.option(
+    "--skill-sources", "-s",
+    "skill_sources_path",
+    type=click.Path(exists=False, path_type=Path),
+    default=None,
+    help="Path to skill-sources.yaml (default: ./skill-sources.yaml)",
+)
+@click.option(
+    "--cache-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Cache directory for cloned skill repos (default: ~/.skill-eval/cache/)",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Output directory for generated code (overrides eval.yaml)",
+)
+@click.option(
+    "--reports-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Reports directory (overrides eval.yaml)",
+)
 @click.pass_context
-def main(ctx: click.Context, config_path: Path | None, project_root: Path | None) -> None:
+def main(
+    ctx: click.Context,
+    config_path: Path | None,
+    project_root: Path | None,
+    skill_sources_path: Path | None,
+    cache_dir: Path | None,
+    output_dir: Path | None,
+    reports_dir: Path | None,
+) -> None:
     """Copilot Skill Evaluation Framework.
 
     Evaluate how GitHub Copilot custom skills impact code generation quality.
@@ -36,6 +69,10 @@ def main(ctx: click.Context, config_path: Path | None, project_root: Path | None
     ctx.ensure_object(dict)
     ctx.obj["project_root"] = project_root or Path.cwd()
     ctx.obj["config_path"] = config_path
+    ctx.obj["skill_sources_path"] = skill_sources_path
+    ctx.obj["cache_dir"] = cache_dir
+    ctx.obj["output_dir"] = output_dir
+    ctx.obj["reports_dir"] = reports_dir
 
 
 @main.command()
@@ -69,6 +106,7 @@ def generate(ctx: click.Context, configurations: tuple[str, ...], runs: int | No
     from skill_eval.generate import run_generate
 
     config = _load(ctx)
+    resolver = _build_resolver(ctx)
     if runs is not None:
         config.runs = runs
     click.echo(f"  Runs per configuration: {config.runs}")
@@ -77,6 +115,7 @@ def generate(ctx: click.Context, configurations: tuple[str, ...], runs: int | No
         ctx.obj["project_root"],
         configurations=list(configurations) if configurations else None,
         resume=resume,
+        resolver=resolver,
     )
 
 
@@ -150,6 +189,7 @@ def run(
     from skill_eval.verify import run_verify
 
     config = _load(ctx)
+    resolver = _build_resolver(ctx)
     if runs is not None:
         config.runs = runs
     if model is not None:
@@ -171,6 +211,7 @@ def run(
             project_root,
             configurations=list(configurations) if configurations else None,
             resume=resume,
+            resolver=resolver,
         )
         timings["generate"] = _time.monotonic() - t0
     else:
@@ -214,9 +255,10 @@ def validate_config(ctx: click.Context) -> None:
     """Validate eval.yaml without running anything.
 
     Checks that the configuration file is valid, all referenced prompt files
-    exist, and skill directories are accessible.
+    exist, and skill/plugin sources are accessible.
     """
     config = _load(ctx)
+    resolver = _build_resolver(ctx)
     project_root = ctx.obj["project_root"]
 
     errors = []
@@ -227,16 +269,28 @@ def validate_config(ctx: click.Context) -> None:
         if not prompt_path.exists():
             errors.append(f"Scenario prompt not found: {s.prompt}")
 
-    # Check skill directories exist
+    # Check skill/plugin references resolve to valid paths
     for c in config.configurations:
-        for skill in c.skills:
-            skill_path = project_root / skill
-            if not skill_path.exists():
-                errors.append(f"Skill directory not found: {skill} (config: {c.name})")
-        for plugin in c.plugins:
-            plugin_path = project_root / plugin
-            if not plugin_path.exists():
-                errors.append(f"Plugin directory not found: {plugin} (config: {c.name})")
+        for ref in c.skills:
+            try:
+                resolved = resolver.resolve(ref)
+                if not resolved.exists():
+                    errors.append(
+                        f"Skill directory not found: {ref.display_name} "
+                        f"(resolved to {resolved}, config: {c.name})"
+                    )
+            except (KeyError, ValueError, RuntimeError) as e:
+                errors.append(f"Skill resolution failed: {ref.display_name} (config: {c.name}): {e}")
+        for ref in c.plugins:
+            try:
+                resolved = resolver.resolve(ref)
+                if not resolved.exists():
+                    errors.append(
+                        f"Plugin directory not found: {ref.display_name} "
+                        f"(resolved to {resolved}, config: {c.name})"
+                    )
+            except (KeyError, ValueError, RuntimeError) as e:
+                errors.append(f"Plugin resolution failed: {ref.display_name} (config: {c.name}): {e}")
 
     if errors:
         click.echo("❌ Validation failed:\n")
@@ -252,5 +306,37 @@ def validate_config(ctx: click.Context) -> None:
 
 
 def _load(ctx: click.Context):
-    """Load config, using the path from context."""
-    return load_config(ctx.obj.get("config_path"))
+    """Load config, applying any CLI overrides for output/reports directories."""
+    config = load_config(ctx.obj.get("config_path"))
+    output_dir = ctx.obj.get("output_dir")
+    reports_dir = ctx.obj.get("reports_dir")
+    if output_dir:
+        config.output.directory = str(output_dir)
+    if reports_dir:
+        config.output.reports_directory = str(reports_dir)
+    return config
+
+
+def _build_resolver(ctx: click.Context):
+    """Build a SourceResolver from CLI context, loading skill-sources.yaml if available."""
+    from skill_eval.source_config import load_skill_sources
+    from skill_eval.source_resolver import SourceResolver
+
+    project_root: Path = ctx.obj["project_root"]
+    skill_sources_path: Path | None = ctx.obj.get("skill_sources_path")
+    cache_dir: Path | None = ctx.obj.get("cache_dir")
+
+    # Try to load skill-sources.yaml
+    sources_config = None
+    if skill_sources_path is not None:
+        sources_config = load_skill_sources(skill_sources_path)
+    else:
+        default_path = project_root / "skill-sources.yaml"
+        if default_path.exists():
+            sources_config = load_skill_sources(default_path)
+
+    # Respect cache_dir from skill-sources.yaml if not overridden by CLI
+    if sources_config and sources_config.cache_dir and cache_dir is None:
+        cache_dir = Path(sources_config.cache_dir).expanduser()
+
+    return SourceResolver(sources_config, project_root, cache_dir=cache_dir)

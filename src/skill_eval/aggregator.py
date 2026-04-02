@@ -622,8 +622,8 @@ def _write_aggregated_report(
         if not cfg:
             continue
         label = cfg.label or name
-        skills = ", ".join(cfg.skills) if cfg.skills else "—"
-        plugins = ", ".join(cfg.plugins) if cfg.plugins else "—"
+        skills = ", ".join(ref.display_name for ref in cfg.skills) if cfg.skills else "—"
+        plugins = ", ".join(ref.display_name for ref in cfg.plugins) if cfg.plugins else "—"
         lines.append(f"| {name} | {label} | {skills} | {plugins} |")
     lines.append("")
 

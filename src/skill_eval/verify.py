@@ -529,8 +529,8 @@ def _write_build_notes(
     for cfg in config.configurations:
         if cfg.name not in configs_with_results:
             continue
-        skills = ", ".join(cfg.skills) if cfg.skills else "None"
-        plugins = ", ".join(cfg.plugins) if cfg.plugins else "None"
+        skills = ", ".join(ref.display_name for ref in cfg.skills) if cfg.skills else "None"
+        plugins = ", ".join(ref.display_name for ref in cfg.plugins) if cfg.plugins else "None"
         lines.append(f"| {cfg.name} | {cfg.label} | {skills} | {plugins} |")
 
     lines.append("")

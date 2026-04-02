@@ -34,6 +34,7 @@ from skill_eval.skill_manager import (
     remove_skill_directories,
     set_skill_directories,
 )
+from skill_eval.source_resolver import ResolvedConfiguration, SourceResolver
 
 # Default: kill Copilot if no CPU activity for this many seconds
 _IDLE_TIMEOUT = 300  # 5 minutes
@@ -61,6 +62,7 @@ def _link_directory(target: Path, link: Path) -> None:
 def _create_staging_dir(
     project_root: Path,
     cfg: Configuration,
+    resolved: ResolvedConfiguration | None = None,
 ) -> tuple[Path, list[Path]]:
     """Create an isolated working directory for a Copilot invocation.
 
@@ -69,6 +71,9 @@ def _create_staging_dir(
     and *only* the ``skills/`` and ``plugins/`` that the configuration
     declares.  This prevents Copilot from auto-discovering skills/plugins
     that belong to other configurations.
+
+    When *resolved* is provided, uses the pre-resolved absolute paths.
+    Otherwise falls back to resolving relative to project_root (legacy).
 
     Returns ``(staging_dir, created_links)`` so the caller can clean up.
     """
@@ -89,25 +94,31 @@ def _create_staging_dir(
     _link_directory(output_src, output_link)
     links.append(output_link)
 
+    # Determine skill/plugin paths (resolved or legacy)
+    skill_paths = resolved.skill_paths if resolved else [
+        (project_root / ref.local_path).resolve()
+        for ref in cfg.skills if ref.local_path
+    ]
+    plugin_paths = resolved.plugin_paths if resolved else [
+        (project_root / ref.local_path).resolve()
+        for ref in cfg.plugins if ref.local_path
+    ]
+
     # Only surface the skills declared by this configuration
-    if cfg.skills:
+    if skill_paths:
         skills_dir = staging / "skills"
         skills_dir.mkdir()
-        for skill_rel in cfg.skills:
-            skill_src = (project_root / skill_rel).resolve()
-            skill_name = Path(skill_rel).name
-            link = skills_dir / skill_name
+        for skill_src in skill_paths:
+            link = skills_dir / skill_src.name
             _link_directory(skill_src, link)
             links.append(link)
 
     # Only surface the plugins declared by this configuration
-    if cfg.plugins:
+    if plugin_paths:
         plugins_dir = staging / "plugins"
         plugins_dir.mkdir()
-        for plugin_rel in cfg.plugins:
-            plugin_src = (project_root / plugin_rel).resolve()
-            plugin_name = Path(plugin_rel).name
-            link = plugins_dir / plugin_name
+        for plugin_src in plugin_paths:
+            link = plugins_dir / plugin_src.name
             _link_directory(plugin_src, link)
             links.append(link)
 
@@ -160,26 +171,36 @@ def _run_copilot(
     project_root: Path | None = None,
     idle_timeout: int = _IDLE_TIMEOUT,
     max_retries: int = 1,
+    resolved: ResolvedConfiguration | None = None,
 ) -> dict | None:
     """Invoke the Copilot CLI with a watchdog that kills hung processes.
 
     Monitors the Copilot process CPU and network activity. If idle for
     *idle_timeout* seconds, it is killed and retried up to *max_retries*.
 
+    When *resolved* is provided, uses pre-resolved absolute plugin paths.
+
     Returns a dict with usage stats (tokens, duration) or None on failure.
     """
     cmd = ["copilot", "-p", prompt, "--yolo"]
 
-    for plugin in configuration.plugins:
-        if project_root:
-            abs_plugin = str((project_root / plugin).resolve())
-        else:
-            abs_plugin = plugin
-        cmd.extend(["--plugin-dir", abs_plugin])
+    # Use resolved plugin paths if available, otherwise fall back to legacy
+    plugin_paths: list[Path] = []
+    if resolved:
+        plugin_paths = resolved.plugin_paths
+    elif project_root:
+        plugin_paths = [
+            (project_root / ref.local_path).resolve()
+            for ref in configuration.plugins if ref.local_path
+        ]
 
+    for plugin_path in plugin_paths:
+        cmd.extend(["--plugin-dir", str(plugin_path)])
+
+    plugin_display = [str(p) for p in plugin_paths]
     click.echo(f"  Running: copilot -p <prompt> --yolo" + (
-        f" --plugin-dir {' '.join(configuration.plugins)}"
-        if configuration.plugins else ""
+        f" --plugin-dir {' '.join(plugin_display)}"
+        if plugin_paths else ""
     ))
     if cwd:
         click.echo(f"  Working directory: {cwd}")
@@ -388,6 +409,7 @@ def run_generate(
     project_root: Path,
     configurations: list[str] | None = None,
     resume: bool = False,
+    resolver: SourceResolver | None = None,
 ) -> None:
     """Generate code for each configuration defined in the config.
 
@@ -404,6 +426,7 @@ def run_generate(
         configurations: Optional list of configuration names to run.
                         If None, runs all configurations.
         resume: If True, skip runs where output already exists.
+        resolver: Optional source resolver for remote skill sources.
     """
     configs_to_run = config.configurations
     if configurations:
@@ -421,8 +444,14 @@ def run_generate(
     num_runs = config.runs
     all_usage: list[dict] = []
 
+    # Pre-resolve all sources if resolver is available
+    resolved_configs: dict[str, ResolvedConfiguration] = {}
+    if resolver:
+        resolved_configs = resolver.resolve_all(config)
+
     for cfg in configs_to_run:
         label = cfg.label or cfg.name
+        resolved = resolved_configs.get(cfg.name)
 
         click.echo(f"\n{'=' * 60}")
         click.echo(f"Generating: {label}")
@@ -435,18 +464,28 @@ def run_generate(
         # prevent contamination from previous configs or manual registrations.
         saved_skill_dirs = get_skill_directories()
 
-        staging_dir, staging_links = _create_staging_dir(project_root, cfg)
+        staging_dir, staging_links = _create_staging_dir(project_root, cfg, resolved=resolved)
         added_skills: list[Path] = []
         try:
+            # Determine skill paths (resolved or legacy)
+            skill_paths: list[Path] = []
+            if resolved:
+                skill_paths = resolved.skill_paths
+            else:
+                skill_paths = [
+                    (project_root / ref.local_path).resolve()
+                    for ref in cfg.skills if ref.local_path
+                ]
+
             # Clear all global skill_directories, then add only this config's
-            if cfg.skills:
-                skill_paths = [project_root / s for s in cfg.skills]
-                skill_abs = [str(p.resolve()) for p in skill_paths]
+            if skill_paths:
+                skill_abs = [str(p) for p in skill_paths]
                 set_skill_directories(skill_abs)
                 added_skills = skill_paths
+                skill_display = [ref.display_name for ref in cfg.skills]
                 click.echo(
                     f"  Registered skills: "
-                    f"{', '.join(cfg.skills)}"
+                    f"{', '.join(skill_display)}"
                 )
             else:
                 set_skill_directories([])
@@ -484,6 +523,7 @@ def run_generate(
                 try:
                     usage = _run_copilot(
                         prompt, cfg, cwd=staging_dir, project_root=project_root,
+                        resolved=resolved,
                     )
                     if usage is None:
                         usage = {}
@@ -508,13 +548,24 @@ def run_generate(
                             }
                             for r in trace.resources
                         ]
-                        expected_skills = [Path(s).name for s in cfg.skills]
-                        expected_plugins = [Path(p).name for p in cfg.plugins]
+                        expected_skills = (
+                            resolved.skill_names if resolved
+                            else [ref.display_name for ref in cfg.skills]
+                        )
+                        expected_plugins = (
+                            resolved.plugin_names if resolved
+                            else [ref.display_name for ref in cfg.plugins]
+                        )
                         # Build allowed directories (absolute) for path-based check
                         allowed_dirs = (
-                            [str((project_root / s).resolve()) for s in cfg.skills]
-                            + [str((project_root / p).resolve()) for p in cfg.plugins]
+                            [str(p) for p in skill_paths]
+                            + [str(p) for p in (resolved.plugin_paths if resolved else [])]
                         )
+                        if not resolved:
+                            allowed_dirs += [
+                                str((project_root / ref.local_path).resolve())
+                                for ref in cfg.plugins if ref.local_path
+                            ]
                         comparison = compare_resources(
                             trace, expected_skills, expected_plugins,
                             allowed_dirs=allowed_dirs,
