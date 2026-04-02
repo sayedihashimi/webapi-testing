@@ -209,6 +209,7 @@ skill-eval ci-setup
 
 This creates `.github/workflows/skill-eval.yml` with:
 - Manual trigger via `workflow_dispatch` (with skip/analyze-only options)
+- GitHub Copilot CLI installation
 - Python + skill-eval installation
 - Config validation → pipeline execution
 - Report and output artifact upload

@@ -33,6 +33,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install GitHub Copilot CLI
+        run: curl -fsSL https://gh.io/copilot-install | bash
+        env:
+          GITHUB_TOKEN: ${{ '{{' }} secrets.GITHUB_TOKEN {{ '}}' }}
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
