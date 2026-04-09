@@ -256,12 +256,24 @@ def _run_copilot(
 
         if timed_out:
             click.echo(f"  ⚠️  Copilot idle for {idle_timeout}s — killing (PID {proc.pid})")
+            # Try to capture usage before killing — work may have completed
+            usage = _parse_copilot_log_usage(proc.pid)
             _kill_process_tree(proc)
+            if usage:
+                usage["wall_time_seconds"] = round(elapsed, 1)
+                usage["timed_out"] = True
+                mins, secs = divmod(int(elapsed), 60)
+                click.echo(
+                    f"    📊 (timed out) {usage.get('input_tokens', 0):,} in / "
+                    f"{usage.get('output_tokens', 0):,} out / "
+                    f"{usage.get('api_calls', 0)} calls / {mins}m {secs}s"
+                )
             if attempt < max_retries:
                 continue
             raise RuntimeError(
                 f"Copilot CLI hung after {max_retries + 1} attempts "
-                f"for configuration '{configuration.name}'"
+                f"for configuration '{configuration.name}'",
+                usage,
             )
 
         if proc.returncode != 0:
@@ -664,7 +676,16 @@ def run_generate(
                     all_usage.append(usage)
                     click.echo(f"    ✅ {scenario.name} done")
                 except RuntimeError as e:
-                    click.echo(f"    ❌ {scenario.name} failed: {e}")
+                    click.echo(f"    ❌ {scenario.name} failed: {e.args[0]}")
+                    # Capture partial usage even on failure (e.g., idle timeout
+                    # after work completed)
+                    partial_usage = e.args[1] if len(e.args) > 1 else None
+                    if partial_usage and isinstance(partial_usage, dict):
+                        partial_usage["config"] = cfg.name
+                        partial_usage["run_id"] = run_id
+                        partial_usage["scenario"] = scenario.name
+                        partial_usage["failed"] = True
+                        all_usage.append(partial_usage)
                     continue
 
         finally:
