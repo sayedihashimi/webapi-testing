@@ -42,7 +42,7 @@ def _analyze_single_run(
     if config.analysis_model:
         cmd.extend(["--model", config.analysis_model])
     start_time = time.time()
-    proc = subprocess.Popen(cmd)
+    proc = subprocess.Popen(cmd, cwd=project_root)
 
     from skill_eval.generate import _watchdog_wait, _kill_process_tree, _parse_copilot_log_usage
     timed_out = _watchdog_wait(proc, idle_timeout)
