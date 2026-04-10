@@ -241,12 +241,15 @@ def _run_copilot(
     if cwd:
         click.echo(f"  Working directory: {cwd}")
 
+    # Give the Copilot CLI more memory to avoid OOM on large prompts
+    env = {**os.environ, "NODE_OPTIONS": "--max-old-space-size=8192"}
+
     for attempt in range(1 + max_retries):
         if attempt > 0:
-            click.echo(f"  ⚠️  Retry {attempt}/{max_retries} after idle timeout")
+            click.echo(f"  ⚠️  Retry {attempt}/{max_retries}")
 
         start_time = time.monotonic()
-        proc = subprocess.Popen(cmd, cwd=cwd, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(cmd, cwd=cwd, stderr=subprocess.PIPE, env=env)
         timed_out = _watchdog_wait(proc, idle_timeout)
         elapsed = time.monotonic() - start_time
 
@@ -293,6 +296,10 @@ def _run_copilot(
                     f"but output files exist — treating as success"
                 )
             else:
+                # Retry on crash/OOM (high exit codes)
+                if attempt < max_retries:
+                    click.echo(f"    ⚠️  Will retry ({attempt + 1}/{max_retries})")
+                    continue
                 msg = (
                     f"Copilot CLI exited with code {proc.returncode} "
                     f"for configuration '{configuration.name}'"
