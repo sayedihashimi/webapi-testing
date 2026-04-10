@@ -11,6 +11,108 @@ from pathlib import Path
 from skill_eval.config import EvalConfig
 
 
+# ---------------------------------------------------------------------------
+# Token usage outlier detection
+# ---------------------------------------------------------------------------
+
+def _detect_token_outliers(
+    generation_usage: list[dict],
+    config_names: list[str],
+) -> dict[str, set[int]]:
+    """Detect token usage outliers per configuration using Modified Z-score.
+
+    Uses the Median Absolute Deviation (MAD) method, which is robust for
+    small sample sizes.  A run is flagged when its modified Z-score exceeds
+    3.5 (the standard threshold for outlier detection).
+
+    Returns ``{config_name: {run_id, ...}}`` for outlier runs.  Requires
+    at least 3 data points per config.
+    """
+    outliers: dict[str, set[int]] = {}
+
+    # Group total tokens by config
+    by_config: dict[str, list[tuple[int, int]]] = {}
+    for u in generation_usage:
+        cfg = u.get("config")
+        run_id = u.get("run_id")
+        if cfg not in config_names or run_id is None:
+            continue
+        if u.get("step") == "analysis":
+            continue
+        total = u.get("input_tokens", 0) + u.get("output_tokens", 0)
+        by_config.setdefault(cfg, []).append((run_id, total))
+
+    for cfg, pairs in by_config.items():
+        if len(pairs) < 3:
+            continue
+        values = [t for _, t in pairs]
+        median_val = statistics.median(values)
+        deviations = [abs(v - median_val) for v in values]
+        mad = statistics.median(deviations)
+        if mad == 0:
+            continue
+        # Modified Z-score: 0.6745 is the 0.75th quartile of the standard
+        # normal distribution; the constant 0.6745/MAD scales MAD to match
+        # the standard deviation of a normal distribution.
+        # Only flag positive outliers (unusually HIGH token usage).
+        threshold = 3.5
+        cfg_outliers: set[int] = set()
+        for rid, total in pairs:
+            z = 0.6745 * (total - median_val) / mad
+            if z > threshold:
+                cfg_outliers.add(rid)
+        if cfg_outliers:
+            outliers[cfg] = cfg_outliers
+
+    return outliers
+
+
+def _analyze_outlier_events(
+    output_dir: Path,
+    config: str,
+    run_id: int,
+    normal_usage: dict | None,
+) -> str:
+    """Inspect events.jsonl for an outlier run and return a brief explanation."""
+    events_path = output_dir / config / f"run-{run_id}" / "events.jsonl"
+    if not events_path.exists():
+        return "events.jsonl not found — unable to determine cause"
+
+    turns = 0
+    tool_calls = 0
+    skill_invocations = 0
+    try:
+        with open(events_path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                etype = event.get("type", "")
+                if etype == "assistant.turn_end":
+                    turns += 1
+                elif etype == "tool.execution_start":
+                    tool_calls += 1
+                elif etype == "skill.invoked":
+                    skill_invocations += 1
+    except OSError:
+        return "Could not read events.jsonl"
+
+    normal_calls = normal_usage.get("api_calls", 0) if normal_usage else 0
+    parts: list[str] = []
+    parts.append(f"{turns} turns, {tool_calls} tool calls")
+    if skill_invocations:
+        parts.append(f"{skill_invocations} skill invocations")
+    if normal_calls and tool_calls > normal_calls * 2:
+        parts.append(
+            f"~{tool_calls / max(normal_calls, 1):.0f}× more tool calls than typical"
+        )
+    return "; ".join(parts)
+
+
 def parse_run_scores(
     analysis_file: Path,
     config_names: list[str],
@@ -172,6 +274,7 @@ def _compute_token_efficiency_scores(
     generation_usage: list[dict],
     config_names: list[str],
     run_ids: list[int],
+    token_outliers: dict[str, set[int]] | None = None,
 ) -> dict[str, dict[str, float]] | None:
     """Compute Token Efficiency scores from generation usage data.
 
@@ -183,18 +286,26 @@ def _compute_token_efficiency_scores(
         2 — 176–250%
         1 — >250%
 
+    Outlier runs (from *token_outliers*) are excluded from the baseline mean
+    and not scored.
+
     Returns per-run scores: {run_id: {config: score}} or None if baseline
     is missing.
     """
     if _BASELINE_CONFIG not in config_names:
         return None
 
-    # Group total tokens by (config, run_id)
+    if token_outliers is None:
+        token_outliers = {}
+
+    # Group total tokens by (config, run_id) — generation only
     tokens_by_cfg_run: dict[str, dict[int, int]] = {}
     for u in generation_usage:
         cfg = u.get("config")
         run_id = u.get("run_id")
         if cfg not in config_names or run_id not in run_ids:
+            continue
+        if u.get("step") == "analysis":
             continue
         total = u.get("input_tokens", 0) + u.get("output_tokens", 0)
         tokens_by_cfg_run.setdefault(cfg, {})[run_id] = total
@@ -203,7 +314,15 @@ def _compute_token_efficiency_scores(
     if not baseline_runs:
         return None
 
-    baseline_mean = statistics.mean(baseline_runs.values())
+    # Exclude outlier runs from baseline mean
+    baseline_outliers = token_outliers.get(_BASELINE_CONFIG, set())
+    clean_baseline = {
+        rid: t for rid, t in baseline_runs.items() if rid not in baseline_outliers
+    }
+    if not clean_baseline:
+        clean_baseline = baseline_runs  # fall back if all excluded
+
+    baseline_mean = statistics.mean(clean_baseline.values())
     if baseline_mean == 0:
         return None
 
@@ -223,6 +342,9 @@ def _compute_token_efficiency_scores(
     for run_id in run_ids:
         scores: dict[str, float] = {}
         for cfg in config_names:
+            cfg_outliers = token_outliers.get(cfg, set())
+            if run_id in cfg_outliers:
+                continue  # skip outlier runs
             cfg_total = tokens_by_cfg_run.get(cfg, {}).get(run_id)
             if cfg_total is not None:
                 ratio = cfg_total / baseline_mean
@@ -297,10 +419,35 @@ def aggregate_results(config: EvalConfig, project_root: Path) -> None:
         except (json.JSONDecodeError, OSError):
             pass
 
+    # Detect token usage outliers
+    token_outliers: dict[str, set[int]] = {}
+    outlier_analyses: dict[tuple[str, int], str] = {}
+    if generation_usage:
+        token_outliers = _detect_token_outliers(generation_usage, config_names)
+        if token_outliers:
+            output_dir = project_root / config.output.directory
+            # Build a lookup for "normal" usage to compare against
+            normal_usage_by_cfg: dict[str, dict | None] = {}
+            for cfg in config_names:
+                cfg_entries = [
+                    u for u in generation_usage
+                    if u.get("config") == cfg
+                    and u.get("run_id") not in token_outliers.get(cfg, set())
+                ]
+                normal_usage_by_cfg[cfg] = cfg_entries[0] if cfg_entries else None
+
+            for cfg, run_ids_set in token_outliers.items():
+                for rid in run_ids_set:
+                    analysis = _analyze_outlier_events(
+                        output_dir, cfg, rid, normal_usage_by_cfg.get(cfg),
+                    )
+                    outlier_analyses[(cfg, rid)] = analysis
+
     # Inject automated Token Efficiency dimension if usage data exists
     if generation_usage and _BASELINE_CONFIG in config_names:
         token_scores = _compute_token_efficiency_scores(
             generation_usage, config_names, parsed_run_ids,
+            token_outliers=token_outliers,
         )
         if token_scores and len(token_scores) == len(all_run_scores):
             for i, run_scores in enumerate(all_run_scores):
@@ -378,6 +525,8 @@ def aggregate_results(config: EvalConfig, project_root: Path) -> None:
         dim_stats, dim_tiers, dim_weights,
         weighted_per_run, parsed_run_ids, all_run_scores,
         verif_data, rich_content, generation_usage,
+        token_outliers=token_outliers,
+        outlier_analyses=outlier_analyses,
     )
 
 
@@ -433,8 +582,18 @@ def _write_token_usage_sections(
     lines: list[str],
     generation_usage: list[dict],
     config_names: list[str],
+    token_outliers: dict[str, set[int]] | None = None,
+    outlier_analyses: dict[tuple[str, int], str] | None = None,
 ) -> None:
-    """Write Token Usage Summary and Per Run detail tables."""
+    """Write Token Usage Summary and Per Run detail tables.
+
+    Outlier runs are excluded from averages and flagged in the per-run table.
+    """
+    if token_outliers is None:
+        token_outliers = {}
+    if outlier_analyses is None:
+        outlier_analyses = {}
+
     # Filter to configs in scope
     usage_in_scope = [u for u in generation_usage if u.get("config") in config_names]
     if not usage_in_scope:
@@ -445,19 +604,25 @@ def _write_token_usage_sections(
     for u in usage_in_scope:
         by_config.setdefault(u["config"], []).append(u)
 
-    # Compute per-config averages
+    # Compute per-config averages (excluding outliers)
     config_avgs: dict[str, dict[str, float]] = {}
+    outlier_count = 0
     for cfg in config_names:
         entries = by_config.get(cfg, [])
         if not entries:
             continue
-        n = len(entries)
+        cfg_outlier_runs = token_outliers.get(cfg, set())
+        clean = [e for e in entries if e.get("run_id") not in cfg_outlier_runs]
+        outlier_count += len(entries) - len(clean)
+        if not clean:
+            clean = entries  # fall back if all excluded
+        n = len(clean)
         config_avgs[cfg] = {
-            "input_tokens": sum(e.get("input_tokens", 0) for e in entries) / n,
-            "output_tokens": sum(e.get("output_tokens", 0) for e in entries) / n,
-            "cache_read_tokens": sum(e.get("cache_read_tokens", 0) for e in entries) / n,
-            "api_calls": sum(e.get("api_calls", 0) for e in entries) / n,
-            "wall_time_seconds": sum(e.get("wall_time_seconds", 0) for e in entries) / n,
+            "input_tokens": sum(e.get("input_tokens", 0) for e in clean) / n,
+            "output_tokens": sum(e.get("output_tokens", 0) for e in clean) / n,
+            "cache_read_tokens": sum(e.get("cache_read_tokens", 0) for e in clean) / n,
+            "api_calls": sum(e.get("api_calls", 0) for e in clean) / n,
+            "wall_time_seconds": sum(e.get("wall_time_seconds", 0) for e in clean) / n,
         }
 
     if not config_avgs:
@@ -471,9 +636,15 @@ def _write_token_usage_sections(
     lines.extend([
         "## Token Usage Summary",
         "",
-        "Average token consumption per configuration across all runs.",
-        "",
     ])
+    if outlier_count:
+        lines.append(
+            f"Average token consumption per configuration "
+            f"({outlier_count} outlier run(s) excluded from averages)."
+        )
+    else:
+        lines.append("Average token consumption per configuration across all runs.")
+    lines.append("")
 
     has_baseline = baseline_input is not None and baseline_input > 0
     if has_baseline:
@@ -525,24 +696,55 @@ def _write_token_usage_sections(
         "## Token Usage Per Run",
         "",
         "| Configuration | Run | Scenario | Input Tokens | Output Tokens "
-        "| Cache Read | API Calls | Wall Time |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Cache Read | API Calls | Wall Time | Note |",
+        "|---|---|---|---|---|---|---|---|---|",
     ])
 
     for u in sorted_usage:
+        cfg = u.get("config", "?")
+        run_id = u.get("run_id", 0)
+        is_outlier = run_id in token_outliers.get(cfg, set())
         mins, secs = divmod(int(u.get("wall_time_seconds", 0)), 60)
+        note = "⚠️ outlier" if is_outlier else ""
         lines.append(
-            f"| {u.get('config', '?')} "
-            f"| {u.get('run_id', '?')} "
+            f"| {cfg} "
+            f"| {run_id} "
             f"| {u.get('scenario', '—')} "
             f"| {u.get('input_tokens', 0):,} "
             f"| {u.get('output_tokens', 0):,} "
             f"| {u.get('cache_read_tokens', 0):,} "
             f"| {u.get('api_calls', 0)} "
-            f"| {mins}m {secs}s |"
+            f"| {mins}m {secs}s "
+            f"| {note} |"
         )
 
-    lines.extend(["", "---", ""])
+    lines.extend(["", ""])
+
+    # Outlier Analysis section
+    if token_outliers:
+        lines.extend([
+            "### ⚠️ Token Usage Outliers",
+            "",
+            "The following runs were detected as outliers using the Modified Z-score "
+            "(MAD) method. They are excluded from averages "
+            "and Token Efficiency scores.",
+            "",
+            "| Configuration | Run | Total Tokens | Details |",
+            "|---|---|---|---|",
+        ])
+        for u in sorted_usage:
+            cfg = u.get("config", "?")
+            run_id = u.get("run_id", 0)
+            if run_id not in token_outliers.get(cfg, set()):
+                continue
+            total = u.get("input_tokens", 0) + u.get("output_tokens", 0)
+            analysis = outlier_analyses.get((cfg, run_id), "—")
+            lines.append(
+                f"| {cfg} | {run_id} | {total:,} | {analysis} |"
+            )
+        lines.append("")
+
+    lines.extend(["---", ""])
 
 
 def _write_aggregated_report(
@@ -559,6 +761,8 @@ def _write_aggregated_report(
     verif_data: dict | None,
     rich_content: dict[str, str] | None = None,
     generation_usage: list[dict] | None = None,
+    token_outliers: dict[str, set[int]] | None = None,
+    outlier_analyses: dict[tuple[str, int], str] | None = None,
 ) -> None:
     """Write the final aggregated analysis markdown report."""
     n_runs = len(run_ids)
@@ -831,7 +1035,11 @@ def _write_aggregated_report(
 
     # Token Usage Summary
     if generation_usage:
-        _write_token_usage_sections(lines, generation_usage, config_names)
+        _write_token_usage_sections(
+            lines, generation_usage, config_names,
+            token_outliers=token_outliers,
+            outlier_analyses=outlier_analyses,
+        )
 
     # Consistency Analysis
     lines.append("## Consistency Analysis")
