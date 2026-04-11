@@ -583,6 +583,9 @@ def run_generate(
                 set_skill_directories([])
                 click.echo("  Skill directories cleared (no skills for this config)")
 
+            # Track session IDs to detect stale events.jsonl
+            seen_sessions: set[str] = set()
+
             for run_id in range(1, num_runs + 1):
                 run_output = output_base / cfg.name / f"run-{run_id}"
 
@@ -627,7 +630,13 @@ def run_generate(
                     # --- Session tracing ---
                     # Find the events.jsonl created after our timestamp
                     trace = trace_session(created_after=trace_timestamp)
+                    if trace is not None and trace.session_id in seen_sessions:
+                        click.echo(
+                            f"    📋 Session: stale (same as previous run) — skipping trace"
+                        )
+                        trace = None
                     if trace is not None:
+                        seen_sessions.add(trace.session_id)
                         usage["session_id"] = trace.session_id
                         usage["model"] = trace.model
                         usage["copilot_version"] = trace.copilot_version
