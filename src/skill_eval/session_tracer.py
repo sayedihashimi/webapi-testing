@@ -146,11 +146,10 @@ def parse_events_file(events_path: Path) -> SessionTrace:
 
 
 def extract_chat_markdown(events_path: Path) -> str | None:
-    """Extract the full Copilot conversation from an events file as markdown.
+    """Extract the Copilot conversation from an events file as markdown.
 
-    Reads ``assistant.message``, ``user.message``, and ``tool.execution_*``
-    events to reconstruct the conversation. Returns formatted markdown or
-    ``None`` if no messages found.
+    Keeps only user and assistant messages — tool calls are omitted
+    to produce a clean, readable chat log.
     """
     sections: list[str] = []
     turn_num = 0
@@ -169,23 +168,15 @@ def extract_chat_markdown(events_path: Path) -> str | None:
             data = event.get("data") or {}
 
             if etype == "user.message":
-                content = data.get("content", "")
+                content = data.get("content", "").strip()
                 if content:
                     turn_num += 1
                     sections.append(f"## User (Turn {turn_num})\n\n{content}")
 
             elif etype == "assistant.message":
-                content = data.get("content", "")
+                content = data.get("content", "").strip()
                 if content:
                     sections.append(f"## Assistant (Turn {turn_num})\n\n{content}")
-
-            elif etype == "tool.execution_start":
-                tool_name = data.get("toolName", "unknown")
-                params = data.get("parameterSummary", "")
-                if params:
-                    sections.append(f"*→ Tool: `{tool_name}` — {params}*")
-                else:
-                    sections.append(f"*→ Tool: `{tool_name}`*")
 
     if not sections:
         return None
