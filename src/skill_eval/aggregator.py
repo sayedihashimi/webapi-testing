@@ -1042,37 +1042,38 @@ def _write_aggregated_report(
         )
 
     # Consistency Analysis
-    lines.append("## Consistency Analysis")
-    lines.append("")
-    lines.append("| Configuration | Score σ | Most Consistent Dim (σ) | Most Variable Dim (σ) |")
-    lines.append("|---|---|---|---|")
+    if n_runs >= 2:
+        lines.append("## Consistency Analysis")
+        lines.append("")
+        lines.append("| Configuration | Score σ | Most Consistent Dim (σ) | Most Variable Dim (σ) |")
+        lines.append("|---|---|---|---|")
 
-    for cfg in config_names:
-        values = weighted_per_run[cfg]
-        if not values or len(values) < 2:
-            continue
-        stdev = statistics.stdev(values)
+        for cfg in config_names:
+            values = weighted_per_run[cfg]
+            if not values or len(values) < 2:
+                continue
+            stdev = statistics.stdev(values)
 
-        # Find most/least consistent dimension
-        best_dim, best_std = "", float("inf")
-        worst_dim, worst_std = "", 0.0
-        for dim in all_dims:
-            if cfg in dim_stats.get(dim, {}):
-                s = dim_stats[dim][cfg]
-                if s["stdev"] < best_std:
-                    best_std = s["stdev"]
-                    best_dim = dim
-                if s["stdev"] > worst_std:
-                    worst_std = s["stdev"]
-                    worst_dim = dim
+            # Find most/least consistent dimension
+            best_dim, best_std = "", float("inf")
+            worst_dim, worst_std = "", 0.0
+            for dim in all_dims:
+                if cfg in dim_stats.get(dim, {}):
+                    s = dim_stats[dim][cfg]
+                    if s["stdev"] < best_std:
+                        best_std = s["stdev"]
+                        best_dim = dim
+                    if s["stdev"] > worst_std:
+                        worst_std = s["stdev"]
+                        worst_dim = dim
 
-        lines.append(
-            f"| {cfg} | {stdev:.1f} "
-            f"| {best_dim} ({best_std:.1f}) "
-            f"| {worst_dim} ({worst_std:.1f}) |"
-        )
+            lines.append(
+                f"| {cfg} | {stdev:.1f} "
+                f"| {best_dim} ({best_std:.1f}) "
+                f"| {worst_dim} ({worst_std:.1f}) |"
+            )
 
-    lines.extend(["", "---", ""])
+        lines.extend(["", "---", ""])
 
     # Per-Dimension Breakdown
     lines.append("## Per-Dimension Analysis")
