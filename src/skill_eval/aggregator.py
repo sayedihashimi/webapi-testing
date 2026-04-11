@@ -1050,10 +1050,10 @@ def _write_aggregated_report(
     # Scoring Methodology
     tier_weights = {"critical": 3.0, "high": 2.0, "medium": 1.0, "low": 0.5}
     tier_counts: dict[str, int] = {}
-    for d in config.dimensions:
-        t = d.tier.lower()
-        tier_counts[t] = tier_counts.get(t, 0) + 1
-    max_weighted = sum(d.effective_weight * 5 for d in config.dimensions)
+    for dim in all_dims:
+        tier = dim_tiers.get(dim, "MEDIUM").lower()
+        tier_counts[tier] = tier_counts.get(tier, 0) + 1
+    max_weighted = sum(dim_weights.get(dim, 1.0) * 5 for dim in all_dims)
 
     if is_text:
         score_labels = [
