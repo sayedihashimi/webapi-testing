@@ -81,7 +81,13 @@ def _truncate(text: str | None, length: int = 200) -> str | None:
 
 
 def parse_events_file(events_path: Path) -> SessionTrace:
-    """Parse an ``events.jsonl`` file and return a :class:`SessionTrace`."""
+    """Parse an ``events.jsonl`` file and return a :class:`SessionTrace`.
+
+    Handles both the ``~/.copilot/session-state/`` format (which has
+    ``session.start``) and the ``--output-format json`` stdout format
+    (which uses ``result`` for session ID and ``session.tools_updated``
+    for model).
+    """
     trace = SessionTrace(events_file=str(events_path))
     first_user_seen = False
 
@@ -97,7 +103,7 @@ def parse_events_file(events_path: Path) -> SessionTrace:
 
             trace.total_events += 1
             etype = event.get("type", "")
-            data = event.get("data", {})
+            data = event.get("data") or {}
 
             if etype == "session.start":
                 trace.session_id = data.get("sessionId")
@@ -106,6 +112,16 @@ def parse_events_file(events_path: Path) -> SessionTrace:
                 trace.start_time = data.get("startTime")
                 ctx = data.get("context", {})
                 trace.cwd = ctx.get("cwd")
+
+            elif etype == "result":
+                # --output-format json emits session ID here
+                if not trace.session_id:
+                    trace.session_id = event.get("sessionId")
+
+            elif etype == "session.tools_updated":
+                # --output-format json emits model here
+                if not trace.model and data.get("model"):
+                    trace.model = data["model"]
 
             elif etype == "session.model_change":
                 trace.model = data.get("newModel") or trace.model
