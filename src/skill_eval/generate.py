@@ -205,7 +205,7 @@ def _run_copilot(
     project_root: Path | None = None,
     run_output: Path | None = None,
     idle_timeout: int = _IDLE_TIMEOUT,
-    max_retries: int = 1,
+    max_retries: int = 2,
     resolved: ResolvedConfiguration | None = None,
     generation_model: str | None = None,
 ) -> tuple[dict, SessionTrace | None]:
@@ -245,7 +245,7 @@ def _run_copilot(
         click.echo(f"  Working directory: {cwd}")
 
     # Give the Copilot CLI more memory to avoid OOM on large prompts
-    env = {**os.environ, "NODE_OPTIONS": "--max-old-space-size=8192"}
+    env = {**os.environ, "NODE_OPTIONS": "--max-old-space-size=16384"}
 
     for attempt in range(1 + max_retries):
         if attempt > 0:
