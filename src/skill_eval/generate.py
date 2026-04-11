@@ -9,6 +9,7 @@ have fewer (or no) skills.
 
 from __future__ import annotations
 
+import json
 import os
 import platform
 import shutil
@@ -213,9 +214,10 @@ def _run_copilot(
 
     When *resolved* is provided, uses pre-resolved absolute plugin paths.
 
-    Returns a dict with usage stats (tokens, duration) or None on failure.
+    Returns a dict with usage stats (tokens, duration, session_id) or
+    None on failure.
     """
-    cmd = ["copilot", "-p", prompt, "--yolo"]
+    cmd = ["copilot", "-p", prompt, "--yolo", "--output-format", "json"]
 
     if generation_model:
         cmd.extend(["--model", generation_model])
@@ -249,13 +251,43 @@ def _run_copilot(
             click.echo(f"  ⚠️  Retry {attempt}/{max_retries}")
 
         start_time = time.monotonic()
-        proc = subprocess.Popen(cmd, cwd=cwd, stderr=subprocess.PIPE, env=env)
+        stdout_file = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".jsonl", delete=False, prefix="copilot-out-",
+        )
+        proc = subprocess.Popen(
+            cmd, cwd=cwd, stdout=stdout_file, stderr=subprocess.PIPE, env=env,
+        )
         timed_out = _watchdog_wait(proc, idle_timeout)
         elapsed = time.monotonic() - start_time
+        stdout_file.close()
 
         stderr_output = ""
         if proc.stderr:
             stderr_output = proc.stderr.read().decode(errors="replace").strip()
+
+        # Parse session ID and usage from JSON output
+        session_id = None
+        json_usage: dict | None = None
+        try:
+            with open(stdout_file.name, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        event = json.loads(line)
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+                    if event.get("type") == "result":
+                        session_id = event.get("sessionId")
+                        json_usage = event.get("usage")
+        except OSError:
+            pass
+        finally:
+            try:
+                os.unlink(stdout_file.name)
+            except OSError:
+                pass
 
         if timed_out:
             click.echo(f"  ⚠️  Copilot idle for {idle_timeout}s — killing (PID {proc.pid})")
@@ -316,6 +348,10 @@ def _run_copilot(
                 f"{usage.get('output_tokens', 0):,} out / "
                 f"{usage.get('api_calls', 0)} calls / {mins}m {secs}s"
             )
+        if usage is None:
+            usage = {}
+        if session_id:
+            usage["session_id"] = session_id
         return usage
 
 
@@ -583,9 +619,6 @@ def run_generate(
                 set_skill_directories([])
                 click.echo("  Skill directories cleared (no skills for this config)")
 
-            # Track session IDs to detect stale events.jsonl
-            seen_sessions: set[str] = set()
-
             for run_id in range(1, num_runs + 1):
                 run_output = output_base / cfg.name / f"run-{run_id}"
 
@@ -628,15 +661,13 @@ def run_generate(
                     usage["scenario"] = scenario.name
 
                     # --- Session tracing ---
-                    # Find the events.jsonl created after our timestamp
-                    trace = trace_session(created_after=trace_timestamp)
-                    if trace is not None and trace.session_id in seen_sessions:
-                        click.echo(
-                            f"    📋 Session: stale (same as previous run) — skipping trace"
-                        )
-                        trace = None
+                    # Use session ID from Copilot JSON output for direct lookup
+                    copilot_session_id = usage.get("session_id")
+                    trace = trace_session(
+                        session_id=copilot_session_id,
+                        created_after=trace_timestamp,
+                    )
                     if trace is not None:
-                        seen_sessions.add(trace.session_id)
                         usage["session_id"] = trace.session_id
                         usage["model"] = trace.model
                         usage["copilot_version"] = trace.copilot_version
@@ -700,6 +731,7 @@ def run_generate(
                         preserve_events_file(
                             Path.home() / ".copilot",
                             run_output / "events.jsonl",
+                            session_id=copilot_session_id,
                             created_after=trace_timestamp,
                         )
 

@@ -137,12 +137,7 @@ def _find_latest_events_file(
 ) -> Path | None:
     """Return the most recently modified ``events.jsonl`` under *copilot_home*.
 
-    Parameters
-    ----------
-    created_after:
-        If provided, only consider session directories whose ``events.jsonl``
-        was modified after this Unix timestamp.  This helps locate the correct
-        session when multiple Copilot invocations run close together.
+    This is the legacy fallback used when no snapshot is available.
     """
     session_state = copilot_home / "session-state"
     if not session_state.is_dir():
@@ -167,21 +162,33 @@ def _find_latest_events_file(
 def trace_session(
     copilot_home: Path | None = None,
     created_after: float | None = None,
+    session_id: str | None = None,
 ) -> SessionTrace | None:
-    """Find the most recent ``events.jsonl`` and parse it.
+    """Find and parse a session's ``events.jsonl``.
 
     Parameters
     ----------
     copilot_home:
         Root of the Copilot home directory (contains ``session-state/``).
         Defaults to ``~/.copilot``.
-
-    Returns ``None`` if no events file can be found.
+    session_id:
+        When provided, loads ``session-state/{session_id}/events.jsonl``
+        directly.  This is the most reliable method.
+    created_after:
+        Legacy fallback — find by modification time when *session_id*
+        is not available.
     """
     if copilot_home is None:
         copilot_home = Path.home() / ".copilot"
 
-    events_path = _find_latest_events_file(copilot_home, created_after)
+    events_path: Path | None = None
+    if session_id:
+        candidate = copilot_home / "session-state" / session_id / "events.jsonl"
+        if candidate.is_file():
+            events_path = candidate
+    if events_path is None:
+        events_path = _find_latest_events_file(copilot_home, created_after)
+
     if events_path is None:
         return None
 
@@ -271,12 +278,22 @@ def preserve_events_file(
     copilot_home: Path,
     destination: Path,
     created_after: float | None = None,
+    session_id: str | None = None,
 ) -> Path | None:
-    """Copy the most recent ``events.jsonl`` to *destination*.
+    """Copy a session's ``events.jsonl`` to *destination*.
+
+    Uses *session_id* for direct lookup when available, falling back
+    to mtime-based lookup otherwise.
 
     Returns the destination path on success, or ``None``.
     """
-    events_path = _find_latest_events_file(copilot_home, created_after)
+    events_path: Path | None = None
+    if session_id:
+        candidate = copilot_home / "session-state" / session_id / "events.jsonl"
+        if candidate.is_file():
+            events_path = candidate
+    if events_path is None:
+        events_path = _find_latest_events_file(copilot_home, created_after)
     if events_path is None:
         return None
 
