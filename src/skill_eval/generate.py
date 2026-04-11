@@ -25,9 +25,9 @@ import click
 from skill_eval.config import Configuration, EvalConfig, IncludeDirectory
 from skill_eval.prompt_renderer import render_generate_prompt
 from skill_eval.session_tracer import (
+    SessionTrace,
     compare_resources,
-    preserve_events_file,
-    trace_session,
+    parse_events_file,
 )
 from skill_eval.skill_manager import (
     add_skill_directories,
@@ -202,20 +202,20 @@ def _run_copilot(
     *,
     cwd: Path | None = None,
     project_root: Path | None = None,
+    run_output: Path | None = None,
     idle_timeout: int = _IDLE_TIMEOUT,
     max_retries: int = 1,
     resolved: ResolvedConfiguration | None = None,
     generation_model: str | None = None,
-) -> dict | None:
+) -> tuple[dict, SessionTrace | None]:
     """Invoke the Copilot CLI with a watchdog that kills hung processes.
 
-    Monitors the Copilot process CPU and network activity. If idle for
-    *idle_timeout* seconds, it is killed and retried up to *max_retries*.
+    Uses ``--output-format json`` to capture the full event stream
+    directly to ``{run_output}/events.jsonl``.  This is the same data
+    the Copilot CLI writes to ``~/.copilot/session-state/``, so we
+    parse it in-place for session tracing — no filesystem guessing.
 
-    When *resolved* is provided, uses pre-resolved absolute plugin paths.
-
-    Returns a dict with usage stats (tokens, duration, session_id) or
-    None on failure.
+    Returns ``(usage_dict, session_trace)``.
     """
     cmd = ["copilot", "-p", prompt, "--yolo", "--output-format", "json"]
 
@@ -250,44 +250,35 @@ def _run_copilot(
         if attempt > 0:
             click.echo(f"  ⚠️  Retry {attempt}/{max_retries}")
 
+        # Write Copilot JSON output directly to the run's events.jsonl
+        if run_output:
+            run_output.mkdir(parents=True, exist_ok=True)
+            events_path = run_output / "events.jsonl"
+            stdout_fh = open(events_path, "w", encoding="utf-8")
+        else:
+            stdout_fh = tempfile.NamedTemporaryFile(
+                mode="w", suffix=".jsonl", delete=False, prefix="copilot-out-",
+            )
+            events_path = Path(stdout_fh.name)
+
         start_time = time.monotonic()
-        stdout_file = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False, prefix="copilot-out-",
-        )
         proc = subprocess.Popen(
-            cmd, cwd=cwd, stdout=stdout_file, stderr=subprocess.PIPE, env=env,
+            cmd, cwd=cwd, stdout=stdout_fh, stderr=subprocess.PIPE, env=env,
         )
         timed_out = _watchdog_wait(proc, idle_timeout)
         elapsed = time.monotonic() - start_time
-        stdout_file.close()
+        stdout_fh.close()
 
         stderr_output = ""
         if proc.stderr:
             stderr_output = proc.stderr.read().decode(errors="replace").strip()
 
-        # Parse session ID and usage from JSON output
-        session_id = None
-        json_usage: dict | None = None
+        # Parse full session trace from JSON output
+        trace: SessionTrace | None = None
         try:
-            with open(stdout_file.name, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        event = json.loads(line)
-                    except (json.JSONDecodeError, ValueError):
-                        continue
-                    if event.get("type") == "result":
-                        session_id = event.get("sessionId")
-                        json_usage = event.get("usage")
+            trace = parse_events_file(events_path)
         except OSError:
             pass
-        finally:
-            try:
-                os.unlink(stdout_file.name)
-            except OSError:
-                pass
 
         if timed_out:
             click.echo(f"  ⚠️  Copilot idle for {idle_timeout}s — killing (PID {proc.pid})")
@@ -350,9 +341,9 @@ def _run_copilot(
             )
         if usage is None:
             usage = {}
-        if session_id:
-            usage["session_id"] = session_id
-        return usage
+        if trace and trace.session_id:
+            usage["session_id"] = trace.session_id
+        return usage, trace
 
 
 def _watchdog_wait(proc: subprocess.Popen, idle_timeout: int) -> bool:
@@ -646,27 +637,18 @@ def run_generate(
                     config, cfg.name, project_root,
                     scenario=scenario, run_id=run_id,
                 )
-                # Record timestamp so we can find the right events.jsonl
-                trace_timestamp = time.time()
                 try:
-                    usage = _run_copilot(
+                    usage, trace = _run_copilot(
                         prompt, cfg, cwd=staging_dir, project_root=project_root,
+                        run_output=run_output,
                         resolved=resolved,
                         generation_model=config.generation_model,
                     )
-                    if usage is None:
-                        usage = {}
                     usage["config"] = cfg.name
                     usage["run_id"] = run_id
                     usage["scenario"] = scenario.name
 
-                    # --- Session tracing ---
-                    # Use session ID from Copilot JSON output for direct lookup
-                    copilot_session_id = usage.get("session_id")
-                    trace = trace_session(
-                        session_id=copilot_session_id,
-                        created_after=trace_timestamp,
-                    )
+                    # --- Session tracing (parsed from stdout, already on disk) ---
                     if trace is not None:
                         usage["session_id"] = trace.session_id
                         usage["model"] = trace.model
@@ -726,14 +708,6 @@ def run_generate(
                                 )
                         elif comparison.get("match"):
                             click.echo("    ✅ All skills/plugins match config")
-
-                        # Preserve events.jsonl in run output
-                        preserve_events_file(
-                            Path.home() / ".copilot",
-                            run_output / "events.jsonl",
-                            session_id=copilot_session_id,
-                            created_after=trace_timestamp,
-                        )
 
                     all_usage.append(usage)
                     click.echo(f"    ✅ {scenario.name} done")
