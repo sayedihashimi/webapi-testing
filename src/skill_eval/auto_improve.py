@@ -965,7 +965,14 @@ def run_auto_improve(
 
         iterations.append(iteration_record)
 
-        # --- Step 3: Check stopping conditions ---
+        # --- Step 3: Rollback on regression (before stop check) ---
+        if not no_rollback and delta is not None and delta < 0 and len(iterations) >= 2:
+            prev_backup = backup_root / f"turn-{turn - 1}"
+            if prev_backup.exists():
+                click.echo(f"  ⚠️  Score decreased — rolling back skill changes from turn {turn - 1}")
+                _rollback_skill_dirs(skill_paths, plugin_paths, prev_backup)
+
+        # --- Step 4: Check stopping conditions ---
         stop_reason = _check_stop(
             iterations, target_score, min_improvement, max_turns,
             use_focused=bool(active_focus),
@@ -973,13 +980,6 @@ def run_auto_improve(
         if stop_reason:
             _write_history(history_path, target_config_name, iterations, stop_reason)
             break
-
-        # --- Step 4: Handle rollback on regression ---
-        if not no_rollback and delta is not None and delta < 0 and len(iterations) >= 2:
-            prev_backup = backup_root / f"turn-{turn - 1}"
-            if prev_backup.exists():
-                click.echo(f"  ⚠️  Score decreased — rolling back skill changes from turn {turn - 1}")
-                _rollback_skill_dirs(skill_paths, plugin_paths, prev_backup)
 
         # --- Step 5: Generate improvement suggestions ---
         click.echo("  💡 Generating improvement suggestions...")
