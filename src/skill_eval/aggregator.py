@@ -1106,6 +1106,11 @@ def _write_aggregated_report(
     # Executive Summary
     lines.append("## Executive Summary")
     lines.append("")
+    lines.append(
+        "Mean dimension scores across runs (1–5 scale, **higher is better**). "
+        "± values show standard deviation across runs."
+    )
+    lines.append("")
     header = "| Dimension [Tier] | " + " | ".join(config_names) + " |"
     sep = "|---|" + "|".join(["---"] * len(config_names)) + "|"
     lines.append(header)
@@ -1130,8 +1135,13 @@ def _write_aggregated_report(
     # Final Rankings
     lines.append("## Final Rankings")
     lines.append("")
+    lines.append(
+        "Configurations ranked by mean weighted score — **higher is better**. "
+        "Std Dev shows run-to-run variability (lower = more consistent)."
+    )
+    lines.append("")
     max_score_label = f"{max_weighted:.0f}" if max_weighted == int(max_weighted) else f"{max_weighted:.1f}"
-    lines.append(f"| Rank | Configuration | Mean Score | % of Max ({max_score_label}) | Std Dev | Min | Max |")
+    lines.append(f"| Rank | Configuration | Mean Score ↑ | % of Max ({max_score_label}) | Std Dev ↓ | Min | Max |")
     lines.append("|---|---|---|---|---|---|---|")
 
     rankings = []
@@ -1211,7 +1221,13 @@ def _write_aggregated_report(
     if n_runs >= 2:
         lines.append("## Consistency Analysis")
         lines.append("")
-        lines.append("| Configuration | Score σ | Most Consistent Dim (σ) | Most Variable Dim (σ) |")
+        lines.append(
+            "Score σ (standard deviation) measures how much a configuration's "
+            "weighted score varies across runs — **lower is better**, meaning "
+            "the configuration produces more reliable, repeatable results."
+        )
+        lines.append("")
+        lines.append("| Configuration | Score σ (lower = more consistent) | Most Consistent Dim (σ) | Most Variable Dim (σ) |")
         lines.append("|---|---|---|---|")
 
         for cfg in config_names:
