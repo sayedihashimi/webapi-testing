@@ -79,10 +79,15 @@ These are the other configurations that were evaluated alongside `{{ config_name
    - **Dimension affected**: Which evaluation dimension(s) this improves
    - **Current behavior**: What the skill currently produces (with evidence from the analysis)
    - **Desired behavior**: What the skill should produce instead
-   - **Specific changes**: Exact additions or modifications to the skill's instruction files
+   - **Specific changes**: For each file being modified, show the **existing content** (before) and the **proposed content** (after) side by side. This gives readers full context to evaluate whether the change makes sense.
    - **Expected impact**: Estimated score improvement and tier affected
 
-5. **Include concrete examples**: For each suggestion, provide actual text that could be added to or modified in the skill's instruction files. Don't be vague — show the exact content.
+5. **Include before/after snippets**: For every suggested change, you MUST show:
+   - The **exact existing text** from the skill/plugin source file (the "before")
+   - The **proposed replacement text** (the "after")
+   - Use clearly labeled fenced code blocks: `**Before** (file-path):` and `**After** (file-path):`
+   - For new content being added (not replacing existing text), show the surrounding context where it should be inserted, then the after block with the new content in place.
+   - This is critical — it lets the reader understand what exists today and judge whether the proposed change is appropriate.
 
 6. **Consider trade-offs**: Note if any suggested change might negatively impact other dimensions.
 
@@ -106,7 +111,18 @@ Table showing the skill's scores across all dimensions, highlighting where it tr
 - **Current score → Target score**: ...
 - **Problem**: What's happening now
 - **Root cause**: Why the skill produces this result
-- **Suggested change**: Exact content to add/modify
+- **Suggested changes**:
+
+  **Before** (`path/to/file.md`):
+  ```md
+  [exact existing content from the skill source file]
+  ```
+
+  **After** (`path/to/file.md`):
+  ```md
+  [proposed replacement content]
+  ```
+
 - **Expected impact**: ...
 
 ### 2. [Next Priority Suggestion]
