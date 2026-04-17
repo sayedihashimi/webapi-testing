@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import random
 import shutil
 import subprocess
 import sys
@@ -697,8 +698,8 @@ def run_generate(
                     click.echo(f"\n  ⏭️  Run {run_id}/{num_runs} — skipping (output exists)")
                     continue
 
-                # Select one scenario for this run (round-robin for coverage)
-                scenario = config.scenarios[(run_id - 1) % total_scenarios]
+                # Select one scenario for this run (random for coverage)
+                scenario = random.choice(config.scenarios)
 
                 click.echo(f"\n  --- Run {run_id}/{num_runs} → {scenario.name} ---")
 
