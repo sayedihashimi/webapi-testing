@@ -22,6 +22,159 @@ from skill_eval.source_resolver import SourceResolver
 
 
 # ---------------------------------------------------------------------------
+# Lessons Learned
+# ---------------------------------------------------------------------------
+
+class LessonEntry:
+    """A single lesson learned from a failed improvement attempt."""
+
+    def __init__(
+        self,
+        turn: int,
+        retry: int,
+        attempted_changes: str,
+        analysis: str,
+        score_before: float,
+        score_after: float,
+        dimensions_affected: dict[str, float],
+        confidence: float = 0.7,
+        timestamp: str | None = None,
+    ) -> None:
+        self.turn = turn
+        self.retry = retry
+        self.attempted_changes = attempted_changes
+        self.analysis = analysis
+        self.score_before = score_before
+        self.score_after = score_after
+        self.dimensions_affected = dimensions_affected
+        self.confidence = confidence
+        self.timestamp = timestamp or datetime.now(timezone.utc).isoformat()
+
+    def to_dict(self) -> dict:
+        return {
+            "turn": self.turn,
+            "retry": self.retry,
+            "attempted_changes": self.attempted_changes,
+            "analysis": self.analysis,
+            "score_before": self.score_before,
+            "score_after": self.score_after,
+            "dimensions_affected": self.dimensions_affected,
+            "confidence": self.confidence,
+            "timestamp": self.timestamp,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> LessonEntry:
+        return cls(
+            turn=data["turn"],
+            retry=data["retry"],
+            attempted_changes=data.get("attempted_changes", ""),
+            analysis=data.get("analysis", ""),
+            score_before=data.get("score_before", 0.0),
+            score_after=data.get("score_after", 0.0),
+            dimensions_affected=data.get("dimensions_affected", {}),
+            confidence=data.get("confidence", 0.7),
+            timestamp=data.get("timestamp"),
+        )
+
+
+class LessonsLearned:
+    """Tracks lessons learned from failed improvement attempts.
+
+    Lessons carry confidence scores (0.0–1.0) and are presented to
+    the LLM as soft guidance, not hard rules.
+    """
+
+    # Confidence escalation for repeated failures
+    CONFIDENCE_INITIAL = 0.7
+    CONFIDENCE_SECOND = 0.85
+    CONFIDENCE_THIRD = 0.95
+
+    def __init__(self) -> None:
+        self.lessons: list[LessonEntry] = []
+
+    def add(self, lesson: LessonEntry) -> None:
+        """Add a lesson, escalating confidence if similar attempts have failed before."""
+        similar_count = sum(
+            1 for l in self.lessons
+            if l.turn == lesson.turn  # same turn = same plateau
+        )
+        if similar_count == 0:
+            lesson.confidence = self.CONFIDENCE_INITIAL
+        elif similar_count == 1:
+            lesson.confidence = self.CONFIDENCE_SECOND
+        else:
+            lesson.confidence = self.CONFIDENCE_THIRD
+        self.lessons.append(lesson)
+
+    def format_for_prompt(self) -> str:
+        """Render lessons as structured text for LLM consumption."""
+        if not self.lessons:
+            return ""
+
+        lines = [
+            "## Previous Attempts (Lessons Learned)",
+            "",
+            "The following approaches were previously tried and did not improve scores.",
+            "Consider these as guidance, not absolute rules — they carry the noted",
+            "confidence levels. Higher confidence means stronger evidence that the",
+            "approach should be avoided.",
+            "",
+        ]
+
+        for i, lesson in enumerate(self.lessons, 1):
+            delta = lesson.score_after - lesson.score_before
+            sign = "+" if delta >= 0 else ""
+            lines.append(f"### Attempt {i} (Turn {lesson.turn}, Retry {lesson.retry}) "
+                         f"— Confidence: {lesson.confidence:.0%}")
+            lines.append("")
+            lines.append(f"**Score impact:** {lesson.score_before:.2f} → "
+                         f"{lesson.score_after:.2f} ({sign}{delta:.2f})")
+            lines.append("")
+            if lesson.dimensions_affected:
+                lines.append("**Dimension changes:**")
+                for dim, change in lesson.dimensions_affected.items():
+                    d_sign = "+" if change >= 0 else ""
+                    lines.append(f"  - {dim}: {d_sign}{change:.2f}")
+                lines.append("")
+            if lesson.attempted_changes:
+                lines.append(f"**What was tried:** {lesson.attempted_changes}")
+                lines.append("")
+            if lesson.analysis:
+                lines.append(f"**Why it didn't work:** {lesson.analysis}")
+                lines.append("")
+
+        return "\n".join(lines)
+
+    def save(self, path: Path) -> None:
+        """Persist lessons to a JSON file."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        data = {
+            "lessons": [l.to_dict() for l in self.lessons],
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    def load(self, path: Path) -> None:
+        """Load lessons from a JSON file, merging with any existing in-memory lessons."""
+        if not path.exists():
+            return
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return
+        for entry_data in data.get("lessons", []):
+            try:
+                self.lessons.append(LessonEntry.from_dict(entry_data))
+            except (KeyError, TypeError):
+                continue
+
+    def to_dict_list(self) -> list[dict]:
+        """Return all lessons as a list of dicts (for history embedding)."""
+        return [l.to_dict() for l in self.lessons]
+
+
+# ---------------------------------------------------------------------------
 # Score extraction
 # ---------------------------------------------------------------------------
 
@@ -254,6 +407,7 @@ def _apply_improvements(
     model: str | None,
     focus_dimensions: list[str] | None = None,
     idle_timeout: int = 600,
+    lessons_context: str | None = None,
 ) -> bool:
     """Invoke Copilot CLI to apply the improvements file to skill/plugin sources.
 
@@ -317,12 +471,23 @@ def _apply_improvements(
             f"- After applying changes, briefly summarize what you changed."
         )
 
+    lessons_directive = ""
+    if lessons_context:
+        lessons_directive = (
+            f"\n\nLESSONS FROM PREVIOUS ATTEMPTS:\n"
+            f"These approaches were previously tried and didn't help. The confidence "
+            f"scores indicate how certain we are about each lesson. Avoid repeating "
+            f"these approaches unless you have a clearly different angle.\n\n"
+            f"{lessons_context}\n"
+        )
+
     prompt = (
         f"Read the improvement suggestions in the file at {improvements_path}. "
         f"Apply the suggested changes to the skill/plugin source files located at:\n"
         f"{paths_str}\n\n"
         f"{file_rules}"
         f"{focus_directive}"
+        f"{lessons_directive}"
     )
 
     cmd = ["copilot", "-p", prompt, "--yolo"]
@@ -341,12 +506,129 @@ def _apply_improvements(
 
 
 # ---------------------------------------------------------------------------
+# Lesson generation
+# ---------------------------------------------------------------------------
+
+def _generate_lesson(
+    improvements_path: Path,
+    score_before: float,
+    score_after: float,
+    per_dim_before: dict[str, float],
+    per_dim_after: dict[str, float],
+    turn: int,
+    retry: int,
+    model: str | None,
+    idle_timeout: int = 300,
+) -> LessonEntry:
+    """Ask the LLM to analyze why the attempted improvements didn't help.
+
+    Returns a LessonEntry with the LLM's analysis.
+    """
+    from skill_eval.generate import _kill_process_tree, _watchdog_wait
+
+    delta = score_after - score_before
+    sign = "+" if delta >= 0 else ""
+
+    # Compute per-dimension changes
+    dim_changes: dict[str, float] = {}
+    all_dims = set(per_dim_before.keys()) | set(per_dim_after.keys())
+    for dim in all_dims:
+        before = per_dim_before.get(dim, 0.0)
+        after = per_dim_after.get(dim, 0.0)
+        dim_changes[dim] = round(after - before, 2)
+
+    # Build dimension change summary
+    dim_lines = []
+    for dim, change in sorted(dim_changes.items(), key=lambda x: x[1]):
+        d_sign = "+" if change >= 0 else ""
+        dim_lines.append(f"  - {dim}: {d_sign}{change:.2f}")
+    dim_summary = "\n".join(dim_lines)
+
+    prompt = (
+        f"Analyze why the improvement suggestions did not work.\n\n"
+        f"The improvements file is at: {improvements_path}\n"
+        f"Read it to understand what changes were suggested.\n\n"
+        f"Score before applying: {score_before:.2f}\n"
+        f"Score after applying:  {score_after:.2f} ({sign}{delta:.2f})\n\n"
+        f"Per-dimension changes:\n{dim_summary}\n\n"
+        f"Please provide a concise analysis (under 200 words) answering:\n"
+        f"1. What changes were attempted (brief summary)\n"
+        f"2. Why they likely didn't improve the score (or made it worse)\n"
+        f"3. What kind of different approach might work better\n\n"
+        f"Write your analysis as plain text to stdout. Do NOT modify any files.\n"
+        f"Do NOT create any files. Just output your analysis text."
+    )
+
+    # Try to capture LLM output
+    cmd = ["copilot", "-p", prompt, "--yolo"]
+    if model:
+        cmd.extend(["--model", model])
+
+    env = {**os.environ, "NODE_OPTIONS": "--max-old-space-size=8192"}
+
+    analysis = ""
+    attempted_changes = ""
+
+    try:
+        proc = subprocess.Popen(
+            cmd, env=env,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        timed_out = _watchdog_wait(proc, idle_timeout)
+        if timed_out:
+            _kill_process_tree(proc)
+            analysis = "Lesson generation timed out."
+        elif proc.stdout:
+            raw = proc.stdout.read()
+            if raw:
+                analysis = raw.decode("utf-8", errors="replace").strip()
+    except Exception as e:
+        analysis = f"Lesson generation failed: {e}"
+
+    # Read the improvements file for a summary of what was attempted
+    if improvements_path.exists():
+        try:
+            content = improvements_path.read_text(encoding="utf-8")
+            # Extract the executive summary if present
+            for marker in ["## Executive Summary", "## Summary"]:
+                idx = content.find(marker)
+                if idx >= 0:
+                    end = content.find("\n## ", idx + len(marker))
+                    if end < 0:
+                        end = min(len(content), idx + 1000)
+                    attempted_changes = content[idx:end].strip()
+                    break
+            if not attempted_changes:
+                attempted_changes = content[:500].strip()
+        except OSError:
+            pass
+
+    if not analysis:
+        analysis = (
+            f"Score changed from {score_before:.2f} to {score_after:.2f} "
+            f"({sign}{delta:.2f}). The attempted improvements did not "
+            f"meet the minimum improvement threshold."
+        )
+
+    return LessonEntry(
+        turn=turn,
+        retry=retry,
+        attempted_changes=attempted_changes,
+        analysis=analysis,
+        score_before=score_before,
+        score_after=score_after,
+        dimensions_affected=dim_changes,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Stopping conditions
 # ---------------------------------------------------------------------------
 
 class StopReason:
     TARGET_REACHED = "target_score_reached"
     PLATEAU = "score_plateau"
+    PLATEAU_EXHAUSTED = "plateau_retries_exhausted"
     MAX_TURNS = "max_turns_reached"
     REGRESSION = "score_regression"
     APPLY_FAILED = "apply_failed"
@@ -432,6 +714,7 @@ def _write_history(history_path: Path, config_name: str, iterations: list[dict],
 _STOP_LABELS = {
     StopReason.TARGET_REACHED: "🎯 Target score reached",
     StopReason.PLATEAU: "📊 Score plateau — improvement below threshold",
+    StopReason.PLATEAU_EXHAUSTED: "📊 Plateau — all retry attempts exhausted",
     StopReason.MAX_TURNS: "🔄 Maximum turns reached",
     StopReason.REGRESSION: "📉 Score regression — 2 consecutive decreases",
     StopReason.APPLY_FAILED: "❌ Failed to apply improvements",
@@ -442,14 +725,25 @@ _STOP_LABELS = {
 def _format_summary_table(iterations: list[dict], stop_reason: str | None) -> list[str]:
     """Build the score progression table as a list of lines (reused for console and report)."""
     has_focused = any(it.get("focused_score") is not None for it in iterations)
+    has_retries = any(it.get("is_retry") for it in iterations)
     lines: list[str] = []
 
     if has_focused:
-        lines.append(f"| Turn | Overall | Delta | Focused | F.Delta | Status |")
-        lines.append(f"|-----:|--------:|------:|--------:|--------:|--------|")
+        header = "| Turn | Overall | Delta | Focused | F.Delta |"
+        sep = "|-----:|--------:|------:|--------:|--------:|"
     else:
-        lines.append(f"| Turn | Score | Delta | Status |")
-        lines.append(f"|-----:|------:|------:|--------|")
+        header = "| Turn | Score | Delta |"
+        sep = "|-----:|------:|------:|"
+
+    if has_retries:
+        header += " Retry |"
+        sep += "------:|"
+
+    header += " Status |"
+    sep += "--------|"
+
+    lines.append(header)
+    lines.append(sep)
 
     for it in iterations:
         turn = it["turn"]
@@ -462,12 +756,17 @@ def _format_summary_table(iterations: list[dict], stop_reason: str | None) -> li
 
         if it.get("is_final_validation"):
             status = "🏁 Final validation"
+        elif it.get("is_retry") and it.get("improvements_applied"):
+            retry_num = it.get("retry_attempt", "?")
+            status = f"✅ Retry {retry_num} succeeded"
         elif it.get("improvements_applied"):
             status = "✅ Improvements applied"
         elif it == iterations[-1] and stop_reason:
             status = _STOP_LABELS.get(stop_reason, stop_reason)
         else:
             status = "—"
+
+        row = f"| {turn} | {score_str} | {delta_str} |"
 
         if has_focused:
             f_score = it.get("focused_score")
@@ -476,20 +775,33 @@ def _format_summary_table(iterations: list[dict], stop_reason: str | None) -> li
             f_delta_str = f"+{f_delta:.2f}" if f_delta is not None and f_delta >= 0 else (
                 f"{f_delta:.2f}" if f_delta is not None else "—"
             )
-            lines.append(f"| {turn} | {score_str} | {delta_str} | {f_score_str} | {f_delta_str} | {status} |")
-        else:
-            lines.append(f"| {turn} | {score_str} | {delta_str} | {status} |")
+            row = f"| {turn} | {score_str} | {delta_str} | {f_score_str} | {f_delta_str} |"
+
+        if has_retries:
+            retry_attempt = it.get("retry_attempt", 0)
+            retry_str = f"{retry_attempt}" if retry_attempt else "—"
+            row += f" {retry_str} |"
+
+        row += f" {status} |"
+        lines.append(row)
 
     return lines
 
 
 def _print_summary(iterations: list[dict], stop_reason: str | None) -> None:
     """Print a score progression table."""
+    has_retries = any(it.get("is_retry") for it in iterations)
+
     click.echo(f"\n{'=' * 60}")
     click.echo("Auto-Improve Summary")
     click.echo(f"{'=' * 60}")
-    click.echo(f"\n  {'Turn':>4s}  {'Score':>8s}  {'Delta':>8s}  Status")
-    click.echo(f"  {'----':>4s}  {'-----':>8s}  {'-----':>8s}  ------")
+
+    if has_retries:
+        click.echo(f"\n  {'Turn':>4s}  {'Score':>8s}  {'Delta':>8s}  {'Retry':>5s}  Status")
+        click.echo(f"  {'----':>4s}  {'-----':>8s}  {'-----':>8s}  {'-----':>5s}  ------")
+    else:
+        click.echo(f"\n  {'Turn':>4s}  {'Score':>8s}  {'Delta':>8s}  Status")
+        click.echo(f"  {'----':>4s}  {'-----':>8s}  {'-----':>8s}  ------")
 
     for it in iterations:
         turn = it["turn"]
@@ -502,6 +814,9 @@ def _print_summary(iterations: list[dict], stop_reason: str | None) -> None:
 
         if it.get("is_final_validation"):
             status = "🏁 Final validation"
+        elif it.get("is_retry") and it.get("improvements_applied"):
+            retry_num = it.get("retry_attempt", "?")
+            status = f"✅ Retry {retry_num} succeeded"
         elif it.get("improvements_applied"):
             status = "✅ Improvements applied"
         elif it == iterations[-1] and stop_reason:
@@ -509,7 +824,12 @@ def _print_summary(iterations: list[dict], stop_reason: str | None) -> None:
         else:
             status = "—"
 
-        click.echo(f"  {turn:>4}  {score_str:>8s}  {delta_str:>8s}  {status}")
+        if has_retries:
+            retry_attempt = it.get("retry_attempt", 0)
+            retry_str = f"{retry_attempt}" if retry_attempt else "—"
+            click.echo(f"  {turn:>4}  {score_str:>8s}  {delta_str:>8s}  {retry_str:>5s}  {status}")
+        else:
+            click.echo(f"  {turn:>4}  {score_str:>8s}  {delta_str:>8s}  {status}")
 
     if stop_reason:
         click.echo(f"\n  Result: {_STOP_LABELS.get(stop_reason, stop_reason)}")
@@ -534,6 +854,7 @@ def _write_results_report(
     stop_reason: str | None,
     total_seconds: float,
     settings: dict,
+    lessons: LessonsLearned | None = None,
 ) -> None:
     """Write a detailed auto-improve results report in Markdown.
 
@@ -616,6 +937,26 @@ def _write_results_report(
 
     # Iteration details
     _write_iteration_details(lines, iterations)
+
+    # Lessons learned
+    if lessons and lessons.lessons:
+        lines.append("## Lessons Learned")
+        lines.append("")
+        lines.append(f"*{len(lessons.lessons)} lesson(s) recorded during this session.*")
+        lines.append("")
+        for i, lesson in enumerate(lessons.lessons, 1):
+            ldelta = lesson.score_after - lesson.score_before
+            l_sign = "+" if ldelta >= 0 else ""
+            lines.append(f"### Lesson {i} (Turn {lesson.turn}, Retry {lesson.retry}) "
+                         f"— Confidence: {lesson.confidence:.0%}")
+            lines.append("")
+            lines.append(f"**Score impact:** {lesson.score_before:.2f} → "
+                         f"{lesson.score_after:.2f} ({l_sign}{ldelta:.2f})")
+            lines.append("")
+            if lesson.analysis:
+                lines.append(f"**Analysis:** {lesson.analysis}")
+                lines.append("")
+        lines.append("")
 
     # Settings
     lines.append("## Settings")
@@ -803,6 +1144,9 @@ def run_auto_improve(
     focus_dimensions: list[str] | None = None,
     focus_lowest: int | None = None,
     research_dir: Path | None = None,
+    max_retries: int = 3,
+    lessons_file: Path | None = None,
+    no_lessons: bool = False,
 ) -> None:
     """Run the autonomous improvement loop.
 
@@ -813,6 +1157,12 @@ def run_auto_improve(
 
     When *research_dir* is provided, best-practice files from that directory
     are included in the improvement prompt context.
+
+    When *max_retries* > 0, plateau/regression triggers a retry sub-loop
+    that rolls back, generates lessons learned, and retries with different
+    improvement suggestions.  Retries do not count toward *max_turns*.
+
+    When *no_lessons* is True, lessons learned are disabled entirely.
     """
     from skill_eval.analyze import run_analyze
     from skill_eval.generate import run_generate
@@ -888,6 +1238,17 @@ def run_auto_improve(
 
     imp_model = improvement_model or config.effective_improvement_model
 
+    # Initialize lessons learned
+    lessons = LessonsLearned()
+    if not no_lessons:
+        default_lessons_path = reports_dir / f"lessons-learned-{target_config_name}.json"
+        lessons_path = lessons_file or default_lessons_path
+        lessons.load(lessons_path)
+        if lessons.lessons:
+            click.echo(f"  📚 Loaded {len(lessons.lessons)} lesson(s) from {lessons_path}")
+    else:
+        lessons_path = None
+
     click.echo(f"\n{'=' * 60}")
     click.echo("Auto-Improve Loop")
     click.echo(f"{'=' * 60}")
@@ -895,6 +1256,8 @@ def run_auto_improve(
     click.echo(f"  Max turns:         {max_turns}")
     click.echo(f"  Target score:      {target_score}")
     click.echo(f"  Min improvement:   {min_improvement}")
+    click.echo(f"  Max retries:       {max_retries}")
+    click.echo(f"  Lessons learned:   {'disabled' if no_lessons else 'enabled'}")
     click.echo(f"  Runs/iteration:    {runs_per_iteration}")
     click.echo(f"  Generation model:  {config.generation_model}")
     click.echo(f"  Analysis model:    {config.analysis_model}")
@@ -908,6 +1271,9 @@ def run_auto_improve(
 
     iterations: list[dict] = []
     stop_reason: str | None = None
+
+    # Get lessons context for prompts
+    lessons_ctx = lessons.format_for_prompt() if not no_lessons else ""
 
     pipeline_start = time.monotonic()
 
@@ -998,6 +1364,8 @@ def run_auto_improve(
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "elapsed_seconds": round(turn_elapsed, 1),
             "improvements_applied": False,
+            "retry_attempt": 0,
+            "is_retry": False,
         }
 
         delta_str = f" (delta: {'+' if delta >= 0 else ''}{delta:.2f})" if delta is not None else ""
@@ -1008,19 +1376,200 @@ def run_auto_improve(
 
         iterations.append(iteration_record)
 
-        # --- Step 3: Rollback on regression (before stop check) ---
-        if not no_rollback and delta is not None and delta < 0 and len(iterations) >= 2:
-            prev_backup = backup_root / f"turn-{turn - 1}"
-            if prev_backup.exists():
-                click.echo(f"  ⚠️  Score decreased — rolling back skill changes from turn {turn - 1}")
-                _rollback_skill_dirs(skill_paths, plugin_paths, prev_backup)
-
-        # --- Step 4: Check stopping conditions ---
-        stop_reason = _check_stop(
+        # --- Step 3: Check for plateau/regression and retry ---
+        check_result = _check_stop(
             iterations, target_score, min_improvement, max_turns,
             use_focused=bool(active_focus),
         )
-        if stop_reason:
+
+        # Handle plateau or regression with backtracking retries
+        needs_retry = (
+            check_result in (StopReason.PLATEAU, StopReason.REGRESSION)
+            and max_retries > 0
+            and turn > 1  # can't retry the very first turn
+        )
+
+        if needs_retry:
+            # Save the score/dims before the failed attempt for lesson generation
+            prev_iter = iterations[-2] if len(iterations) >= 2 else None
+            score_before = prev_iter["weighted_average"] if prev_iter else weighted_avg
+            per_dim_before = prev_iter.get("per_dimension", {}) if prev_iter else per_dim
+
+            # Rollback the failed attempt before entering retry loop
+            if not no_rollback and delta is not None and delta < 0 and len(iterations) >= 2:
+                prev_backup = backup_root / f"turn-{turn - 1}"
+                if prev_backup.exists():
+                    click.echo(f"  ⚠️  Score decreased — rolling back skill changes")
+                    _rollback_skill_dirs(skill_paths, plugin_paths, prev_backup)
+
+            retry_succeeded = False
+            for retry_num in range(1, max_retries + 1):
+                click.echo(f"\n  {'·' * 40}")
+                click.echo(f"  🔄 Retry {retry_num}/{max_retries} (turn {turn})")
+                click.echo(f"  {'·' * 40}")
+
+                # Generate a lesson from the failed attempt
+                if not no_lessons:
+                    click.echo("  📚 Generating lesson from failed attempt...")
+                    improvements_file = config.output.improvements_file_pattern.format(
+                        config=target_config_name
+                    )
+                    improvements_path = reports_dir / improvements_file
+                    lesson = _generate_lesson(
+                        improvements_path=improvements_path,
+                        score_before=score_before,
+                        score_after=weighted_avg,
+                        per_dim_before=per_dim_before,
+                        per_dim_after=per_dim,
+                        turn=turn,
+                        retry=retry_num,
+                        model=imp_model,
+                    )
+                    lessons.add(lesson)
+                    lessons_ctx = lessons.format_for_prompt()
+                    click.echo(f"  📚 Lesson recorded (confidence: {lesson.confidence:.0%})")
+
+                    # Persist lessons after each one
+                    if lessons_path:
+                        lessons.save(lessons_path)
+
+                # Rollback to pre-turn state
+                pre_turn_backup = backup_root / f"turn-{turn}"
+                if not pre_turn_backup.exists() and turn > 1:
+                    pre_turn_backup = backup_root / f"turn-{turn - 1}"
+                if pre_turn_backup.exists():
+                    click.echo(f"  ↩️  Rolling back to pre-attempt state...")
+                    _rollback_skill_dirs(skill_paths, plugin_paths, pre_turn_backup)
+
+                # Re-generate improvement suggestions with lessons context
+                click.echo("  💡 Generating new improvement suggestions (with lessons)...")
+                _clean_previous_outputs(config, project_root)
+                try:
+                    run_suggest_improvements(
+                        config, project_root, resolver, model_override=imp_model,
+                        focus_dimensions=active_focus,
+                        research_dir=research_dir,
+                        lessons_context=lessons_ctx,
+                    )
+                except Exception as e:
+                    click.echo(f"  ❌ Improvement suggestions failed: {e}")
+                    continue
+
+                improvements_file = config.output.improvements_file_pattern.format(
+                    config=target_config_name
+                )
+                improvements_path = reports_dir / improvements_file
+                if not improvements_path.exists():
+                    click.echo(f"  ❌ Improvements file not generated")
+                    continue
+
+                # Snapshot and apply
+                retry_backup_label = f"turn-{turn}-retry-{retry_num}"
+                backup_dir = backup_root / retry_backup_label
+                backup_dir.mkdir(parents=True, exist_ok=True)
+                _snapshot_skill_dirs(skill_paths, plugin_paths, turn, backup_root)
+
+                click.echo("  🔧 Applying improvements via Copilot CLI...")
+                apply_success = _apply_improvements(
+                    improvements_path, skill_paths, plugin_paths, model=imp_model,
+                    focus_dimensions=active_focus,
+                    lessons_context=lessons_ctx,
+                )
+                if not apply_success:
+                    click.echo("  ❌ Copilot CLI failed or timed out")
+                    continue
+
+                # Re-run pipeline to evaluate the retry
+                click.echo("  📦 Re-running pipeline to evaluate retry...")
+                _clean_previous_outputs(config, project_root)
+                config.runs = runs_per_iteration
+                try:
+                    run_generate(config, project_root, resume=False, resolver=resolver,
+                                scenario_offset=turn - 1)
+                    if config.verification is not None:
+                        run_verify(config, project_root)
+                    run_analyze(config, project_root)
+                except Exception as e:
+                    click.echo(f"  ❌ Retry pipeline failed: {e}")
+                    continue
+
+                retry_avg, retry_dim = _read_weighted_average(scores_path, target_config_name)
+                if retry_avg is None:
+                    click.echo("  ❌ Could not parse retry scores")
+                    continue
+
+                retry_delta = retry_avg - score_before
+                retry_elapsed = time.monotonic() - turn_start
+                r_mins, r_secs = divmod(int(retry_elapsed), 60)
+
+                r_sign = "+" if retry_delta >= 0 else ""
+                click.echo(f"  📈 Retry score: {retry_avg:.2f} ({r_sign}{retry_delta:.2f} vs pre-turn)  [{r_mins}m {r_secs}s]")
+
+                # Check if the retry met the minimum improvement
+                if retry_delta >= min_improvement:
+                    click.echo(f"  ✅ Retry {retry_num} succeeded!")
+
+                    # Update the iteration record with retry results
+                    retry_record = {
+                        "turn": turn,
+                        "weighted_average": round(retry_avg, 2),
+                        "delta": round(retry_delta, 2),
+                        "per_dimension": {k: round(v, 2) for k, v in retry_dim.items()},
+                        "focused_score": None,
+                        "focused_delta": None,
+                        "focus_dimensions": active_focus,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "elapsed_seconds": round(retry_elapsed, 1),
+                        "improvements_applied": True,
+                        "retry_attempt": retry_num,
+                        "is_retry": True,
+                    }
+
+                    # Compute focused score for retry
+                    if active_focus:
+                        retry_focused = _read_focused_score(scores_path, target_config_name, active_focus)
+                        if retry_focused is not None:
+                            retry_record["focused_score"] = round(retry_focused, 2)
+
+                    # Replace the failed iteration with the successful retry
+                    iterations[-1] = retry_record
+
+                    # Update state for next turn
+                    weighted_avg = retry_avg
+                    per_dim = retry_dim
+                    retry_succeeded = True
+                    break
+                else:
+                    click.echo(f"  ⚠️  Retry {retry_num} didn't meet threshold ({retry_delta:.2f} < {min_improvement})")
+                    # Update score state for next lesson
+                    weighted_avg = retry_avg
+                    per_dim = retry_dim
+
+            if not retry_succeeded:
+                click.echo(f"  ❌ All {max_retries} retries exhausted")
+                stop_reason = StopReason.PLATEAU_EXHAUSTED
+                _write_history(history_path, target_config_name, iterations, stop_reason)
+                break
+
+            # Retry succeeded — continue to next turn
+            _write_history(history_path, target_config_name, iterations, stop_reason)
+            continue
+
+        # Handle non-retryable stops (target reached, max turns, etc.)
+        if check_result and check_result not in (StopReason.PLATEAU, StopReason.REGRESSION):
+            stop_reason = check_result
+            _write_history(history_path, target_config_name, iterations, stop_reason)
+            break
+
+        # Handle plateau/regression when retries are disabled (max_retries=0 or turn==1)
+        if check_result in (StopReason.PLATEAU, StopReason.REGRESSION) and not needs_retry:
+            # Rollback on regression
+            if not no_rollback and delta is not None and delta < 0 and len(iterations) >= 2:
+                prev_backup = backup_root / f"turn-{turn - 1}"
+                if prev_backup.exists():
+                    click.echo(f"  ⚠️  Score decreased — rolling back skill changes from turn {turn - 1}")
+                    _rollback_skill_dirs(skill_paths, plugin_paths, prev_backup)
+            stop_reason = check_result
             _write_history(history_path, target_config_name, iterations, stop_reason)
             break
 
@@ -1031,6 +1580,7 @@ def run_auto_improve(
                 config, project_root, resolver, model_override=imp_model,
                 focus_dimensions=active_focus,
                 research_dir=research_dir,
+                lessons_context=lessons_ctx,
             )
         except Exception as e:
             click.echo(f"  ❌ Improvement suggestions failed: {e}")
@@ -1057,6 +1607,7 @@ def run_auto_improve(
         apply_success = _apply_improvements(
             improvements_path, skill_paths, plugin_paths, model=imp_model,
             focus_dimensions=active_focus,
+            lessons_context=lessons_ctx,
         )
 
         if not apply_success:
@@ -1072,7 +1623,8 @@ def run_auto_improve(
 
     # --- Final validation pass (optional) ---
     if final_runs and final_runs > runs_per_iteration and stop_reason in (
-        StopReason.TARGET_REACHED, StopReason.PLATEAU, StopReason.MAX_TURNS, None
+        StopReason.TARGET_REACHED, StopReason.PLATEAU, StopReason.PLATEAU_EXHAUSTED,
+        StopReason.MAX_TURNS, None
     ):
         click.echo(f"\n{'─' * 60}")
         click.echo(f"  Final validation pass ({final_runs} runs)")
@@ -1122,6 +1674,8 @@ def run_auto_improve(
             "Max turns": max_turns,
             "Target score": target_score,
             "Min improvement": min_improvement,
+            "Max retries": max_retries,
+            "Lessons learned": "disabled" if no_lessons else "enabled",
             "Runs per iteration": runs_per_iteration,
             "Final runs": final_runs or runs_per_iteration,
             "Generation model": config.generation_model,
@@ -1131,6 +1685,7 @@ def run_auto_improve(
             "Focus dimensions": ", ".join(active_focus) if active_focus else "All",
             "Focus mode": "explicit" if focus_dimensions else ("auto-detect lowest " + str(focus_lowest) if focus_lowest else "none"),
         },
+        lessons=lessons if not no_lessons else None,
     )
     click.echo(f"\n  📄 Results report: {results_path}")
 
@@ -1151,6 +1706,11 @@ def run_auto_improve(
         click.echo(f"  Total time: {mins}m {secs}s")
 
     click.echo(f"  History: {history_path}")
+
+    # Save lessons learned
+    if not no_lessons and lessons_path and lessons.lessons:
+        lessons.save(lessons_path)
+        click.echo(f"  📚 Lessons learned: {lessons_path} ({len(lessons.lessons)} lesson(s))")
 
     # Cleanup backups
     if backup_root.exists():

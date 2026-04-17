@@ -23,6 +23,7 @@ def _suggest_for_configuration(
     focus_dimensions: list[str] | None = None,
     idle_timeout: int = 600,
     research_dir: Path | None = None,
+    lessons_context: str | None = None,
 ) -> tuple[str, bool]:
     """Generate improvement suggestions for a single configuration.
 
@@ -50,6 +51,7 @@ def _suggest_for_configuration(
         config, configuration, project_root, skill_paths, plugin_paths,
         focus_dimensions=focus_dimensions,
         research_dir=research_dir,
+        lessons_context=lessons_context,
     )
 
     cmd = ["copilot", "-p", prompt, "--yolo"]
@@ -91,6 +93,7 @@ def run_suggest_improvements(
     model_override: str | None = None,
     focus_dimensions: list[str] | None = None,
     research_dir: Path | None = None,
+    lessons_context: str | None = None,
 ) -> None:
     """Generate improvement suggestions for all configurations marked with suggest_improvements."""
     targets = config.improvement_targets
@@ -137,6 +140,7 @@ def run_suggest_improvements(
                     config, configuration, project_root, resolver, model,
                     focus_dimensions=focus_dimensions,
                     research_dir=research_dir,
+                    lessons_context=lessons_context,
                 )
                 if success:
                     succeeded = True

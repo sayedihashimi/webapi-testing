@@ -82,6 +82,12 @@ These are the other configurations that were evaluated alongside `{{ config_name
 - **{{ config.name }}** — {{ config.label }}
 {% endfor %}
 
+{% if lessons_context %}
+### 6. Lessons from Previous Attempts
+
+{{ lessons_context }}
+{% endif %}
+
 ## Instructions
 
 1. **Read all inputs** listed above thoroughly before generating suggestions.

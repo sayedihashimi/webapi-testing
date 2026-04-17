@@ -428,6 +428,12 @@ def run(
 @click.option("--research-dir", type=click.Path(exists=True, file_okay=False, path_type=Path),
               default=None,
               help="Directory containing best-practice research files to include in improvement prompts.")
+@click.option("--max-retries", type=int, default=3,
+              help="Maximum retry attempts per plateau before giving up (default: 3). Set to 0 to disable retries.")
+@click.option("--lessons-file", type=click.Path(path_type=Path), default=None,
+              help="Path to lessons-learned JSON file for cross-run persistence (default: reports/lessons-learned-{config}.json).")
+@click.option("--no-lessons", is_flag=True,
+              help="Disable lessons learned entirely.")
 @click.pass_context
 def auto_improve(
     ctx: click.Context,
@@ -444,6 +450,9 @@ def auto_improve(
     dimensions: str | None,
     focus_lowest: int | None,
     research_dir: Path | None,
+    max_retries: int,
+    lessons_file: Path | None,
+    no_lessons: bool,
 ) -> None:
     """Iteratively improve a skill/plugin through automated evaluation loops.
 
@@ -457,6 +466,10 @@ def auto_improve(
     auto-select the N weakest dimensions after the first evaluation.
 
     Use --research-dir to include domain-specific best practices in prompts.
+
+    When improvement stalls (plateau or regression), the loop will retry up to
+    --max-retries times with lessons learned from failed attempts. Set
+    --max-retries 0 to restore the old stop-on-plateau behavior.
     """
     from skill_eval.auto_improve import run_auto_improve
 
@@ -487,6 +500,9 @@ def auto_improve(
         focus_dimensions=focus_dims,
         focus_lowest=focus_lowest,
         research_dir=effective_research_dir,
+        max_retries=max_retries,
+        lessons_file=lessons_file,
+        no_lessons=no_lessons,
     )
 
 

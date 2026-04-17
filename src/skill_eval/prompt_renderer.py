@@ -449,6 +449,7 @@ def render_improvement_prompt(
     plugin_paths: list[Path],
     focus_dimensions: list[str] | None = None,
     research_dir: Path | None = None,
+    lessons_context: str | None = None,
 ) -> str:
     """Render the improvement suggestions prompt for a specific configuration.
 
@@ -566,4 +567,5 @@ def render_improvement_prompt(
         has_plugins=has_plugins,
         best_practices_content=best_practices_content,
         custom_research_content=custom_research_content,
+        lessons_context=lessons_context or "",
     )
