@@ -12,7 +12,6 @@ from __future__ import annotations
 import json
 import os
 import platform
-import random
 import shutil
 import subprocess
 import sys
@@ -593,6 +592,7 @@ def run_generate(
     configurations: list[str] | None = None,
     resume: bool = False,
     resolver: SourceResolver | None = None,
+    scenario_offset: int = 0,
 ) -> None:
     """Generate code for each configuration defined in the config.
 
@@ -610,6 +610,9 @@ def run_generate(
                         If None, runs all configurations.
         resume: If True, skip runs where output already exists.
         resolver: Optional source resolver for remote skill sources.
+        scenario_offset: Added to run_id for round-robin scenario
+                         selection.  Auto-improve passes the turn number
+                         so that each iteration cycles to the next scenario.
     """
     configs_to_run = config.configurations
     if configurations:
@@ -642,7 +645,7 @@ def run_generate(
         click.echo(f"\n{'=' * 60}")
         click.echo(f"Generating: {label}")
         click.echo(f"Runs:       {num_runs}")
-        click.echo(f"Scenarios:  {total_scenarios} available (1 randomly selected per run)")
+        click.echo(f"Scenarios:  {total_scenarios} available (1 selected per run, round-robin)")
         click.echo(f"{'=' * 60}")
 
         # Snapshot the global skill_directories so we can restore later.
@@ -698,8 +701,8 @@ def run_generate(
                     click.echo(f"\n  ⏭️  Run {run_id}/{num_runs} — skipping (output exists)")
                     continue
 
-                # Select one scenario for this run (random for coverage)
-                scenario = random.choice(config.scenarios)
+                # Select one scenario for this run (round-robin for coverage)
+                scenario = config.scenarios[(scenario_offset + run_id - 1) % total_scenarios]
 
                 click.echo(f"\n  --- Run {run_id}/{num_runs} → {scenario.name} ---")
 

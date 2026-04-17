@@ -927,7 +927,8 @@ def run_auto_improve(
 
         click.echo(f"\n  📦 Generating code ({runs_per_iteration} run(s))...")
         try:
-            run_generate(config, project_root, resume=False, resolver=resolver)
+            run_generate(config, project_root, resume=False, resolver=resolver,
+                        scenario_offset=turn - 1)
         except Exception as e:
             click.echo(f"  ❌ Generate failed: {e}")
             stop_reason = StopReason.PIPELINE_FAILED
@@ -1081,7 +1082,8 @@ def run_auto_improve(
         config.runs = final_runs
 
         try:
-            run_generate(config, project_root, resume=False, resolver=resolver)
+            run_generate(config, project_root, resume=False, resolver=resolver,
+                        scenario_offset=turn)
             if config.verification is not None:
                 run_verify(config, project_root)
             run_analyze(config, project_root)
