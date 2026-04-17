@@ -22,6 +22,7 @@ def _suggest_for_configuration(
     model: str,
     focus_dimensions: list[str] | None = None,
     idle_timeout: int = 600,
+    research_dir: Path | None = None,
 ) -> tuple[str, bool]:
     """Generate improvement suggestions for a single configuration.
 
@@ -48,6 +49,7 @@ def _suggest_for_configuration(
     prompt = render_improvement_prompt(
         config, configuration, project_root, skill_paths, plugin_paths,
         focus_dimensions=focus_dimensions,
+        research_dir=research_dir,
     )
 
     cmd = ["copilot", "-p", prompt, "--yolo"]
@@ -88,6 +90,7 @@ def run_suggest_improvements(
     resolver: SourceResolver,
     model_override: str | None = None,
     focus_dimensions: list[str] | None = None,
+    research_dir: Path | None = None,
 ) -> None:
     """Generate improvement suggestions for all configurations marked with suggest_improvements."""
     targets = config.improvement_targets
@@ -113,6 +116,8 @@ def run_suggest_improvements(
     click.echo(f"{'=' * 60}")
     click.echo(f"  Targets: {', '.join(t.name for t in targets)}")
     click.echo(f"  Model:   {model}")
+    if research_dir:
+        click.echo(f"  Research: {research_dir}")
 
     max_retries = 2
     for configuration in targets:
@@ -131,6 +136,7 @@ def run_suggest_improvements(
                 _, success = _suggest_for_configuration(
                     config, configuration, project_root, resolver, model,
                     focus_dimensions=focus_dimensions,
+                    research_dir=research_dir,
                 )
                 if success:
                     succeeded = True

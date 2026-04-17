@@ -277,17 +277,51 @@ def _apply_improvements(
             f"and do not risk regressing the focused dimensions.\n"
         )
 
+    # Determine if any paths are plugins (have plugin.json manifests)
+    has_plugins = any(
+        any((p / loc).is_file() for loc in [
+            "plugin.json", ".plugin/plugin.json",
+            ".github/plugin/plugin.json", ".claude-plugin/plugin.json",
+        ])
+        for p in plugin_paths
+        if p.is_dir()
+    )
+
+    if has_plugins:
+        file_rules = (
+            f"Rules:\n"
+            f"- You may modify existing files within the directories listed above.\n"
+            f"- You may CREATE new files and subdirectories within those directories\n"
+            f"  (e.g., new skills in skills/, new agents in agents/, hooks.json, .mcp.json).\n"
+            f"- Do NOT delete any existing files.\n"
+            f"- Do NOT create files outside those directories.\n"
+            f"- When creating new SKILL.md files, include proper YAML frontmatter with\n"
+            f"  `name` and `description` fields.\n"
+            f"- When creating new agent files, include proper YAML frontmatter with\n"
+            f"  `name`, `description`, and appropriate tool restrictions.\n"
+            f"- When updating plugin.json, preserve existing fields and only add/modify\n"
+            f"  what the improvement suggestions specify.\n"
+            f"- Make the concrete changes described in the improvements file.\n"
+            f"- If a suggestion is vague or unclear, skip it rather than guessing.\n"
+            f"- After applying changes, briefly summarize what you changed\n"
+            f"  (including any new files created)."
+        )
+    else:
+        file_rules = (
+            f"Rules:\n"
+            f"- Only modify files within the directories listed above.\n"
+            f"- Do NOT delete any files.\n"
+            f"- Do NOT create files outside those directories.\n"
+            f"- Make the concrete changes described in the improvements file.\n"
+            f"- If a suggestion is vague or unclear, skip it rather than guessing.\n"
+            f"- After applying changes, briefly summarize what you changed."
+        )
+
     prompt = (
         f"Read the improvement suggestions in the file at {improvements_path}. "
         f"Apply the suggested changes to the skill/plugin source files located at:\n"
         f"{paths_str}\n\n"
-        f"Rules:\n"
-        f"- Only modify files within the directories listed above.\n"
-        f"- Do NOT delete any files.\n"
-        f"- Do NOT create files outside those directories.\n"
-        f"- Make the concrete changes described in the improvements file.\n"
-        f"- If a suggestion is vague or unclear, skip it rather than guessing.\n"
-        f"- After applying changes, briefly summarize what you changed."
+        f"{file_rules}"
         f"{focus_directive}"
     )
 
@@ -768,6 +802,7 @@ def run_auto_improve(
     no_rollback: bool = False,
     focus_dimensions: list[str] | None = None,
     focus_lowest: int | None = None,
+    research_dir: Path | None = None,
 ) -> None:
     """Run the autonomous improvement loop.
 
@@ -775,6 +810,9 @@ def run_auto_improve(
     conditions target those specific dimensions.  When *focus_lowest* is
     provided instead, the N lowest-scoring dimensions are auto-selected
     after the first evaluation turn.
+
+    When *research_dir* is provided, best-practice files from that directory
+    are included in the improvement prompt context.
     """
     from skill_eval.analyze import run_analyze
     from skill_eval.generate import run_generate
@@ -987,6 +1025,7 @@ def run_auto_improve(
             run_suggest_improvements(
                 config, project_root, resolver, model_override=imp_model,
                 focus_dimensions=active_focus,
+                research_dir=research_dir,
             )
         except Exception as e:
             click.echo(f"  ❌ Improvement suggestions failed: {e}")

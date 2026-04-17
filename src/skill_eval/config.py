@@ -190,6 +190,7 @@ class EvalConfig(BaseModel):
     generation_model: str = "claude-opus-4.6"
     analysis_model: str = "gpt-5.3-codex"
     improvement_model: str | None = None
+    research_dir: str | None = None  # Path to research/best-practices files
 
     @field_validator("eval_type")
     @classmethod

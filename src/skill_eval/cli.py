@@ -231,13 +231,19 @@ def analyze(ctx: click.Context, analysis_model: str | None) -> None:
 @main.command("suggest-improvements")
 @click.option("--model", "-m", type=str, default=None,
               help="AI model for improvement suggestions (overrides eval.yaml improvement_model).")
+@click.option("--research-dir", type=click.Path(exists=True, file_okay=False, path_type=Path),
+              default=None,
+              help="Directory containing best-practice research files to include in the prompt.")
 @click.pass_context
-def suggest_improvements(ctx: click.Context, model: str | None) -> None:
+def suggest_improvements(ctx: click.Context, model: str | None, research_dir: Path | None) -> None:
     """Generate improvement suggestions for skills/plugins.
 
     Analyzes evaluation results and skill/plugin source files to produce
     actionable improvement suggestions for configurations marked with
     suggest_improvements: true in eval.yaml.
+
+    Includes plugin structure analysis and best-practices reference automatically.
+    Use --research-dir to include additional domain-specific research.
 
     Requires that the analysis step has already been run.
     """
@@ -245,7 +251,15 @@ def suggest_improvements(ctx: click.Context, model: str | None) -> None:
 
     config = _load(ctx)
     resolver = _build_resolver(ctx)
-    run_suggest_improvements(config, ctx.obj["project_root"], resolver, model_override=model)
+    # Resolve research dir from CLI option, config, or None
+    effective_research_dir = research_dir
+    if effective_research_dir is None and config.research_dir:
+        effective_research_dir = Path(config.research_dir)
+    run_suggest_improvements(
+        config, ctx.obj["project_root"], resolver,
+        model_override=model,
+        research_dir=effective_research_dir,
+    )
 
 
 @main.command()
@@ -268,6 +282,9 @@ def suggest_improvements(ctx: click.Context, model: str | None) -> None:
               help="AI model for analysis (overrides eval.yaml analysis_model).")
 @click.option("--improvement-model", type=str, default=None,
               help="AI model for improvement suggestions (overrides eval.yaml improvement_model).")
+@click.option("--research-dir", type=click.Path(exists=True, file_okay=False, path_type=Path),
+              default=None,
+              help="Directory containing best-practice research files to include in improvement prompts.")
 @click.pass_context
 def run(
     ctx: click.Context,
@@ -281,6 +298,7 @@ def run(
     generation_model: str | None,
     analysis_model: str | None,
     improvement_model: str | None,
+    research_dir: Path | None,
 ) -> None:
     """Run the full evaluation pipeline: generate → verify → analyze → suggest improvements.
 
@@ -348,8 +366,12 @@ def run(
     if has_improvement_targets and not skip_improvements:
         click.echo(f"\n💡 Step 4/{total_steps}: Generating improvement suggestions...")
         t0 = _time.monotonic()
+        effective_research_dir = research_dir
+        if effective_research_dir is None and config.research_dir:
+            effective_research_dir = Path(config.research_dir)
         run_suggest_improvements(
-            config, project_root, resolver, model_override=improvement_model
+            config, project_root, resolver, model_override=improvement_model,
+            research_dir=effective_research_dir,
         )
         timings["improvements"] = _time.monotonic() - t0
     elif has_improvement_targets and skip_improvements:
@@ -403,6 +425,9 @@ def run(
               help="Comma-separated dimension names to focus improvement on (e.g., 'Error Handling,Performance').")
 @click.option("--focus-lowest", type=int, default=None,
               help="Auto-select the N lowest-scoring dimensions after first evaluation.")
+@click.option("--research-dir", type=click.Path(exists=True, file_okay=False, path_type=Path),
+              default=None,
+              help="Directory containing best-practice research files to include in improvement prompts.")
 @click.pass_context
 def auto_improve(
     ctx: click.Context,
@@ -418,6 +443,7 @@ def auto_improve(
     no_rollback: bool,
     dimensions: str | None,
     focus_lowest: int | None,
+    research_dir: Path | None,
 ) -> None:
     """Iteratively improve a skill/plugin through automated evaluation loops.
 
@@ -429,6 +455,8 @@ def auto_improve(
 
     Use --dimensions to focus on specific dimensions, or --focus-lowest to
     auto-select the N weakest dimensions after the first evaluation.
+
+    Use --research-dir to include domain-specific best practices in prompts.
     """
     from skill_eval.auto_improve import run_auto_improve
 
@@ -439,6 +467,9 @@ def auto_improve(
 
     config = _load(ctx)
     resolver = _build_resolver(ctx)
+    effective_research_dir = research_dir
+    if effective_research_dir is None and config.research_dir:
+        effective_research_dir = Path(config.research_dir)
     run_auto_improve(
         config,
         ctx.obj["project_root"],
@@ -455,6 +486,7 @@ def auto_improve(
         no_rollback=no_rollback,
         focus_dimensions=focus_dims,
         focus_lowest=focus_lowest,
+        research_dir=effective_research_dir,
     )
 
 

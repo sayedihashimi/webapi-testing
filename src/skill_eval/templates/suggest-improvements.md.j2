@@ -38,9 +38,35 @@ When referencing these files in the report output, use these shorter display pat
 {% endfor %}
 
 Pay special attention to:
-- `instructions.md` or similar instruction files — these are the core of the skill
-- Any configuration files, templates, or example code included in the skill
-- README or documentation that describes the skill's intended behavior
+- `SKILL.md` files — these are the core of each skill
+- `plugin.json` or `.claude-plugin/plugin.json` — the plugin manifest
+- Agent definitions in `agents/` — specialized AI personas
+- Hook configurations in `hooks/hooks.json` — event-driven automation
+- MCP server configs in `.mcp.json` — external tool integration
+- Any configuration files, templates, or example code included
+- README or documentation that describes intended behavior
+
+{% if plugin_analyses %}
+### 2a. Plugin Structure Analysis
+
+The following automated analysis shows the current structure and potential gaps in each plugin:
+
+{% for analysis in plugin_analyses %}
+{{ analysis }}
+
+{% endfor %}
+{% endif %}
+
+{% if skill_analyses %}
+### 2b. Skill Structure Analysis
+
+The following automated analysis shows the current structure of each standalone skill:
+
+{% for analysis in skill_analyses %}
+{{ analysis }}
+
+{% endfor %}
+{% endif %}
 
 ### 3. Verification Data
 
@@ -82,6 +108,23 @@ These are the other configurations that were evaluated alongside `{{ config_name
 - **{{ config.name }}** — {{ config.label }}
 {% endfor %}
 
+{% if best_practices_content %}
+### 6. Best Practices Reference
+
+Use the following best practices to inform your suggestions. When you identify a gap
+between the current skill/plugin and these best practices, include it as a suggestion.
+
+{{ best_practices_content }}
+{% endif %}
+
+{% if custom_research_content %}
+### 7. Additional Research Context
+
+The following research materials provide domain-specific best practices:
+
+{{ custom_research_content }}
+{% endif %}
+
 ## Instructions
 
 1. **Read all inputs** listed above thoroughly before generating suggestions.
@@ -97,22 +140,52 @@ These are the other configurations that were evaluated alongside `{{ config_name
    - Conflicting with other instructions?
    - Not specific enough?
 
-4. **Generate improvement suggestions** organized by priority (highest-impact first). For each suggestion:
+{% if has_plugins %}
+4. **Evaluate plugin structure**: For each plugin, assess:
+   - **Manifest quality**: Does `plugin.json` have a clear description, version, and keywords?
+   - **Skill coverage**: Are there enough skills to cover the plugin's domain? Should new skills be added?
+   - **Agent opportunities**: Would specialized agents improve output quality for specific tasks?
+   - **Hook opportunities**: Would hooks (PreToolUse, PostToolUse, SessionStart) add guardrails or automation?
+   - **Missing components**: Are there gaps in the plugin's component set based on the structure analysis above?
+   - **Skill quality**: Do individual skills follow best practices (description quality, instruction clarity, context efficiency)?
+{% endif %}
+
+{{ "5" if has_plugins else "4" }}. **Generate improvement suggestions** organized by priority (highest-impact first).
+
+{% if has_plugins %}
+   Organize suggestions into two categories:
+
+   **A. Plugin-Level Improvements** — structural changes to the plugin itself:
+   - New skills that should be added to address evaluation gaps
+   - New agents that would improve specific task areas
+   - Hooks that would enforce quality patterns
+   - Manifest improvements (description, versioning, keywords)
+   - Documentation improvements (README, examples)
+
+   **B. Skill-Level Improvements** — changes to existing skill content:
+   - Instruction improvements within existing SKILL.md files
+   - Description quality improvements in frontmatter
+   - Supporting file additions (reference/, examples/)
+   - Content restructuring for context efficiency
+{% endif %}
+
+   For each suggestion:
    - **Dimension affected**: Which evaluation dimension(s) this improves
    - **Current behavior**: What the skill currently produces (with evidence from the analysis)
    - **Desired behavior**: What the skill should produce instead
    - **Specific changes**: For each file being modified, show the **existing content** (before) and the **proposed content** (after) side by side. This gives readers full context to evaluate whether the change makes sense.
    - **Expected impact**: Estimated score improvement and tier affected
 
-5. **Include before/after snippets**: For every suggested change, you MUST show:
+{{ "6" if has_plugins else "5" }}. **Include before/after snippets**: For every suggested change, you MUST show:
    - The **exact existing text** from the skill/plugin source file (the "before")
    - The **proposed replacement text** (the "after")
    - Use clearly labeled fenced code blocks: `**Before** (file-path):` and `**After** (file-path):`
    - Use the short display paths (not full absolute paths) when labeling files in before/after blocks
    - For new content being added (not replacing existing text), show the surrounding context where it should be inserted, then the after block with the new content in place.
+   - **For entirely new files** (new skills, agents, hooks), show the complete proposed file content with a label like `**New File** (path/to/new/file.md):`
    - This is critical — it lets the reader understand what exists today and judge whether the proposed change is appropriate.
 
-6. **Consider trade-offs**: Note if any suggested change might negatively impact other dimensions.
+{{ "7" if has_plugins else "6" }}. **Consider trade-offs**: Note if any suggested change might negatively impact other dimensions.
 
 ## Output
 
@@ -123,13 +196,46 @@ Write a Markdown file to `{{ reports_directory }}/{{ improvements_file }}` with 
 
 ## Executive Summary
 Brief overview of the skill's current performance and top 3-5 improvement opportunities.
+{% if has_plugins %}
+Note whether improvements are primarily at the plugin structure level or individual skill level.
+{% endif %}
 
 ## Current Performance Snapshot
 Table showing the skill's scores across all dimensions, highlighting where it trails.
 
+{% if has_plugins %}
+## Plugin Structure Assessment
+For each plugin, summarize:
+- Current component inventory (skills, agents, hooks, MCP)
+- Manifest quality assessment
+- Key structural gaps identified
+{% endif %}
+
 ## Improvement Suggestions
 
-### 1. [Highest Priority Suggestion Title]
+{% if has_plugins %}
+### Plugin-Level Improvements
+
+#### P1. [Highest Priority Plugin Improvement]
+- **Type**: New skill / New agent / New hook / Manifest fix / Documentation
+- **Dimensions affected**: ...
+- **Problem**: What structural gap exists
+- **Suggested changes**:
+
+  **New File** (`path/to/new/file.md`):
+  ```md
+  [complete content for the new file]
+  ```
+
+- **Expected impact**: ...
+
+#### P2. [Next Plugin Improvement]
+...
+
+### Skill-Level Improvements
+{% endif %}
+
+### {{ "S" if has_plugins else "" }}1. [Highest Priority Suggestion Title]
 - **Dimensions affected**: ...
 - **Current score → Target score**: ...
 - **Problem**: What's happening now
@@ -148,14 +254,17 @@ Table showing the skill's scores across all dimensions, highlighting where it tr
 
 - **Expected impact**: ...
 
-### 2. [Next Priority Suggestion]
+### {{ "S" if has_plugins else "" }}2. [Next Priority Suggestion]
 ...
 
 ## Summary of Recommended Changes
 A consolidated list of all file changes needed, organized by file.
+{% if has_plugins %}
+Separate new files from modified files.
+{% endif %}
 
 ## Risks and Trade-offs
 Any potential negative impacts of the suggested changes.
 ```
 
-Be specific, actionable, and grounded in the actual evaluation data. Do not suggest generic best practices — every suggestion must be tied to observed evaluation results.
+Be specific, actionable, and grounded in the actual evaluation data. Do not suggest generic best practices — every suggestion must be tied to observed evaluation results{% if best_practices_content %} or structural gaps identified in the plugin/skill structure analysis{% endif %}.
