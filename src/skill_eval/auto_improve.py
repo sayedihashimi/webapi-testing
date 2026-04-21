@@ -398,6 +398,152 @@ def _rollback_skill_dirs(
 
 
 # ---------------------------------------------------------------------------
+# Git-based best-score tracking
+# ---------------------------------------------------------------------------
+
+def _find_git_root(paths: list[Path]) -> Path | None:
+    """Return the git repository root shared by *paths*, or None."""
+    for p in paths:
+        d = p if p.is_dir() else p.parent
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                cwd=str(d),
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                return Path(result.stdout.strip())
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+    return None
+
+
+def _git_get_head_sha(git_root: Path) -> str | None:
+    """Return the current HEAD SHA, or None on failure."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+def _git_has_changes(git_root: Path, paths: list[Path]) -> bool:
+    """Return True if there are staged or unstaged changes in *paths*."""
+    rel_paths = []
+    for p in paths:
+        try:
+            rel_paths.append(str(p.relative_to(git_root)))
+        except ValueError:
+            rel_paths.append(str(p))
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain", "--"] + rel_paths,
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        return bool(result.stdout.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def _git_commit_state(
+    git_root: Path,
+    paths: list[Path],
+    message: str,
+) -> str | None:
+    """Stage *paths* and commit with *message*. Returns the new SHA or None."""
+    rel_paths = []
+    for p in paths:
+        try:
+            rel_paths.append(str(p.relative_to(git_root)))
+        except ValueError:
+            rel_paths.append(str(p))
+    try:
+        # Stage changes (including untracked files)
+        subprocess.run(
+            ["git", "add", "--all", "--"] + rel_paths,
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        # Commit (--allow-empty in case nothing changed)
+        result = subprocess.run(
+            ["git", "commit", "-m", message, "--allow-empty"],
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0:
+            return _git_get_head_sha(git_root)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+def _git_restore_to_commit(
+    git_root: Path,
+    paths: list[Path],
+    sha: str,
+) -> bool:
+    """Restore *paths* to their state at *sha* and commit the result.
+
+    Uses ``git checkout <sha> -- <paths>`` so only the skill/plugin
+    directories are affected — the rest of the working tree is untouched.
+    Returns True on success.
+    """
+    rel_paths = []
+    for p in paths:
+        try:
+            rel_paths.append(str(p.relative_to(git_root)))
+        except ValueError:
+            rel_paths.append(str(p))
+    try:
+        result = subprocess.run(
+            ["git", "checkout", sha, "--"] + rel_paths,
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            return False
+        # Stage and commit the restoration
+        subprocess.run(
+            ["git", "add", "--all", "--"] + rel_paths,
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        subprocess.run(
+            ["git", "commit", "-m",
+             f"auto-improve: restore best scoring version from {sha[:8]}",
+             "--allow-empty"],
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+# ---------------------------------------------------------------------------
 # Applying improvements
 # ---------------------------------------------------------------------------
 
@@ -911,18 +1057,20 @@ def _write_results_report(
         last = eval_iterations[-1].get("weighted_average")
 
         # When rollback occurred, the effective final score is the best
-        # score before the regression (the state we rolled back to).
+        # score across all iterations (the state we rolled back to).
         effective = last
         rolled_back = False
         if (
             rollback_enabled
-            and stop_reason in (StopReason.PLATEAU_EXHAUSTED, StopReason.PLATEAU, StopReason.REGRESSION)
             and len(eval_iterations) >= 2
             and last is not None
         ):
-            prev = eval_iterations[-2].get("weighted_average")
-            if prev is not None and prev > last:
-                effective = prev
+            best_iter_score = max(
+                (it.get("weighted_average", 0) for it in eval_iterations),
+                default=last,
+            )
+            if best_iter_score > last:
+                effective = best_iter_score
                 rolled_back = True
 
         if first is not None and last is not None:
@@ -969,7 +1117,7 @@ def _write_results_report(
     lines.append("")
 
     # Per-dimension analysis
-    _write_dimension_analysis(lines, iterations)
+    _write_dimension_analysis(lines, iterations, settings=settings, stop_reason=stop_reason)
 
     # Iteration details
     _write_iteration_details(lines, iterations)
@@ -1007,14 +1155,32 @@ def _write_results_report(
     report_path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def _write_dimension_analysis(lines: list[str], iterations: list[dict]) -> None:
+def _write_dimension_analysis(
+    lines: list[str],
+    iterations: list[dict],
+    settings: dict | None = None,
+    stop_reason: str | None = None,
+) -> None:
     """Analyze per-dimension score changes across iterations."""
     eval_iters = [i for i in iterations if not i.get("is_final_validation")]
     if len(eval_iters) < 1:
         return
 
     first_dims = eval_iters[0].get("per_dimension", {})
-    last_dims = eval_iters[-1].get("per_dimension", {})
+
+    # When rollback is enabled and the pipeline stopped due to regression,
+    # use the best-scoring iteration's dimensions as the "end" state (since
+    # the files have been restored to that version).
+    rollback_enabled = (settings or {}).get("Rollback enabled", False)
+    use_best = (
+        rollback_enabled
+        and len(eval_iters) >= 2
+    )
+    if use_best:
+        best_iter = max(eval_iters, key=lambda it: it.get("weighted_average", 0))
+        last_dims = best_iter.get("per_dimension", {})
+    else:
+        last_dims = eval_iters[-1].get("per_dimension", {})
 
     if not first_dims and not last_dims:
         return
@@ -1347,6 +1513,31 @@ def run_auto_improve(
 
     pipeline_start = time.monotonic()
 
+    # Best-score tracking (filesystem backups + optional git)
+    all_managed_paths = skill_paths + plugin_paths
+    best_score: float | None = None
+    best_backup_label: str | None = None  # which backup dir has the best state
+    best_turn: int | None = None
+
+    # Git-based tracking (secondary mechanism)
+    git_root = _find_git_root(all_managed_paths) if not no_rollback else None
+    best_commit: str | None = None
+
+    if not no_rollback:
+        if git_root:
+            click.echo(f"  Git repo detected: {git_root}")
+            click.echo(f"  📌 Will track best-scoring version via git + filesystem backups")
+            # Commit any uncommitted state as the baseline
+            if _git_has_changes(git_root, all_managed_paths):
+                sha = _git_commit_state(
+                    git_root, all_managed_paths,
+                    "auto-improve: baseline state before auto-improve",
+                )
+                if sha:
+                    click.echo(f"  📌 Baseline committed: {sha[:8]}")
+        else:
+            click.echo(f"  📌 Will track best-scoring version via filesystem backups")
+
     for turn in range(1, max_turns + 1):
         turn_start = time.monotonic()
         click.echo(f"\n{'─' * 60}")
@@ -1461,6 +1652,43 @@ def run_auto_improve(
             click.echo(f"  🎯 Focused score: {focused_score:.2f}{f_delta_str}")
 
         iterations.append(iteration_record)
+
+        # Track best-scoring version (filesystem backup + optional git)
+        if not no_rollback and (best_score is None or weighted_avg > best_score):
+            try:
+                # Snapshot the current state as the best
+                best_label = f"best-turn-{turn}"
+                # Clear temp dir if it exists from a previous snapshot
+                turn0_dir = backup_root / "turn-0"
+                if turn0_dir.exists():
+                    shutil.rmtree(turn0_dir)
+                _snapshot_skill_dirs(skill_paths, plugin_paths, 0, backup_root)
+                # Rename the turn-0 backup to best-turn-N
+                best_dir = backup_root / best_label
+                if turn0_dir.exists():
+                    if best_dir.exists():
+                        shutil.rmtree(best_dir)
+                    turn0_dir.rename(best_dir)
+
+                best_score = weighted_avg
+                best_backup_label = best_label
+                best_turn = turn
+                click.echo(f"  📌 New best score: {weighted_avg:.2f} (turn {turn})")
+
+                # Also commit via git if available
+                if git_root:
+                    sha = _git_commit_state(
+                        git_root, all_managed_paths,
+                        f"auto-improve: turn {turn} score {weighted_avg:.2f}",
+                    )
+                    if sha:
+                        best_commit = sha
+                        click.echo(f"  📌 Best score committed to git: {sha[:8]}")
+            except Exception as e:
+                click.echo(f"  ⚠️  Best-score snapshot failed: {e}")
+                # Still track the score even if snapshot failed
+                best_score = weighted_avg
+                best_turn = turn
 
         # --- Step 3: Check for plateau/regression and retry ---
         check_result = _check_stop(
@@ -1629,6 +1857,40 @@ def run_auto_improve(
                     weighted_avg = retry_avg
                     per_dim = retry_dim
                     retry_succeeded = True
+
+                    # Track best-scoring version (retry success)
+                    if not no_rollback and (best_score is None or retry_avg > best_score):
+                        try:
+                            best_label = f"best-turn-{turn}-retry-{retry_num}"
+                            # Clear temp dir if it exists from a previous snapshot
+                            turn0_dir = backup_root / "turn-0"
+                            if turn0_dir.exists():
+                                shutil.rmtree(turn0_dir)
+                            _snapshot_skill_dirs(skill_paths, plugin_paths, 0, backup_root)
+                            best_dir = backup_root / best_label
+                            if turn0_dir.exists():
+                                if best_dir.exists():
+                                    shutil.rmtree(best_dir)
+                                turn0_dir.rename(best_dir)
+
+                            best_score = retry_avg
+                            best_backup_label = best_label
+                            best_turn = turn
+                            click.echo(f"  📌 New best score: {retry_avg:.2f} (turn {turn}, retry {retry_num})")
+
+                            if git_root:
+                                sha = _git_commit_state(
+                                    git_root, all_managed_paths,
+                                    f"auto-improve: turn {turn} retry {retry_num} score {retry_avg:.2f}",
+                                )
+                                if sha:
+                                    best_commit = sha
+                                    click.echo(f"  📌 Best score committed to git: {sha[:8]}")
+                        except Exception as e:
+                            click.echo(f"  ⚠️  Best-score snapshot failed: {e}")
+                            best_score = retry_avg
+                            best_turn = turn
+
                     break
                 else:
                     click.echo(f"  ⚠️  Retry {retry_num} didn't meet threshold ({retry_delta:.2f} < {min_improvement})")
@@ -1771,6 +2033,47 @@ def run_auto_improve(
                 })
         except Exception as e:
             click.echo(f"  ⚠️  Final validation failed: {e}")
+
+    # --- Restore to best-scoring version ---
+    if not no_rollback and best_score is not None and best_backup_label is not None:
+        eval_iters = [i for i in iterations if not i.get("is_final_validation")]
+        current_score = eval_iters[-1].get("weighted_average") if eval_iters else None
+
+        if current_score is not None and best_score > current_score:
+            click.echo(f"\n  🔄 Restoring to best-scoring version (turn {best_turn}, "
+                        f"score {best_score:.2f} vs current {current_score:.2f})")
+
+            restored = False
+
+            # Primary: filesystem backup
+            best_backup_dir = backup_root / best_backup_label
+            if best_backup_dir.exists():
+                _rollback_skill_dirs(skill_paths, plugin_paths, best_backup_dir)
+                click.echo(f"  ✅ Restored skill/plugin files from backup: {best_backup_label}")
+                restored = True
+
+                # Also commit the restored state to git
+                if git_root:
+                    sha = _git_commit_state(
+                        git_root, all_managed_paths,
+                        f"auto-improve: restore best scoring version "
+                        f"(turn {best_turn}, score {best_score:.2f})",
+                    )
+                    if sha:
+                        click.echo(f"  📌 Restored state committed to git: {sha[:8]}")
+
+            # Fallback: git restore
+            if not restored and git_root and best_commit:
+                restored = _git_restore_to_commit(git_root, all_managed_paths, best_commit)
+                if restored:
+                    click.echo(f"  ✅ Restored skill/plugin files from git: {best_commit[:8]}")
+
+            if not restored:
+                click.echo(f"  ⚠️  Could not restore best-scoring version — "
+                            f"files may not reflect best score")
+        else:
+            click.echo(f"\n  ✅ Current version is the best-scoring version "
+                        f"(score {best_score:.2f}, turn {best_turn})")
 
     total_time = time.monotonic() - pipeline_start
     mins, secs = divmod(int(total_time), 60)
